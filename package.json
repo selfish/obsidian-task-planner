@@ -1,0 +1,46 @@
+{
+	"name": "obsidian-task-horizon",
+	"version": "1.0.0",
+	"description": "Professional task management for Obsidian with intelligent planning and workload management",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"deploy": "cp manifest.json main.js styles.css \"$OBSIDIAN_PATH/.obsidian/plugins/task-horizon\" && echo 'Deployed to $OBSIDIAN_PATH/.obsidian/plugins/task-horizon'",
+		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"test": "jest",
+		"test:watch": "jest --watch",
+		"test:coverage": "jest --coverage"
+	},
+	"keywords": ["obsidian", "task-management", "planning", "productivity", "todo"],
+	"author": "selfish",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/luxon": "^2.3.0",
+		"@types/node": "^16.11.6",
+		"@typescript-eslint/eslint-plugin": "^5.2.0",
+		"@typescript-eslint/parser": "^5.2.0",
+		"builtin-modules": "^3.2.0",
+		"esbuild": "0.13.12",
+		"tslib": "2.3.1",
+		"typescript": "4.4.4"
+	},
+	"dependencies": {
+		"@popperjs/core": "^2.11.6",
+		"@types/react": "^18.2.0",
+		"@types/react-dom": "^18.2.1",
+		"chrono-node": "^2.3.8",
+		"luxon": "^2.3.1",
+		"obsidian": "^1.0.0",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/selfish/obsidian-task-horizon.git"
+	},
+	"bugs": {
+		"url": "https://github.com/selfish/obsidian-task-horizon/issues"
+	},
+	"homepage": "https://github.com/selfish/obsidian-task-horizon#readme"
+}
