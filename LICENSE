@@ -16,7 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
 =========================================================================
-                           ATTRIBUTION
+                               ATTRIBUTION
 =========================================================================
 This software is a fork of "Proletarian Wizard - Task Manager for Obsidian"
 Copyright (C) cfe84 and contributors
@@ -27,30 +27,9 @@ As required by the GPL v2 license, this derivative work is also licensed
 under GPL v2, and all source code is freely available.
 
 =========================================================================
-
-
-
+                       GNU GENERAL PUBLIC LICENSE
+                          Version 2, June 1991
 =========================================================================
-                        TASK PLANNER FOR OBSIDIAN
-=========================================================================
-
-Copyright (C) 2026 Selfish
-https://github.com/selfish/obsidian-task-planner
-
-ATTRIBUTION:
-This is a fork of "Proletarian Wizard" by cfe84 and contributors.
-Original project: https://github.com/cfe84/obsidian-pw
-
-Task Planner is licensed under GNU General Public License v2.0, as
-required by the GPL v2 license of the original work.
-
-The codebase has evolved significantly since the fork. For detailed
-attribution of inherited components and our contributions, see CREDITS.md
-
-=========================================================================
-
-                    GNU GENERAL PUBLIC LICENSE
-                       Version 2, June 1991
 
  Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA

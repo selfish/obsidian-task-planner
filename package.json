@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-task-planner",
 	"version": "1.0.0",
-	"description": "Professional task management for Obsidian with intelligent planning and workload management",
+	"description": "I came to this: Obsidian task management and planner with drag-and-drop task planning, Today focus, backlog, overdue, and weekly time buckets.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -21,7 +21,7 @@
 		"@typescript-eslint/eslint-plugin": "^6.0.0",
 		"@typescript-eslint/parser": "^6.0.0",
 		"builtin-modules": "^3.3.0",
-		"esbuild": "^0.19.0",
+		"esbuild": "0.25.0",
 		"tslib": "^2.6.0",
 		"typescript": "^5.3.0"
 	},
