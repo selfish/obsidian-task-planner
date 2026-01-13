@@ -11,16 +11,16 @@ export enum TodoStatus {
 }
 
 export interface TodoItem<TFile> {
-  status: TodoStatus
-  text: string
-  file: IFile<TFile>
-  folderType?: string
-  project?: string
-  attributes?: IDictionary<string | boolean>
-  line?: number
-  subtasks?: TodoItem<TFile>[]
+  status: TodoStatus;
+  text: string;
+  file: IFile<TFile>;
+  folderType?: string;
+  project?: string;
+  attributes?: IDictionary<string | boolean>;
+  line?: number;
+  subtasks?: TodoItem<TFile>[];
 }
 
-export function getTodoId<T>(todo: TodoItem<T>) {
-  return todo.file.id + "-" + (todo.line || 0) + "-" + todo.text
+export function getTodoId<T>(todo: TodoItem<T>): string {
+  return todo.file.id + "-" + (todo.line || 0) + "-" + todo.text;
 }

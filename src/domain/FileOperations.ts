@@ -1,11 +1,12 @@
-import { DateTime } from "luxon"
-import { ILineStructure, LineOperations } from "./LineOperations"
-import { ProletarianWizardSettings } from "./ProletarianWizardSettings";
-import { TodoItem, TodoStatus } from "./TodoItem"
+import { DateTime } from "luxon";
+import { ILineStructure, LineOperations } from "./LineOperations";
+import { TaskPlannerSettings } from "./TaskPlannerSettings";
+import { TodoItem, TodoStatus } from "./TodoItem";
 
 export class FileOperations {
-  lineOperations
-	constructor(private settings?: ProletarianWizardSettings) {
+  lineOperations: LineOperations;
+
+  constructor(private settings?: TaskPlannerSettings) {
 		this.lineOperations = new LineOperations(settings)
 	}
 
@@ -192,7 +193,7 @@ export class FileOperations {
       lines[lineNumber] = this.lineOperations.lineToString(line);
     }
 
-    // Write file once with all changes
+    // Write a file once with all changes
     const res = lines.join(EOL);
     await file.setContentAsync(res);
   }

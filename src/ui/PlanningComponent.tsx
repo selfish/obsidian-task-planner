@@ -1,19 +1,18 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-
 import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem";
 import { ILogger } from "../domain/ILogger";
-import { App, TFile} from "obsidian";
+import { App, TFile } from "obsidian";
 import { DateTime } from "luxon";
 import { TodoIndex } from "../domain/TodoIndex";
 import { FileOperations } from "../domain/FileOperations";
-import { ProletarianWizardSettings } from "../domain/ProletarianWizardSettings";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
 import { PlanningSettingsComponent } from "./PlanningSettingsComponent";
 import { PlanningTodoColumn } from "./PlanningTodoColumn";
-import { TodoMatcher } from "src/domain/TodoMatcher";
+import { TodoMatcher } from "../domain/TodoMatcher";
 import { PlanningSettingsStore } from "./PlanningSettingsStore";
 import { Sound, SoundPlayer } from "./SoundPlayer";
-import { PwEvent } from "src/events/PwEvent";
+import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 
 function findTodoDate<T>(todo: TodoItem<T>, attribute: string): DateTime | null {
   if (!todo.attributes) {
@@ -33,9 +32,9 @@ export interface PlanningComponentDeps {
 }
 
 export interface PlanningComponentProps {
-  deps: PlanningComponentDeps,
-  settings: ProletarianWizardSettings,
-  app: App,
+  deps: PlanningComponentDeps;
+  settings: TaskPlannerSettings;
+  app: App;
 }
 
 export function PlanningComponent({deps, settings, app}: PlanningComponentProps) {
@@ -46,7 +45,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
   const { searchParameters, hideEmpty, hideDone, wipLimit } = planningSettings;
 	const fileOperations = new FileOperations(settings);
 
-  const playSound = React.useMemo(() => new PwEvent<Sound>(), []);
+  const playSound = React.useMemo(() => new TaskPlannerEvent<Sound>(), []);
 
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, searchParameters.fuzzySearch);

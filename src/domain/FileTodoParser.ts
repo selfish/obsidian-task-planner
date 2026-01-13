@@ -1,85 +1,85 @@
 import { IFile } from "./IFile";
 import { ITodoParsingResult, LineOperations } from "./LineOperations";
-import { ProletarianWizardSettings } from "./ProletarianWizardSettings";
+import { TaskPlannerSettings } from "./TaskPlannerSettings";
 import { TodoItem } from "./TodoItem";
 
 export class FileTodoParser<TFile> {
-	private lineOperations: LineOperations;
-	constructor(settings: ProletarianWizardSettings) {
-		this.lineOperations = new LineOperations(settings);
-	}
+  private lineOperations: LineOperations;
 
-	private createTodoTreeStructure(
-		lines: string[],
-		parsingResults: ITodoParsingResult<TFile>[]
-	) {
-		// A stack of parents, grandparents, etc. The higher the index, the shallower the parent.
-		let parentStack: ITodoParsingResult<TFile>[] = [];
-		const parent = () => parentStack[parentStack.length - 1];
-		const pushParent = (parent: ITodoParsingResult<TFile>) =>
-			parentStack.push(parent);
-		const popParent = () => parentStack.pop();
-		parsingResults.forEach((current, i) => {
-			// Ignore empty lines
-			if (lines[current.lineNumber].match(/^\s*$/)) {
-				return;
-			}
+  constructor(settings: TaskPlannerSettings) {
+    this.lineOperations = new LineOperations(settings);
+  }
 
-			// Come back: decrease to the last parent that is shallower than the current todo.
-			while (parent() && current.indentLevel <= parent().indentLevel) {
-				popParent();
-			}
+  private createTodoTreeStructure(
+    lines: string[],
+    parsingResults: ITodoParsingResult<TFile>[]
+  ): void {
+    const parentStack: ITodoParsingResult<TFile>[] = [];
+    const parent = (): ITodoParsingResult<TFile> | undefined => parentStack[parentStack.length - 1];
+    const pushParent = (p: ITodoParsingResult<TFile>): void => {
+      parentStack.push(p);
+    };
+    const popParent = (): void => {
+      parentStack.pop();
+    };
 
-			// Add as subtask of the last task having a lower indent level.
-			if (parent() && current.isTodo) {
-				if (!parent().todo!.subtasks) {
-					parent().todo!.subtasks = [];
-				}
-				parent().todo!.subtasks.push(current.todo!);
-			}
+    parsingResults.forEach(current => {
+      if (lines[current.lineNumber]?.match(/^\s*$/)) {
+        return;
+      }
 
-			// Add todo as a potential parent.
-			if (current.isTodo) {
-				pushParent(current);
-			}
-		});
-	}
+      while (parent() && current.indentLevel <= parent()!.indentLevel) {
+        popParent();
+      }
 
-	private removeSubtasksFromTree(todos: TodoItem<TFile>[]) {
-		const toRemove = [];
-		for (let i = 0; i < todos.length; i++) {
-			const todo = todos[i];
-			if (todo.subtasks) {
-				toRemove.push(...todo.subtasks);
-			}
-		}
-		toRemove.forEach((subtask) => {
-			const idx = todos.findIndex((t) => t === subtask);
-			todos.splice(idx, 1);
-		});
-	}
+      const currentParent = parent();
+      if (currentParent?.todo && current.isTodo && current.todo) {
+        if (!currentParent.todo.subtasks) {
+          currentParent.todo.subtasks = [];
+        }
+        currentParent.todo.subtasks.push(current.todo);
+      }
 
-	public async parseMdFileAsync(
-		file: IFile<TFile>
-	): Promise<TodoItem<TFile>[]> {
-		const content = await file.getContentAsync();
-		const lines = content.split("\n");
-		const parsingResults = lines.map((line, number) =>
-			this.lineOperations.toTodo<TFile>(line, number)
-		);
-		// this.createTodoTreeStructure(lines, parsingResults)
-		const todoParsingResults = parsingResults.filter(
-			(todoParsingResult) => todoParsingResult.isTodo
-		);
-		this.createTodoTreeStructure(lines, todoParsingResults);
-		const todos = todoParsingResults.map((result) => result.todo);
-		// const inspectionResults = this.fileInspector.inspect(file)
-		todos.forEach((todo) => {
-			todo.file = file;
-			// todo.project = (todo.attributes && todo.attributes.project) ? todo.attributes.project as string : inspectionResults.project
-			// todo.folderType = inspectionResults.containingFolderType
-		});
-		this.removeSubtasksFromTree(todos);
-		return todos;
-	}
+      if (current.isTodo) {
+        pushParent(current);
+      }
+    });
+  }
+
+  private removeSubtasksFromTree(todos: TodoItem<TFile>[]): void {
+    const toRemove: TodoItem<TFile>[] = [];
+    for (const todo of todos) {
+      if (todo.subtasks) {
+        toRemove.push(...todo.subtasks);
+      }
+    }
+    for (const subtask of toRemove) {
+      const idx = todos.findIndex(t => t === subtask);
+      if (idx >= 0) {
+        todos.splice(idx, 1);
+      }
+    }
+  }
+
+  async parseMdFileAsync(file: IFile<TFile>): Promise<TodoItem<TFile>[]> {
+    const content = await file.getContentAsync();
+    const lines = content.split("\n");
+    const parsingResults = lines.map((line, number) =>
+      this.lineOperations.toTodo<TFile>(line, number)
+    );
+
+    const todoParsingResults = parsingResults.filter(result => result.isTodo);
+    this.createTodoTreeStructure(lines, todoParsingResults);
+
+    const todos: TodoItem<TFile>[] = [];
+    for (const result of todoParsingResults) {
+      if (result.todo) {
+        result.todo.file = file;
+        todos.push(result.todo);
+      }
+    }
+
+    this.removeSubtasksFromTree(todos);
+    return todos;
+  }
 }

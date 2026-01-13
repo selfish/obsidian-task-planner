@@ -1,7 +1,7 @@
 import { TodoItem, TodoStatus } from "./TodoItem";
 import { IDictionary } from "./IDictionary";
 import { Completion } from "./Completion";
-import { ProletarianWizardSettings } from "./ProletarianWizardSettings";
+import { TaskPlannerSettings } from "./TaskPlannerSettings";
 
 export interface ILineStructure {
   indentation: string;
@@ -25,7 +25,7 @@ export interface IAttributesStructure {
 }
 
 export class LineOperations {
-  constructor(private settings?: ProletarianWizardSettings) { }
+  constructor(private settings?: TaskPlannerSettings) {}
 
   parseLine(line: string): ILineStructure {
     const regexp =
@@ -260,12 +260,12 @@ export class LineOperations {
         indentLevel,
       };
     const attributesMatching = this.parseAttributes(parsedLine.line);
-    const todo: TodoItem<T> = {
+    const todo = {
       status: this.markToStatus(parsedLine.checkbox[1]),
       text: attributesMatching.textWithoutAttributes,
       attributes: attributesMatching.attributes,
-      file: undefined,
-    };
+      file: undefined as unknown,
+    } as TodoItem<T>;
     const res: ITodoParsingResult<T> = {
       lineNumber,
       isTodo: true,

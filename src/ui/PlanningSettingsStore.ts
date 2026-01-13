@@ -1,6 +1,6 @@
 import { PlanningSettings, getDefaultSettings } from "./PlanningSettings";
 
-const storageKey = "PW.PlanningSettings";
+const storageKey = "TaskPlanner.PlanningSettings";
 
 export class PlanningSettingsStore {
   static getSettings(): PlanningSettings {

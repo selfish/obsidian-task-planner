@@ -50,7 +50,7 @@ export function PlanningSettingsComponent({setPlanningSettings, planningSettings
   function onOpenSettings() {
     if (app) {
       (app as any).setting.open();
-      (app as any).setting.openTabById('task-horizon');
+      (app as any).setting.openTabById('task-planner');
     }
   }
 
@@ -68,7 +68,7 @@ export function PlanningSettingsComponent({setPlanningSettings, planningSettings
 
   return <div className="th-header">
     <div className="th-header-title">
-      <h1>Task Horizon</h1>
+      <h1>Task Planner</h1>
       {(totalTasks > 0 || completedToday > 0) && (
         <div className="th-header-stats">
           <span className="th-stat">{completedToday || 0} done</span>

@@ -1,3 +1,54 @@
+=========================================================================
+                        TASK PLANNER FOR OBSIDIAN
+=========================================================================
+
+Copyright (C) 2026 Selfish
+https://github.com/selfish/obsidian-task-planner
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+
+=========================================================================
+                           ATTRIBUTION
+=========================================================================
+This software is a fork of "Proletarian Wizard - Task Manager for Obsidian"
+Copyright (C) cfe84 and contributors
+Original project: https://github.com/cfe84/obsidian-pw
+Original license: GNU General Public License v2.0
+
+As required by the GPL v2 license, this derivative work is also licensed
+under GPL v2, and all source code is freely available.
+
+=========================================================================
+
+
+
+=========================================================================
+                        TASK PLANNER FOR OBSIDIAN
+=========================================================================
+
+Copyright (C) 2026 Selfish
+https://github.com/selfish/obsidian-task-planner
+
+ATTRIBUTION:
+This is a fork of "Proletarian Wizard" by cfe84 and contributors.
+Original project: https://github.com/cfe84/obsidian-pw
+
+Task Planner is licensed under GNU General Public License v2.0, as
+required by the GPL v2 license of the original work.
+
+The codebase has evolved significantly since the fork. For detailed
+attribution of inherited components and our contributions, see CREDITS.md
+
+=========================================================================
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 

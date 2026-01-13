@@ -2,21 +2,21 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { App, TFile } from "obsidian";
 import { TodoItem, TodoStatus } from "../domain/TodoItem";
-import { ProletarianWizardSettings } from "../domain/ProletarianWizardSettings";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
 import { DateTime } from "luxon";
-import { TodoIndex } from "src/domain/TodoIndex";
-import { ILogger } from "src/domain/ILogger";
+import { TodoIndex } from "../domain/TodoIndex";
+import { ILogger } from "../domain/ILogger";
 import { TodoListComponent } from "./TodoListComponent";
 
 export interface TodoSidePanelComponentDeps {
-  todoIndex: TodoIndex<TFile>,
-  logger: ILogger,
-  app: App, 
-  settings: ProletarianWizardSettings
+  todoIndex: TodoIndex<TFile>;
+  logger: ILogger;
+  app: App;
+  settings: TaskPlannerSettings;
 }
 
 export interface TodoSidePanelComponentProps {
-  deps: TodoSidePanelComponentDeps,
+  deps: TodoSidePanelComponentDeps;
 }
 
 export function TodoSidePanelComponent({deps}: TodoSidePanelComponentProps) {

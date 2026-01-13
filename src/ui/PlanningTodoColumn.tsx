@@ -1,129 +1,127 @@
 import { App, TFile, setIcon } from "obsidian";
 import * as React from "react";
-import { Consts } from "src/domain/Consts";
-import { TodoItem } from "src/domain/TodoItem";
-import { TodoFilter } from "src/events/TodoListEvents";
-import { ProletarianWizardSettings } from "src/domain/ProletarianWizardSettings";
-import { ILogger } from "src/domain/ILogger";
+import { Consts } from "../domain/Consts";
+import { TodoItem } from "../domain/TodoItem";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
+import { ILogger } from "../domain/ILogger";
 import { TodoListComponent } from "./TodoListComponent";
-import { PwEvent } from "src/events/PwEvent";
+import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 import { Sound } from "./SoundPlayer";
 
 export interface PlanningTodoColumnDeps {
-  app: App,
-  settings: ProletarianWizardSettings,
-  logger: ILogger,
+  app: App;
+  settings: TaskPlannerSettings;
+  logger: ILogger;
 }
 
 export interface PlanningTodoColumnProps {
-  icon: string,
-  title: string,
-  todos: TodoItem<TFile>[],
-  onTodoDropped: ((todoId: string) => void) | null,
-  onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null,
-  hideIfEmpty: boolean,
-  deps: PlanningTodoColumnDeps,
-  substyle?: string,
-  playSound?: PwEvent<Sound>,
+  icon: string;
+  title: string;
+  todos: TodoItem<TFile>[];
+  onTodoDropped: ((todoId: string) => void) | null;
+  onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null;
+  hideIfEmpty: boolean;
+  deps: PlanningTodoColumnDeps;
+  substyle?: string;
+  playSound?: TaskPlannerEvent<Sound>;
 }
 
 const CLASSNAME_NORMAL = "";
 const CLASSNAME_HOVER = "th-column-content--hover";
 
-export function PlanningTodoColumn({icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, playSound}: PlanningTodoColumnProps) {
-
+export function PlanningTodoColumn({
+  icon,
+  title,
+  hideIfEmpty,
+  onTodoDropped,
+  onBatchTodoDropped,
+  todos,
+  deps,
+  substyle,
+  playSound,
+}: PlanningTodoColumnProps): React.ReactElement | null {
   const [hoverClassName, setHoverClassName] = React.useState(CLASSNAME_NORMAL);
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
-  // Set Obsidian icon on mount and when icon prop changes
   React.useEffect(() => {
     if (iconRef.current && icon) {
-      iconRef.current.innerHTML = '';
+      iconRef.current.innerHTML = "";
       setIcon(iconRef.current, icon);
     }
   }, [icon]);
 
-  function onDragOver(ev: any) {
-    ev.preventDefault()
-    ev.stopPropagation()
+  function onDragOver(ev: React.DragEvent): void {
+    ev.preventDefault();
+    ev.stopPropagation();
   }
 
-  function onDragEnter(ev: any) {
-    ev.stopPropagation()
+  function onDragEnter(ev: React.DragEvent): void {
+    ev.stopPropagation();
     setHoverClassName(CLASSNAME_HOVER);
   }
 
-  function onDragLeave(ev: any) {
-    // Only clear hover if we're actually leaving the column
-    if (ev.currentTarget.contains(ev.relatedTarget)) {
+  function onDragLeave(ev: React.DragEvent): void {
+    if (ev.currentTarget.contains(ev.relatedTarget as Node)) {
       return;
     }
     setHoverClassName(CLASSNAME_NORMAL);
   }
 
-  async function onDrop(ev: any) {
-    ev.preventDefault()
-    ev.stopPropagation()
+  async function onDrop(ev: React.DragEvent): Promise<void> {
+    ev.preventDefault();
+    ev.stopPropagation();
     setHoverClassName(CLASSNAME_NORMAL);
 
-    // Check if it's a group drag
     const groupIds = ev.dataTransfer.getData(Consts.TodoGroupDragType);
     if (groupIds) {
-      const todoIds = groupIds.split(',');
+      const todoIds = groupIds.split(",");
 
-      // Use batch handler if available, otherwise fall back to individual updates
       if (onBatchTodoDropped) {
         await onBatchTodoDropped(todoIds);
       } else if (onTodoDropped) {
-        // Fallback: process one by one (old behavior)
-        const promises = todoIds.map((todoId, index) =>
-          new Promise(resolve => {
-            setTimeout(() => {
-              onTodoDropped(todoId);
-              resolve(undefined);
-            }, index * 30);
-          })
+        const promises = todoIds.map(
+          (todoId, index) =>
+            new Promise(resolve => {
+              setTimeout(() => {
+                onTodoDropped(todoId);
+                resolve(undefined);
+              }, index * 30);
+            })
         );
         await Promise.all(promises);
       }
       return;
     }
 
-    // Handle single todo drag
-    const todoId = ev.dataTransfer.getData(Consts.TodoItemDragType)
+    const todoId = ev.dataTransfer.getData(Consts.TodoItemDragType);
     if (todoId && onTodoDropped) {
-      onTodoDropped(todoId)
+      onTodoDropped(todoId);
     }
   }
 
   if (hideIfEmpty && todos.length === 0) {
-    return <></>
+    return null;
   }
 
   const isEmpty = todos.length === 0;
-  const isToday = substyle && substyle.includes('today');
-  const emptyClass = isEmpty && !isToday ? 'th-column--empty' : '';
+  const isToday = substyle && substyle.includes("today");
+  const emptyClass = isEmpty && !isToday ? "th-column--empty" : "";
 
-  return <div className={`th-column ${substyle ? `th-column--${substyle}` : ""} ${emptyClass}`.trim()}>
-    <div className="th-column-header">
-      <span ref={iconRef} className="th-column-icon"></span>
-      <span className="th-column-title">{title}</span>
-    </div>
-    <div
-      className={`th-column-content
-        ${substyle ? `th-column-content--${substyle}` : ""}
-        ${hoverClassName}
-        `}
-      onDragOver={onDragOver}
-      onDragEnter={onDragEnter}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
+  return (
+    <div className={`th-column ${substyle ? `th-column--${substyle}` : ""} ${emptyClass}`.trim()}>
+      <div className="th-column-header">
+        <span ref={iconRef} className="th-column-icon"></span>
+        <span className="th-column-title">{title}</span>
+      </div>
+      <div
+        className={`th-column-content ${substyle ? `th-column-content--${substyle}` : ""} ${hoverClassName}`}
+        onDragOver={onDragOver}
+        onDragEnter={onDragEnter}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
       >
-        <TodoListComponent
-          deps={deps}
-          todos={todos}
-          playSound={playSound}
-        />
+        <TodoListComponent deps={deps} todos={todos} playSound={playSound} />
+      </div>
     </div>
-  </div>
+  );
 }

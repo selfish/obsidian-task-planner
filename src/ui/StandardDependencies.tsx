@@ -1,9 +1,9 @@
 import { App } from "obsidian";
-import { ILogger } from "src/domain/ILogger";
-import { ProletarianWizardSettings } from "src/domain/ProletarianWizardSettings";
+import { ILogger } from "../domain/ILogger";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
 
 export interface StandardDependencies {
-  logger: ILogger,
-  app: App,
-  settings: ProletarianWizardSettings
+  logger: ILogger;
+  app: App;
+  settings: TaskPlannerSettings;
 }

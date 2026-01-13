@@ -1,6 +1,6 @@
 {
-	"id": "task-horizon",
-	"name": "Task Horizon",
+	"id": "task-planner",
+	"name": "Task Planner",
 	"author": "Selfish",
 	"description": "Professional task management for Obsidian. Track tasks across your vault, organize your day with intelligent planning, and manage your workload with smart suggestions.",
 	"authorUrl": "https://github.com/selfish",

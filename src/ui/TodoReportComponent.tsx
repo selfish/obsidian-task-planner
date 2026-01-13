@@ -1,24 +1,22 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-
 import { App, TFile } from "obsidian";
-import { ILogger } from "src/domain/ILogger";
-import { TodoIndex } from "src/domain/TodoIndex";
-import { PlanningComponentDeps } from "./PlanningComponent";
-import { ProletarianWizardSettings } from "src/domain/ProletarianWizardSettings";
-import { TodoItem, TodoStatus } from "src/domain/TodoItem";
+import { ILogger } from "../domain/ILogger";
+import { TodoIndex } from "../domain/TodoIndex";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
+import { TodoItem, TodoStatus } from "../domain/TodoItem";
 import { DateTime } from "luxon";
 import { TodoListComponent } from "./TodoListComponent";
 
 export interface TodoReportComponentDeps {
-  logger: ILogger,
-  todoIndex: TodoIndex<TFile>,
-  settings: ProletarianWizardSettings, 
-  app: App,
+  logger: ILogger;
+  todoIndex: TodoIndex<TFile>;
+  settings: TaskPlannerSettings;
+  app: App;
 }
 
 export interface TodoReportComponentProps {
-  deps: TodoReportComponentDeps,
+  deps: TodoReportComponentDeps;
 }
 
 interface Container {
@@ -54,7 +52,7 @@ function findTodoDate<T>(todo: TodoItem<T>, attribute: string): DateTime | null 
   return null;
 }
 
-function findTodoCompletionDate(todo: TodoItem<TFile>, settings: ProletarianWizardSettings) {
+function findTodoCompletionDate(todo: TodoItem<TFile>, settings: TaskPlannerSettings) {
   let d = findTodoDate(todo, settings.completedDateAttribute);
   if (d) {
     return d;
@@ -122,7 +120,7 @@ function filterTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
   return todos.filter(todo => todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled);
 }
 
-function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], settings: ProletarianWizardSettings): Container[] {
+function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], settings: TaskPlannerSettings): Container[] {
   containers.forEach(container => {
     container.todos = todos.filter(todo => {
       const date = findTodoCompletionDate(todo, settings);
@@ -141,7 +139,7 @@ function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], setti
   return containers
 }
 
-function getMinDate(todos: TodoItem<TFile>[], settings: ProletarianWizardSettings): DateTime | null {
+function getMinDate(todos: TodoItem<TFile>[], settings: TaskPlannerSettings): DateTime | null {
   return todos.reduce((min, thisTodo) => {
     const completionDate = findTodoCompletionDate(thisTodo, settings);
     if (completionDate) {
@@ -154,7 +152,7 @@ function getMinDate(todos: TodoItem<TFile>[], settings: ProletarianWizardSetting
 function assembleTodosByDate(todos: TodoItem<TFile>[],
     numberOfWeeks: number, 
     numberOfMonths: number, 
-    settings: ProletarianWizardSettings): DateContainer[] {
+    settings: TaskPlannerSettings): DateContainer[] {
   todos = filterTodos(todos);
   const minDate = getMinDate(todos, settings);
   const containers = getDateContainers(minDate, numberOfWeeks, numberOfMonths);

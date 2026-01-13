@@ -1,11 +1,11 @@
 import * as React from "react";
-import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem"
+import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem";
 import { App, Menu, TFile, setIcon } from "obsidian";
-import { FileOperations } from "src/domain/FileOperations";
-import { ILogger } from "src/domain/ILogger";
-import { ProletarianWizardSettings } from "src/domain/ProletarianWizardSettings";
+import { FileOperations } from "../domain/FileOperations";
+import { ILogger } from "../domain/ILogger";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
 import { Sound } from "./SoundPlayer";
-import { PwEvent } from "src/events/PwEvent";
+import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 
 function getStatusIcon(status: TodoStatus): string {
   switch (status) {
@@ -26,19 +26,19 @@ function getStatusIcon(status: TodoStatus): string {
   }
 }
 
-export interface TodoSatusComponentDeps {
-  logger: ILogger,
-  app: App,
+export interface TodoStatusComponentDeps {
+  logger: ILogger;
+  app: App;
 }
 
-export interface TodoSatusComponentProps {
-  todo: TodoItem<TFile>,
-  deps: TodoSatusComponentDeps,
-  settings: ProletarianWizardSettings,
-  playSound?: PwEvent<Sound>,
+export interface TodoStatusComponentProps {
+  todo: TodoItem<TFile>;
+  deps: TodoStatusComponentDeps;
+  settings: TaskPlannerSettings;
+  playSound?: TaskPlannerEvent<Sound>;
 }
 
-export function TodoStatusComponent({todo, deps, settings, playSound}: TodoSatusComponentProps) {
+export function TodoStatusComponent({todo, deps, settings, playSound}: TodoStatusComponentProps): React.ReactElement {
   const iconRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {

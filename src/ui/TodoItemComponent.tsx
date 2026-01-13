@@ -1,33 +1,34 @@
 import * as React from "react";
-
-import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem"
-import { MarkdownView, Menu, TFile, setIcon } from "obsidian"
-import { IDictionary } from "../domain/IDictionary"
+import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem";
+import { App, MarkdownView, Menu, TFile, setIcon } from "obsidian";
+import { IDictionary } from "../domain/IDictionary";
 import { TodoSubtasksContainer } from "./TodoSubtasksContainer";
-import { TodoStatusComponent } from "./TodoStatusComponent"
-import { Consts } from "../domain/Consts"
-import { TodoFilter } from "../events/TodoListEvents"
-import { FileOperations } from "../domain/FileOperations"
+import { TodoStatusComponent } from "./TodoStatusComponent";
+import { Consts } from "../domain/Consts";
+import { FileOperations } from "../domain/FileOperations";
 import { StandardDependencies } from "./StandardDependencies";
-import { PwEvent } from "src/events/PwEvent";
+import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 import { Sound } from "./SoundPlayer";
 
+interface PriorityBadgeProps {
+  priority: string;
+}
 
-function PriorityBadge({ priority }: { priority: string }) {
+function PriorityBadge({ priority }: PriorityBadgeProps): React.ReactElement {
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
   const iconMap: Record<string, string> = {
-    'critical': 'zap',
-    'highest': 'zap',
-    'high': 'arrow-up',
-    'medium': 'minus',
-    'low': 'arrow-down',
-    'lowest': 'arrow-down-circle',
+    critical: "zap",
+    highest: "zap",
+    high: "arrow-up",
+    medium: "minus",
+    low: "arrow-down",
+    lowest: "arrow-down-circle",
   };
 
   React.useEffect(() => {
     if (iconRef.current && iconMap[priority]) {
-      iconRef.current.innerHTML = '';
+      iconRef.current.innerHTML = "";
       setIcon(iconRef.current, iconMap[priority]);
     }
   }, [priority]);
@@ -42,13 +43,13 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
-function SelectedBadge() {
+function SelectedBadge(): React.ReactElement {
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     if (iconRef.current) {
-      iconRef.current.innerHTML = '';
-      setIcon(iconRef.current, 'pin');
+      iconRef.current.innerHTML = "";
+      setIcon(iconRef.current, "pin");
     }
   }, []);
 
@@ -63,10 +64,10 @@ function SelectedBadge() {
 function getPriority(attributes: IDictionary<string | boolean> | undefined): string | null {
   if (!attributes) return null;
 
-  const priorityAttr = attributes['priority'] || attributes['importance'];
-  if (typeof priorityAttr === 'string') {
+  const priorityAttr = attributes["priority"] || attributes["importance"];
+  if (typeof priorityAttr === "string") {
     const normalized = priorityAttr.toLowerCase();
-    if (['critical', 'highest', 'high', 'medium', 'low', 'lowest'].includes(normalized)) {
+    if (["critical", "highest", "high", "medium", "low", "lowest"].includes(normalized)) {
       return normalized;
     }
   }
@@ -74,132 +75,139 @@ function getPriority(attributes: IDictionary<string | boolean> | undefined): str
 }
 
 function cleanWikiLinks(text: string): string {
-  // Replace [[page]] with page, and [[page|alias]] with alias
   return text.replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, (match, page, bar, alias) => {
     return alias || page;
   });
 }
 
 function cleanFileName(fileName: string): string {
-  // Remove .md extension
-  let name = fileName.replace(/\.md$/, '');
-
-  // Remove leading numbers, symbols, and whitespace (e.g., "2024-01-12 Note" -> "Note")
-  const cleaned = name.replace(/^[\d- ]+/, '').trim();
-
-  // If we removed everything, return the original (without extension)
+  const name = fileName.replace(/\.md$/, "");
+  const cleaned = name.replace(/^[\d- ]+/, "").trim();
   return cleaned || name;
 }
 
 function getDisplayName(file: TFile, app: App): string {
-  // Try to get title from frontmatter
   const cache = app.metadataCache.getFileCache(file);
   const frontmatterTitle = cache?.frontmatter?.title;
 
-  if (frontmatterTitle && typeof frontmatterTitle === 'string') {
+  if (frontmatterTitle && typeof frontmatterTitle === "string") {
     return frontmatterTitle;
   }
 
-  // Fall back to cleaned filename
   return cleanFileName(file.name);
 }
 
 export interface TodoItemComponentProps {
-  todo: TodoItem<TFile>,
-  playSound?: PwEvent<Sound>,
-  dontCrossCompleted?: boolean,
-  deps: StandardDependencies,
-  hideFileRef?: boolean,
+  todo: TodoItem<TFile>;
+  playSound?: TaskPlannerEvent<Sound>;
+  dontCrossCompleted?: boolean;
+  deps: StandardDependencies;
+  hideFileRef?: boolean;
 }
 
-export function TodoItemComponent({todo, deps, playSound, dontCrossCompleted, hideFileRef}: TodoItemComponentProps) {
+export function TodoItemComponent({
+  todo,
+  deps,
+  playSound,
+  dontCrossCompleted,
+  hideFileRef,
+}: TodoItemComponentProps): React.ReactElement {
   const app = deps.app;
   const settings = deps.settings;
-	const fileOperations = new FileOperations(settings);
+  const fileOperations = new FileOperations(settings);
 
-  async function openFileAsync(file: TFile, line: number, inOtherLeaf: boolean) {
+  async function openFileAsync(file: TFile, line: number, inOtherLeaf: boolean): Promise<void> {
     let leaf = app.workspace.getLeaf();
     if (inOtherLeaf) {
       leaf = app.workspace.getLeaf(true);
     } else if (leaf.getViewState().pinned) {
       leaf = app.workspace.getLeaf(false);
     }
-    await leaf.openFile(file)
-    let view = app.workspace.getActiveViewOfType(MarkdownView)
-    const lineContent = await view.editor.getLine(line)
-    view.editor.setSelection({ ch: 0, line }, { ch: lineContent.length, line })
+    await leaf.openFile(file);
+    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) return;
 
-    // Scroll to center the line in the viewport
-    view.editor.scrollIntoView({
-      from: { line, ch: 0 },
-      to: { line, ch: lineContent.length }
-    }, true)
+    const lineContent = view.editor.getLine(line);
+    view.editor.setSelection({ ch: 0, line }, { ch: lineContent.length, line });
+    view.editor.scrollIntoView(
+      { from: { line, ch: 0 }, to: { line, ch: lineContent.length } },
+      true
+    );
   }
 
-  function onClickContainer(ev: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-      if (ev.defaultPrevented) {
-        return
-      }
-      openFileAsync(
-        todo.file.file,
-        todo.line || 0,
-        ev.altKey || ev.ctrlKey || ev.metaKey,
-      );
+  function onClickContainer(ev: React.MouseEvent<HTMLDivElement, MouseEvent>): void {
+    if (ev.defaultPrevented) return;
+    openFileAsync(todo.file.file, todo.line || 0, ev.altKey || ev.ctrlKey || ev.metaKey);
   }
 
-  const addChangePriorityMenuItem = (menu: Menu, name: string, icon: string, label: string) => {
-    if (name === todo.attributes?.["priority"]) {
-      return
-    }
-    menu.addItem((item) => {
-      item.setTitle(`Change priority to ${label}`)
-      item.setIcon(icon)
-      item.onClick((evt) => {
-				fileOperations.updateAttributeAsync(todo, "priority", name).then()
-      })
-    })
+  function addChangePriorityMenuItem(
+    menu: Menu,
+    name: string,
+    icon: string,
+    label: string
+  ): void {
+    if (name === todo.attributes?.["priority"]) return;
+
+    menu.addItem(item => {
+      item.setTitle(`Change priority to ${label}`);
+      item.setIcon(icon);
+      item.onClick(() => {
+        fileOperations.updateAttributeAsync(todo, "priority", name);
+      });
+    });
   }
 
-  function onAuxClickContainer(evt: any){
-    if (evt.defaultPrevented) {
-      return
-    }
+  function onAuxClickContainer(evt: React.MouseEvent): void {
+    if (evt.defaultPrevented) return;
+
     const menu = new Menu();
-    menu.setNoIcon()
-    addChangePriorityMenuItem(menu, "critical", "zap", "Critical")
-    addChangePriorityMenuItem(menu, "high", "arrow-up", "High")
-    addChangePriorityMenuItem(menu, "medium", "minus", "Medium")
-    addChangePriorityMenuItem(menu, "low", "arrow-down", "Low")
-    addChangePriorityMenuItem(menu, "lowest", "arrow-down-circle", "Lowest")
-    menu.addItem((item) => {
-      item.setTitle("Reset priority")
-      item.setIcon("reset")
-      item.onClick((evt) => fileOperations.removeAttributeAsync(todo, "priority").then())
-    })
-    menu.addSeparator()
-    menu.addItem((item) => {
-      item.setTitle("Toggle pinned")
-      item.setIcon("pin")
-      item.onClick((evt) => {
-				fileOperations.updateAttributeAsync(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute])
-      })
-    })
-    menu.showAtMouseEvent(evt)
+    menu.setNoIcon();
+    addChangePriorityMenuItem(menu, "critical", "zap", "Critical");
+    addChangePriorityMenuItem(menu, "high", "arrow-up", "High");
+    addChangePriorityMenuItem(menu, "medium", "minus", "Medium");
+    addChangePriorityMenuItem(menu, "low", "arrow-down", "Low");
+    addChangePriorityMenuItem(menu, "lowest", "arrow-down-circle", "Lowest");
+    menu.addItem(item => {
+      item.setTitle("Reset priority");
+      item.setIcon("reset");
+      item.onClick(() => fileOperations.removeAttributeAsync(todo, "priority"));
+    });
+    menu.addSeparator();
+    menu.addItem(item => {
+      item.setTitle("Toggle pinned");
+      item.setIcon("pin");
+      item.onClick(() => {
+        fileOperations.updateAttributeAsync(
+          todo,
+          settings.selectedAttribute,
+          !todo.attributes?.[settings.selectedAttribute]
+        );
+      });
+    });
+    menu.showAtMouseEvent(evt.nativeEvent);
   }
 
-  function onDragStart(ev: any) {
-    const id = getTodoId(todo)
-    ev.dataTransfer.setData(Consts.TodoItemDragType, id)
+  function onDragStart(ev: React.DragEvent): void {
+    const id = getTodoId(todo);
+    ev.dataTransfer.setData(Consts.TodoItemDragType, id);
   }
 
   const isSelected = !!todo.attributes?.[settings.selectedAttribute];
   const priority = getPriority(todo.attributes);
   const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
-  const cardClassName = `th-task-card ${isCompleted ? 'th-task-card--completed' : ''}`;
-  const textClassName = `th-task-text ${!dontCrossCompleted && isCompleted ? 'th-task-text--completed' : ''}`;
+  const cardClassName = `th-task-card ${isCompleted ? "th-task-card--completed" : ""}`;
+  const textClassName = `th-task-text ${
+    !dontCrossCompleted && isCompleted ? "th-task-text--completed" : ""
+  }`;
 
   return (
-    <div className={cardClassName} draggable="true" onDragStart={onDragStart} onClick={onClickContainer} onAuxClick={onAuxClickContainer}>
+    <div
+      className={cardClassName}
+      draggable="true"
+      onDragStart={onDragStart}
+      onClick={onClickContainer}
+      onAuxClick={onAuxClickContainer}
+    >
       <div className="th-task-content">
         <TodoStatusComponent
           todo={todo}
@@ -208,13 +216,9 @@ export function TodoItemComponent({todo, deps, playSound, dontCrossCompleted, hi
           playSound={playSound}
         />
         <div className="th-task-body">
-          <div className={textClassName}>
-            {cleanWikiLinks(todo.text)}
-          </div>
+          <div className={textClassName}>{cleanWikiLinks(todo.text)}</div>
           {!hideFileRef && (
-            <div className="th-task-file-ref">
-              {getDisplayName(todo.file.file, app)}
-            </div>
+            <div className="th-task-file-ref">{getDisplayName(todo.file.file, app)}</div>
           )}
           {(priority || isSelected) && (
             <div className="th-task-metadata">

@@ -1,5 +1,5 @@
 /* ============================================
-   TASK HORIZON - MODERN DESIGN SYSTEM
+   TASK PLANNER - MODERN DESIGN SYSTEM
    ============================================ */
 
 /* CSS Custom Properties */
@@ -56,9 +56,9 @@
    ============================================ */
 
 /* Remove Obsidian's default padding for our views */
-.workspace-leaf-content[data-type="pw.planning"] .view-content,
-.workspace-leaf-content[data-type="pw.todo-list"] .view-content,
-.workspace-leaf-content[data-type="pw.todo-report"] .view-content {
+.workspace-leaf-content[data-type="task-planner.planning"] .view-content,
+.workspace-leaf-content[data-type="task-planner.todo-list"] .view-content,
+.workspace-leaf-content[data-type="task-planner.report"] .view-content {
   padding-top: 0;
   padding-bottom: 0;
 }
@@ -533,7 +533,7 @@
   justify-content: flex-end;
 }
 
-.th-horizon-icon {
+.th-planner-icon {
   font-size: var(--th-font-lg);
   opacity: 0.6;
   line-height: 1;

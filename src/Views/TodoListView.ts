@@ -1,17 +1,22 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import { ILogger } from "../domain/ILogger";
-import { ProletarianWizardSettings } from "../domain/ProletarianWizardSettings";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
 import { MountSidePanelComponent } from "../ui/TodoSidePanelComponent";
-import { TodoIndex } from "src/domain/TodoIndex";
+import { TodoIndex } from "../domain/TodoIndex";
 
 export interface TodoListViewDeps {
-  logger: ILogger
+  logger: ILogger;
 }
 
 export class TodoListView extends ItemView {
-  static viewType: string = "pw.todo-list";
+  static viewType = "task-planner.todo-list";
 
-  constructor(leaf: WorkspaceLeaf, private deps: TodoListViewDeps, private todoIndex: TodoIndex<TFile>, private settings: ProletarianWizardSettings) {
+  constructor(
+    leaf: WorkspaceLeaf,
+    private deps: TodoListViewDeps,
+    private todoIndex: TodoIndex<TFile>,
+    private settings: TaskPlannerSettings
+  ) {
     super(leaf);
   }
 
@@ -20,18 +25,18 @@ export class TodoListView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Todo';
+    return "Todo";
   }
 
   getIcon(): string {
-    return 'check-small';
+    return "check-small";
   }
 
   onClose(): Promise<void> {
     return Promise.resolve();
   }
 
-  public render(): void {
+  render(): void {
     MountSidePanelComponent(this.containerEl as HTMLElement, {
       deps: {
         app: this.app,
@@ -39,7 +44,6 @@ export class TodoListView extends ItemView {
         todoIndex: this.todoIndex,
         settings: this.settings,
       },
-    })
+    });
   }
-
 }

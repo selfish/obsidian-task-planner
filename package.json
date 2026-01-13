@@ -1,12 +1,12 @@
 {
-	"name": "obsidian-task-horizon",
+	"name": "obsidian-task-planner",
 	"version": "1.0.0",
 	"description": "Professional task management for Obsidian with intelligent planning and workload management",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"deploy": "cp manifest.json main.js styles.css \"$OBSIDIAN_PATH/.obsidian/plugins/task-horizon\" && echo 'Deployed to $OBSIDIAN_PATH/.obsidian/plugins/task-horizon'",
+		"build": "tsc -p tsconfig.json --noEmit && node esbuild.config.mjs production",
+		"deploy": "cp manifest.json main.js styles.css \"$OBSIDIAN_PATH/.obsidian/plugins/task-planner\" && echo 'Deployed to $OBSIDIAN_PATH/.obsidian/plugins/task-planner'",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"test": "jest",
 		"test:watch": "jest --watch",
@@ -14,16 +14,16 @@
 	},
 	"keywords": ["obsidian", "task-management", "planning", "productivity", "todo"],
 	"author": "selfish",
-	"license": "MIT",
+	"license": "GPL-2.0",
 	"devDependencies": {
-		"@types/luxon": "^2.3.0",
-		"@types/node": "^16.11.6",
-		"@typescript-eslint/eslint-plugin": "^5.2.0",
-		"@typescript-eslint/parser": "^5.2.0",
-		"builtin-modules": "^3.2.0",
-		"esbuild": "0.13.12",
-		"tslib": "2.3.1",
-		"typescript": "4.4.4"
+		"@types/luxon": "^3.4.0",
+		"@types/node": "^20.10.0",
+		"@typescript-eslint/eslint-plugin": "^6.0.0",
+		"@typescript-eslint/parser": "^6.0.0",
+		"builtin-modules": "^3.3.0",
+		"esbuild": "^0.19.0",
+		"tslib": "^2.6.0",
+		"typescript": "^5.3.0"
 	},
 	"dependencies": {
 		"@popperjs/core": "^2.11.6",
@@ -37,10 +37,10 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/selfish/obsidian-task-horizon.git"
+		"url": "git+https://github.com/selfish/obsidian-task-planner.git"
 	},
 	"bugs": {
-		"url": "https://github.com/selfish/obsidian-task-horizon/issues"
+		"url": "https://github.com/selfish/obsidian-task-planner/issues"
 	},
-	"homepage": "https://github.com/selfish/obsidian-task-horizon#readme"
+	"homepage": "https://github.com/selfish/obsidian-task-planner#readme"
 }

@@ -1,4 +1,9 @@
-import { TodoItem, TodoStatus } from "../domain/TodoItem";
+import { TodoItem } from "../domain/TodoItem";
 
-export type TodoFilter<T> = (TodoItem: TodoItem<T>) => boolean
-export type OpenFileEvent<T> = ({ file: T, line: number, inOtherLeaf: boolean })
+export type TodoFilter<T> = (todoItem: TodoItem<T>) => boolean;
+
+export interface OpenFileEvent<T> {
+  file: T;
+  line: number;
+  inOtherLeaf: boolean;
+}

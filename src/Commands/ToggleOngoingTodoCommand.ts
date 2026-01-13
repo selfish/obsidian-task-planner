@@ -1,32 +1,23 @@
 import { LineOperations } from "../domain/LineOperations";
 import { TodoStatus } from "../domain/TodoItem";
-import { Command, Editor, Hotkey, MarkdownView } from "obsidian";
+import { Command, Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
 
 export class ToggleOngoingTodoCommand implements Command {
-	constructor(private lineOperations: LineOperations) {}
+  id = "task-planner.toggle-ongoing-todo";
+  name = "Mark todo as ongoing / unchecked";
+  icon = "clock";
 
-	id: string = "pw.toggle-ongoing-todo-command";
-	name: string = "Mark todo as ongoing / unchecked";
-	icon?: string = "check-small";
-	mobileOnly?: boolean = false;
-	callback?: () => any;
-	checkCallback?: (checking: boolean) => boolean | void;
-	editorCallback(editor: Editor, view: MarkdownView) {
-		const lineNumber = editor.getCursor("from").line;
-		let line = editor.getLine(lineNumber);
-		const todo = this.lineOperations.toTodo(line, lineNumber);
-		if (todo.isTodo) {
-			line = this.lineOperations.setCheckmark(
-				line,
-				todo.todo.status === TodoStatus.InProgress ? " " : ">"
-			);
-			editor.setLine(lineNumber, line);
-		}
-	}
-	editorCheckCallback?: (
-		checking: boolean,
-		editor: Editor,
-		view: MarkdownView
-	) => boolean | void;
-	hotkeys?: Hotkey[] = [];
+  constructor(private lineOperations: LineOperations) {}
+
+  editorCallback(editor: Editor, ctx: MarkdownView | MarkdownFileInfo): void {
+    const lineNumber = editor.getCursor("from").line;
+    let line = editor.getLine(lineNumber);
+    const todo = this.lineOperations.toTodo(line, lineNumber);
+
+    if (todo.isTodo && todo.todo) {
+      const newCheckmark = todo.todo.status === TodoStatus.InProgress ? " " : ">";
+      line = this.lineOperations.setCheckmark(line, newCheckmark);
+      editor.setLine(lineNumber, line);
+    }
+  }
 }

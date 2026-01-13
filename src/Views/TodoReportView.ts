@@ -1,13 +1,15 @@
-import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
-import { ILogger } from "../domain/ILogger";
-import { ProletarianWizardSettings } from "../domain/ProletarianWizardSettings";
-import { TodoIndex } from "src/domain/TodoIndex";
-import { MountTodoReportComponent, TodoReportComponentDeps } from "src/ui/TodoReportComponent";
+import { ItemView, WorkspaceLeaf } from "obsidian";
+import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
+import { MountTodoReportComponent, TodoReportComponentDeps } from "../ui/TodoReportComponent";
 
 export class TodoReportView extends ItemView {
-  static viewType: string = "pw.todo-report";
+  static viewType = "task-planner.report";
 
-  constructor(leaf: WorkspaceLeaf, private deps: TodoReportComponentDeps, private settings: ProletarianWizardSettings) {
+  constructor(
+    leaf: WorkspaceLeaf,
+    private deps: TodoReportComponentDeps,
+    private settings: TaskPlannerSettings
+  ) {
     super(leaf);
   }
 
@@ -16,18 +18,18 @@ export class TodoReportView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Report';
+    return "Report";
   }
 
   getIcon(): string {
-    return 'check-small';
+    return "list-checks";
   }
 
   onClose(): Promise<void> {
     return Promise.resolve();
   }
 
-  public render(): void {
+  render(): void {
     MountTodoReportComponent(this.containerEl as HTMLElement, {
       deps: {
         logger: this.deps.logger,
@@ -35,7 +37,6 @@ export class TodoReportView extends ItemView {
         app: this.app,
         settings: this.settings,
       },
-    })
+    });
   }
-
 }
