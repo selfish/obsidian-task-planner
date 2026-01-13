@@ -10,150 +10,162 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	calculateTotalBuckets(): number {
-		const { horizonVisibility, customHorizons } = this.plugin.settings;
-		let count = 0;
-
-		if (horizonVisibility.showBacklog) count++;
-		if (horizonVisibility.showPast) count++;
-		if (horizonVisibility.showOverdue) count++;
-		if (horizonVisibility.showLater) count++;
-
-		count += 3; // Today: Todo, In Progress, Done
-
-		const weekdays = [
-			horizonVisibility.showMonday,
-			horizonVisibility.showTuesday,
-			horizonVisibility.showWednesday,
-			horizonVisibility.showThursday,
-			horizonVisibility.showFriday,
-			horizonVisibility.showSaturday,
-			horizonVisibility.showSunday
-		];
-		const enabledWeekdays = weekdays.filter(Boolean).length;
-		count += Math.min(enabledWeekdays, 6);
-
-		count += horizonVisibility.weeksToShow;
-		count += horizonVisibility.monthsToShow;
-
-		if (horizonVisibility.showQuarters) {
-			const now = new Date();
-			const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
-			const remainingQuarters = 4 - currentQuarter;
-			count += remainingQuarters;
-		}
-
-		if (horizonVisibility.showNextYear) count++;
-		count += customHorizons.length;
-
-		return count;
-	}
-
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		// Planning Board Section
-		new Setting(containerEl).setName("Planning Board").setHeading();
+		// === BASIC HORIZONS ===
+		new Setting(containerEl).setName("Basic Horizons").setHeading();
 
-		const basicBucketsDesc = containerEl.createDiv({ cls: "setting-item-description" });
-		basicBucketsDesc.setText("Basic time buckets");
+		const basicDesc = containerEl.createDiv({ cls: "setting-item-description" });
+		basicDesc.setText("Choose which special-purpose columns to display in your planning board.");
+		basicDesc.style.marginBottom = "var(--size-4-4)";
 
-		const basicBucketsGrid = containerEl.createDiv({ cls: "th-bucket-grid" });
+		new Setting(containerEl)
+			.setName("Backlog")
+			.setDesc("Tasks without a due date")
+			.addToggle(toggle =>
+				toggle
+					.setValue(this.plugin.settings.horizonVisibility.showBacklog)
+					.onChange(async value => {
+						this.plugin.settings.horizonVisibility.showBacklog = value;
+						await this.plugin.saveSettings();
+						await this.plugin.refreshPlanningViews();
+					})
+			);
 
-		const basicBuckets = [
-			{ key: "showBacklog", label: "Backlog" },
-			{ key: "showPast", label: "Past" },
-			{ key: "showOverdue", label: "Overdue" },
-			{ key: "showLater", label: "Later" }
+		new Setting(containerEl)
+			.setName("Overdue")
+			.setDesc("Tasks past their due date that aren't completed")
+			.addToggle(toggle =>
+				toggle
+					.setValue(this.plugin.settings.horizonVisibility.showOverdue)
+					.onChange(async value => {
+						this.plugin.settings.horizonVisibility.showOverdue = value;
+						await this.plugin.saveSettings();
+						await this.plugin.refreshPlanningViews();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Later")
+			.setDesc("Tasks scheduled beyond your visible time horizons")
+			.addToggle(toggle =>
+				toggle
+					.setValue(this.plugin.settings.horizonVisibility.showLater)
+					.onChange(async value => {
+						this.plugin.settings.horizonVisibility.showLater = value;
+						await this.plugin.saveSettings();
+						await this.plugin.refreshPlanningViews();
+					})
+			);
+
+		// === NEAR-TERM PLANNING ===
+		new Setting(containerEl).setName("Near-Term Planning").setHeading();
+
+		const nearTermDesc = containerEl.createDiv({ cls: "setting-item-description" });
+		nearTermDesc.setText("Individual days give you detailed control over the current week. Choose which days to show as separate columns.");
+		nearTermDesc.style.marginBottom = "var(--size-4-4)";
+
+		// Calendar-style weekday selector
+		const weekdaySection = containerEl.createDiv({ cls: "th-weekday-selector" });
+		const weekdayLabel = weekdaySection.createDiv({ cls: "th-weekday-label" });
+		weekdayLabel.setText("Visible weekdays");
+
+		const weekdayGrid = weekdaySection.createDiv({ cls: "th-weekday-grid" });
+
+		const allWeekdays = [
+			{ key: "showMonday", label: "Mon", full: "Monday", dayNum: 1 },
+			{ key: "showTuesday", label: "Tue", full: "Tuesday", dayNum: 2 },
+			{ key: "showWednesday", label: "Wed", full: "Wednesday", dayNum: 3 },
+			{ key: "showThursday", label: "Thu", full: "Thursday", dayNum: 4 },
+			{ key: "showFriday", label: "Fri", full: "Friday", dayNum: 5 },
+			{ key: "showSaturday", label: "Sat", full: "Saturday", dayNum: 6 },
+			{ key: "showSunday", label: "Sun", full: "Sunday", dayNum: 7 }
 		];
 
-		basicBuckets.forEach(bucket => {
-			const checkboxWrapper = basicBucketsGrid.createDiv({ cls: "th-bucket-checkbox" });
-			const checkbox = checkboxWrapper.createEl("input", { type: "checkbox" });
-			checkbox.checked = this.plugin.settings.horizonVisibility[bucket.key as keyof typeof this.plugin.settings.horizonVisibility] as boolean;
-			checkbox.addEventListener("change", async () => {
-				(this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[bucket.key] = checkbox.checked;
-				await this.plugin.saveSettings();
-				await this.plugin.refreshPlanningViews();
-				this.display();
-			});
-			checkboxWrapper.createSpan({ text: bucket.label });
-		});
-
-		// Weekdays
-		const weekdaysDesc = containerEl.createDiv({ cls: "setting-item-description" });
-		weekdaysDesc.setText("Weekday columns");
-		weekdaysDesc.style.marginTop = "var(--th-space-xl)";
-
-		const weekdaysGrid = containerEl.createDiv({ cls: "th-bucket-grid" });
-
+		// Reorder weekdays to start from the selected first weekday
+		const firstWeekday = this.plugin.settings.firstWeekday || 1;
 		const weekdays = [
-			{ key: "showMonday", label: "Mon" },
-			{ key: "showTuesday", label: "Tue" },
-			{ key: "showWednesday", label: "Wed" },
-			{ key: "showThursday", label: "Thu" },
-			{ key: "showFriday", label: "Fri" },
-			{ key: "showSaturday", label: "Sat" },
-			{ key: "showSunday", label: "Sun" }
+			...allWeekdays.filter(d => d.dayNum >= firstWeekday),
+			...allWeekdays.filter(d => d.dayNum < firstWeekday)
 		];
 
 		weekdays.forEach(day => {
-			const checkboxWrapper = weekdaysGrid.createDiv({ cls: "th-bucket-checkbox" });
-			const checkbox = checkboxWrapper.createEl("input", { type: "checkbox" });
-			checkbox.checked = this.plugin.settings.horizonVisibility[day.key as keyof typeof this.plugin.settings.horizonVisibility] as boolean;
-			checkbox.addEventListener("change", async () => {
-				(this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = checkbox.checked;
+			const dayButton = weekdayGrid.createDiv({ cls: "th-weekday-button" });
+			const isChecked = this.plugin.settings.horizonVisibility[day.key as keyof typeof this.plugin.settings.horizonVisibility] as boolean;
+			if (isChecked) {
+				dayButton.addClass("th-weekday-button--active");
+			}
+			dayButton.setText(day.label);
+			dayButton.setAttribute("aria-label", day.full);
+			dayButton.addEventListener("click", async () => {
+				const newValue = !isChecked;
+				(this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = newValue;
 				await this.plugin.saveSettings();
 				await this.plugin.refreshPlanningViews();
 				this.display();
 			});
-			checkboxWrapper.createSpan({ text: day.label });
 		});
 
-		containerEl.createDiv({ cls: "setting-item-control" });
-
-		const weeksValueSpan = containerEl.createEl("span");
 		new Setting(containerEl)
-			.setName("Weeks to show")
-			.setDesc("Number of week columns to display (0-4)")
-			.addSlider(slider => {
-				weeksValueSpan.setText(` ${this.plugin.settings.horizonVisibility.weeksToShow}`);
-				slider
-					.setLimits(0, 4, 1)
-					.setValue(this.plugin.settings.horizonVisibility.weeksToShow)
-					.onChange(async value => {
-						this.plugin.settings.horizonVisibility.weeksToShow = value;
-						weeksValueSpan.setText(` ${value}`);
-						await this.plugin.saveSettings();
-						await this.plugin.refreshPlanningViews();
-						this.display();
-					});
-				slider.sliderEl.after(weeksValueSpan);
+			.setName("Week starts on")
+			.setDesc("First day of your work week")
+			.addDropdown(dropDown => {
+				const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+				days.forEach((display, index) => dropDown.addOption((index + 1).toString(), display));
+				dropDown.setValue((this.plugin.settings.firstWeekday || 1).toString());
+				dropDown.onChange(async (value: string) => {
+					this.plugin.settings.firstWeekday = parseInt(value);
+					await this.plugin.saveSettings();
+					await this.plugin.refreshPlanningViews();
+					this.display();
+				});
 			});
 
-		const monthsValueSpan = containerEl.createEl("span");
+		// === FUTURE HORIZONS ===
+		new Setting(containerEl).setName("Future Horizons").setHeading();
+
+		const futureDesc = containerEl.createDiv({ cls: "setting-item-description" });
+		futureDesc.setText("Weeks and months provide broader planning horizons. Configure how far ahead you want to plan.");
+		futureDesc.style.marginBottom = "var(--size-4-4)";
+
 		new Setting(containerEl)
-			.setName("Months to show")
-			.setDesc("Number of month columns to display (0-3)")
-			.addSlider(slider => {
-				monthsValueSpan.setText(` ${this.plugin.settings.horizonVisibility.monthsToShow}`);
-				slider
-					.setLimits(0, 3, 1)
-					.setValue(this.plugin.settings.horizonVisibility.monthsToShow)
-					.onChange(async value => {
-						this.plugin.settings.horizonVisibility.monthsToShow = value;
-						monthsValueSpan.setText(` ${value}`);
-						await this.plugin.saveSettings();
-						await this.plugin.refreshPlanningViews();
-						this.display();
-					});
-				slider.sliderEl.after(monthsValueSpan);
+			.setName("Weeks")
+			.setDesc("Show upcoming weeks as individual columns")
+			.addDropdown(dropdown => {
+				dropdown.addOption("0", "None");
+				dropdown.addOption("1", "1 week");
+				dropdown.addOption("2", "2 weeks");
+				dropdown.addOption("3", "3 weeks");
+				dropdown.addOption("4", "4 weeks");
+				dropdown.setValue(this.plugin.settings.horizonVisibility.weeksToShow.toString());
+				dropdown.onChange(async value => {
+					this.plugin.settings.horizonVisibility.weeksToShow = parseInt(value);
+					await this.plugin.saveSettings();
+					await this.plugin.refreshPlanningViews();
+				});
 			});
 
 		new Setting(containerEl)
-			.setName("Show quarters")
-			.setDesc("Display remaining quarterly buckets until end of year (Q1, Q2, Q3, Q4)")
+			.setName("Months")
+			.setDesc("Show upcoming months for long-term planning")
+			.addDropdown(dropdown => {
+				dropdown.addOption("0", "None");
+				dropdown.addOption("1", "1 month");
+				dropdown.addOption("2", "2 months");
+				dropdown.addOption("3", "3 months");
+				dropdown.setValue(this.plugin.settings.horizonVisibility.monthsToShow.toString());
+				dropdown.onChange(async value => {
+					this.plugin.settings.horizonVisibility.monthsToShow = parseInt(value);
+					await this.plugin.saveSettings();
+					await this.plugin.refreshPlanningViews();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Quarters")
+			.setDesc("Show remaining quarters of the current year (Q1, Q2, Q3, Q4)")
 			.addToggle(toggle =>
 				toggle
 					.setValue(this.plugin.settings.horizonVisibility.showQuarters)
@@ -161,13 +173,12 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 						this.plugin.settings.horizonVisibility.showQuarters = value;
 						await this.plugin.saveSettings();
 						await this.plugin.refreshPlanningViews();
-						this.display();
 					})
 			);
 
 		new Setting(containerEl)
-			.setName("Show next year")
-			.setDesc("Display a bucket for next year")
+			.setName("Next year")
+			.setDesc("Show a column for next calendar year")
 			.addToggle(toggle =>
 				toggle
 					.setValue(this.plugin.settings.horizonVisibility.showNextYear)
@@ -175,13 +186,19 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 						this.plugin.settings.horizonVisibility.showNextYear = value;
 						await this.plugin.saveSettings();
 						await this.plugin.refreshPlanningViews();
-						this.display();
 					})
 			);
 
+		// === WORK LIMITS ===
+		new Setting(containerEl).setName("Work Limits").setHeading();
+
+		const limitsDesc = containerEl.createDiv({ cls: "setting-item-description" });
+		limitsDesc.setText("Set limits to avoid overcommitting and maintain sustainable workload.");
+		limitsDesc.style.marginBottom = "var(--size-4-4)";
+
 		new Setting(containerEl)
 			.setName("Daily WIP limit")
-			.setDesc("Maximum tasks in progress per day (0 = unlimited)")
+			.setDesc("Maximum tasks in progress per day (0 = unlimited). Columns turn red when exceeded.")
 			.addText(txt =>
 				txt
 					.setValue(this.plugin.settings.defaultDailyWipLimit.toString())
@@ -192,40 +209,22 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl)
-			.setName("First weekday")
-			.setDesc("First day of the week for planning columns")
-			.addDropdown(dropDown => {
-				const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-				days.forEach((display, index) => dropDown.addOption((index + 1).toString(), display));
-				dropDown.setValue((this.plugin.settings.firstWeekday || 1).toString());
-				dropDown.onChange(async (value: string) => {
-					this.plugin.settings.firstWeekday = parseInt(value);
-					await this.plugin.saveSettings();
-				});
-			});
+		// === CUSTOM HORIZONS ===
+		new Setting(containerEl).setName("Custom Horizons").setHeading();
 
-		const totalBuckets = this.calculateTotalBuckets();
-		new Setting(containerEl)
-			.setName("Total buckets")
-			.setDesc(`${totalBuckets} columns will be displayed in the planning view`)
-			.setClass("th-bucket-count");
-
-		// Custom Buckets Section
-		new Setting(containerEl).setName("Custom Buckets").setHeading();
-
-		const bucketDesc = containerEl.createDiv({ cls: "setting-item-description" });
-		bucketDesc.setText("Create custom buckets filtered by tag or for specific dates");
+		const horizonDesc = containerEl.createDiv({ cls: "setting-item-description" });
+		horizonDesc.setText("Create custom horizons filtered by tag or for specific dates");
+		horizonDesc.style.marginBottom = "var(--size-4-4)";
 
 		let labelInput: HTMLInputElement;
 		let tagInput: HTMLInputElement;
 		let dateInput: HTMLInputElement;
 		let positionDropdown: HTMLSelectElement;
 
-		const bucketInputContainer = containerEl.createDiv({ cls: "th-bucket-input-container" });
+		const horizonInputContainer = containerEl.createDiv({ cls: "th-horizon-input-container" });
 
-		new Setting(bucketInputContainer)
-			.setName("New bucket")
+		new Setting(horizonInputContainer)
+			.setName("New horizon")
 			.addText(text => {
 				labelInput = text.inputEl;
 				text.setPlaceholder("Label");
@@ -250,7 +249,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 			})
 			.addButton(button => {
 				button.setIcon("plus");
-				button.setTooltip("Add bucket");
+				button.setTooltip("Add horizon");
 				button.onClick(async () => {
 					const label = labelInput.value.trim();
 					const tag = tagInput.value.trim();
@@ -296,22 +295,22 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 				});
 			});
 
-		this.plugin.settings.customHorizons.forEach((bucket, index) => {
-			const bucketType = bucket.tag ? `Tag: ${bucket.tag}` : `Date: ${bucket.date}`;
+		this.plugin.settings.customHorizons.forEach((horizon, index) => {
+			const horizonType = horizon.tag ? `Tag: ${horizon.tag}` : `Date: ${horizon.date}`;
 			let positionLabel: string;
-			if (bucket.position === "before") {
+			if (horizon.position === "before") {
 				positionLabel = "Before backlog";
-			} else if (bucket.position === "after") {
+			} else if (horizon.position === "after") {
 				positionLabel = "After backlog";
 			} else {
 				positionLabel = "End";
 			}
 
 			new Setting(containerEl)
-				.setDesc(`${bucketType} - ${positionLabel}`)
+				.setDesc(`${horizonType} - ${positionLabel}`)
 				.addText(text => {
 					text.setPlaceholder("Label");
-					text.setValue(bucket.label);
+					text.setValue(horizon.label);
 					text.onChange(async value => {
 						this.plugin.settings.customHorizons[index].label = value.trim();
 						await this.plugin.saveSettings();
@@ -328,8 +327,12 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 				);
 		});
 
-		// Task Attributes Section
+		// === TASK ATTRIBUTES ===
 		new Setting(containerEl).setName("Task Attributes").setHeading();
+
+		const attributesDesc = containerEl.createDiv({ cls: "setting-item-description" });
+		attributesDesc.setText("Configure how tasks are tagged and tracked in your markdown files.");
+		attributesDesc.style.marginBottom = "var(--size-4-4)";
 
 		new Setting(containerEl)
 			.setName("Due date attribute")
@@ -377,19 +380,24 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Use Dataview syntax")
-			.setDesc("Enable: [due:: 2025-01-01] | Disable: @due(2025-01-01)")
-			.addToggle(toggle =>
-				toggle
-					.setValue(this.plugin.settings.useDataviewSyntax)
-					.onChange(async value => {
-						this.plugin.settings.useDataviewSyntax = value;
-						await this.plugin.saveSettings();
-					})
-			);
+			.setName("Attribute syntax")
+			.setDesc("Choose how task attributes are written in your markdown files")
+			.addDropdown(dropdown => {
+				dropdown.addOption("classic", "Classic: @due(2025-01-01)");
+				dropdown.addOption("dataview", "Dataview: [due:: 2025-01-01]");
+				dropdown.setValue(this.plugin.settings.useDataviewSyntax ? "dataview" : "classic");
+				dropdown.onChange(async value => {
+					this.plugin.settings.useDataviewSyntax = value === "dataview";
+					await this.plugin.saveSettings();
+				});
+			});
 
-		// Filtering & Indexing Section
+		// === FILTERING & INDEXING ===
 		new Setting(containerEl).setName("Filtering & Indexing").setHeading();
+
+		const filteringDesc = containerEl.createDiv({ cls: "setting-item-description" });
+		filteringDesc.setText("Control which folders and files are included when scanning for tasks.");
+		filteringDesc.style.marginBottom = "var(--size-4-4)";
 
 		let folderSearchInput: SearchComponent | undefined;
 		new Setting(containerEl)

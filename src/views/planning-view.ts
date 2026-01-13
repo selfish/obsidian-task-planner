@@ -34,12 +34,22 @@ export class PlanningView extends ItemView {
     return "calendar-glyph";
   }
 
+  async onOpen(): Promise<void> {
+    this.render();
+  }
+
+  onShow(): void {
+    // Refresh view when it becomes visible
+    this.render();
+  }
+
   render(): void {
     this.deps.logger.info("Rendering planning view");
     MountPlanningComponent(this.contentView, {
       deps: this.deps,
       settings: this.settings,
       app: this.app,
+      onRefresh: () => this.render(),
     });
   }
 }

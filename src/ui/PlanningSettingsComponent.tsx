@@ -8,9 +8,10 @@ export interface PlanningSettingsComponentProps {
   totalTasks?: number,
   completedToday?: number,
   app?: App,
+  onRefresh?: () => void,
 }
 
-export function PlanningSettingsComponent({setPlanningSettings, planningSettings, totalTasks, completedToday, app}: PlanningSettingsComponentProps) {
+export function PlanningSettingsComponent({setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh}: PlanningSettingsComponentProps) {
 
   let {hideEmpty, hideDone, searchParameters} = planningSettings;
   let {searchPhrase, fuzzySearch} = searchParameters;
@@ -55,12 +56,18 @@ export function PlanningSettingsComponent({setPlanningSettings, planningSettings
   }
 
   const settingsIconRef = React.useRef<HTMLButtonElement>(null);
+  const refreshIconRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
       const { setIcon } = require('obsidian');
       settingsIconRef.current.innerHTML = '';
       setIcon(settingsIconRef.current, 'settings');
+    }
+    if (refreshIconRef.current && app) {
+      const { setIcon } = require('obsidian');
+      refreshIconRef.current.innerHTML = '';
+      setIcon(refreshIconRef.current, 'refresh-cw');
     }
   }, [app]);
 
@@ -112,6 +119,14 @@ export function PlanningSettingsComponent({setPlanningSettings, planningSettings
         />
         <span>Hide done</span>
 	  </label>
+	  {onRefresh && (
+	    <button
+	 	  ref={refreshIconRef}
+		  className="th-settings-button"
+		  onClick={onRefresh}
+		  aria-label="Refresh planning board"
+	    />
+	  )}
 	  <button
 	 	  ref={settingsIconRef}
 		  className="th-settings-button"

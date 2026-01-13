@@ -720,6 +720,61 @@
    SETTINGS
    ============================================ */
 
+/* Weekday Selector */
+.th-weekday-selector {
+  margin: var(--size-4-4) 0 var(--size-4-6) 0;
+}
+
+.th-weekday-label {
+  font-size: var(--font-ui-small);
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: var(--size-4-2);
+}
+
+.th-weekday-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--size-4-1);
+  max-width: 400px;
+}
+
+.th-weekday-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-4-2) var(--size-4-1);
+  background: var(--background-primary);
+  border: 1.5px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  min-height: 32px;
+}
+
+.th-weekday-button:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+  color: var(--text-normal);
+}
+
+.th-weekday-button--active {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+
+.th-weekday-button--active:hover {
+  background: var(--interactive-accent-hover);
+  border-color: var(--interactive-accent-hover);
+}
+
+/* Old grid styles (kept for custom horizons section) */
 .th-horizon-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -736,10 +791,6 @@
 
 .th-horizon-checkbox input[type="checkbox"] {
   margin: 0;
-}
-
-.setting-item-description {
-  margin-bottom: var(--th-space-sm);
 }
 
 .th-horizon-input-container {

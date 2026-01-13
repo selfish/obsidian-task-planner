@@ -35,9 +35,10 @@ export interface PlanningComponentProps {
   deps: PlanningComponentDeps;
   settings: TaskPlannerSettings;
   app: App;
+  onRefresh?: () => void;
 }
 
-export function PlanningComponent({deps, settings, app}: PlanningComponentProps) {
+export function PlanningComponent({deps, settings, app, onRefresh}: PlanningComponentProps) {
   const savedSettings = React.useMemo(() => PlanningSettingsStore.getSettings(), []);
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
   const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
@@ -748,6 +749,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       totalTasks={totalTasks}
       completedToday={completedToday}
       app={app}
+      onRefresh={onRefresh}
       />
     <div className="th-today-section">
       <div className="th-today-header">
