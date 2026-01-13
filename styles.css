@@ -241,6 +241,11 @@
   background: transparent;
 }
 
+/* Minimum height for 3-column today layout */
+.th-column-content.th-column-content--today.today-3-cols {
+  min-height: 100px;
+}
+
 /* Ensure today columns scroll individually */
 .th-column--today .th-column-header {
   flex-shrink: 0;
@@ -256,6 +261,33 @@
   background: var(--background-modifier-hover);
   border-color: var(--interactive-accent);
   box-shadow: var(--th-shadow-sm);
+}
+
+/* Gentle styling for specific horizons */
+.th-column-content--overdue {
+  background: color-mix(in srgb, var(--text-error) 3%, transparent);
+  border-color: color-mix(in srgb, var(--text-error) 20%, var(--background-modifier-border));
+}
+
+.th-column-content--overdue.th-column-content--hover {
+  background: color-mix(in srgb, var(--text-error) 8%, var(--background-modifier-hover));
+  border-color: color-mix(in srgb, var(--text-error) 40%, var(--interactive-accent));
+}
+
+.th-column-content--backlog {
+  background: color-mix(in srgb, var(--text-muted) 4%, transparent);
+  border-color: color-mix(in srgb, var(--text-muted) 20%, var(--background-modifier-border));
+}
+
+.th-column-content--backlog.th-column-content--hover {
+  background: color-mix(in srgb, var(--text-muted) 5%, var(--background-modifier-hover));
+}
+
+/* Green hover frame for Done column */
+.th-column-content--done.th-column-content--hover,
+.th-column-content.today-done.th-column-content--hover {
+  background: color-mix(in srgb, var(--text-success) 8%, var(--background-modifier-hover));
+  border-color: color-mix(in srgb, var(--text-success) 60%, var(--interactive-accent));
 }
 
 .th-column-content--wip-exceeded {

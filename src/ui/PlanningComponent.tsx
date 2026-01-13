@@ -250,7 +250,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         false,
         moveToDateAndStatus(today, TodoStatus.Complete),
         batchMoveToDateAndStatus(today, TodoStatus.Complete),
-        `today today-${columnCount}-cols`);
+        `today today-${columnCount}-cols today-done`);
     }
   }
 
@@ -442,7 +442,8 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         getTodosWithNoDate(),
         false,
         removeDate(),
-        batchRemoveDate());
+        batchRemoveDate(),
+        "backlog");
     }
 
     // Show overdue tasks (past due date, not completed)
@@ -454,7 +455,8 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         getOverdueTodos(),
         true,
         null,
-        null);
+        null,
+        "overdue");
     }
 
     // Custom horizons with position "after" (after backlog, before time horizons)
