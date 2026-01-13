@@ -1,14 +1,14 @@
 import * as React from "react";
 import { TodoItemComponent } from "./TodoItemComponent";
-import { TodoItem } from "../domain/TodoItem";
+import { TodoItem } from "../types/todo";
 import { App, TFile } from "obsidian";
-import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
-import { ILogger } from "../domain/ILogger";
+import { TaskPlannerSettings } from "../settings/types";
+import { Logger } from "../types/logger";
 import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 import { Sound } from "./SoundPlayer";
 
 export interface TodoSubtasksContainerDeps {
-  logger: ILogger;
+  logger: Logger;
   app: App;
   settings: TaskPlannerSettings;
 }

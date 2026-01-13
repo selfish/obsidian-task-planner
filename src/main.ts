@@ -13,27 +13,27 @@
  * See LICENSE file for full license text.
  */
 
-import { ConsoleLogger, LogLevel } from "./infrastructure/ConsoleLogger";
-import { FolderTodoParser } from "./domain/FolderTodoParser";
-import { FileTodoParser } from "./domain/FileTodoParser";
-import { ILogger } from "./domain/ILogger";
-import { ObsidianFile } from "./infrastructure/ObsidianFile";
+import { ConsoleLogger, LogLevel } from "./lib/logger";
+import { FolderTodoParser } from "./core/parsers/folder-todo-parser";
+import { FileTodoParser } from "./core/parsers/file-todo-parser";
+import { Logger } from "./types/logger";
+import { ObsidianFile } from "./lib/file-adapter";
 import { App, MarkdownView, Plugin, PluginManifest, TFile } from "obsidian";
-import { TodoIndex } from "./domain/TodoIndex";
-import { ToggleTodoCommand } from "./Commands/ToggleTodoCommand";
-import { LineOperations } from "./domain/LineOperations";
-import { ToggleOngoingTodoCommand } from "./Commands/ToggleOngoingTodoCommand";
-import { TaskPlannerSettingsTab } from "./Views/TaskPlannerSettingsTab";
-import { DEFAULT_SETTINGS, TaskPlannerSettings } from "./domain/TaskPlannerSettings";
-import { CompleteLineCommand } from "./Commands/CompleteLineCommand";
-import { PlanningView } from "./Views/PlanningView";
-import { OpenPlanningCommand } from "./Commands/OpenPlanningCommand";
-import { TodoListView } from "./Views/TodoListView";
-import { TodoReportView } from "./Views/TodoReportView";
-import { OpenReportCommand } from "./Commands/OpenReportCommand";
+import { TodoIndex } from "./core/index/todo-index";
+import { ToggleTodoCommand } from "./commands/toggle-todo";
+import { StatusOperations } from "./core/operations/status-operations";
+import { ToggleOngoingTodoCommand } from "./commands/toggle-ongoing";
+import { TaskPlannerSettingsTab } from "./settings/settings-tab";
+import { DEFAULT_SETTINGS, TaskPlannerSettings } from "./settings/types";
+import { CompleteLineCommand } from "./commands/complete-line";
+import { PlanningView } from "./views/planning-view";
+import { OpenPlanningCommand } from "./commands/open-planning";
+import { TodoListView } from "./views/todo-list-view";
+import { TodoReportView } from "./views/todo-report-view";
+import { OpenReportCommand } from "./commands/open-report";
 
 export default class TaskPlannerPlugin extends Plugin {
-	logger: ILogger = new ConsoleLogger(LogLevel.ERROR);
+	logger: Logger = new ConsoleLogger(LogLevel.ERROR);
 	settings!: TaskPlannerSettings;
 	fileTodoParser!: FileTodoParser<TFile>;
 	folderTodoParser!: FolderTodoParser<TFile>;
@@ -63,11 +63,11 @@ export default class TaskPlannerPlugin extends Plugin {
 
 		const openPlanningCommand = new OpenPlanningCommand(this.app.workspace);
 		const openReportCommand = new OpenReportCommand(this.app.workspace);
-		const lineOperations = new LineOperations(this.settings);
+		const statusOperations = new StatusOperations(this.settings);
 
-		this.addCommand(new ToggleTodoCommand(lineOperations));
-		this.addCommand(new CompleteLineCommand(lineOperations));
-		this.addCommand(new ToggleOngoingTodoCommand(lineOperations));
+		this.addCommand(new ToggleTodoCommand(statusOperations));
+		this.addCommand(new CompleteLineCommand(statusOperations));
+		this.addCommand(new ToggleOngoingTodoCommand(statusOperations));
 		this.addCommand(openPlanningCommand);
 		this.addCommand(openReportCommand);
 		this.addSettingTab(new TaskPlannerSettingsTab(this.app, this));

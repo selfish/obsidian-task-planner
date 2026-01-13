@@ -1,11 +1,11 @@
 import * as React from "react";
 import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
-import { ILogger } from "../domain/ILogger";
+import { Logger } from "../types/logger";
 
 export type Sound = "checked";
 
 export interface SoundPlayerDeps {
-  logger: ILogger;
+  logger: Logger;
 }
 
 export interface SoundPlayerProps {

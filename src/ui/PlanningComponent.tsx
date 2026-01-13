@@ -1,15 +1,15 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem";
-import { ILogger } from "../domain/ILogger";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
+import { Logger } from "../types/logger";
 import { App, TFile } from "obsidian";
 import { DateTime } from "luxon";
-import { TodoIndex } from "../domain/TodoIndex";
-import { FileOperations } from "../domain/FileOperations";
-import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
+import { TodoIndex } from "../core/index/todo-index";
+import { FileOperations } from "../core/operations/file-operations";
+import { TaskPlannerSettings } from "../settings/types";
 import { PlanningSettingsComponent } from "./PlanningSettingsComponent";
 import { PlanningTodoColumn } from "./PlanningTodoColumn";
-import { TodoMatcher } from "../domain/TodoMatcher";
+import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { PlanningSettingsStore } from "./PlanningSettingsStore";
 import { Sound, SoundPlayer } from "./SoundPlayer";
 import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
@@ -27,7 +27,7 @@ function findTodoDate<T>(todo: TodoItem<T>, attribute: string): DateTime | null 
 }
 
 export interface PlanningComponentDeps {
-  logger: ILogger,
+  logger: Logger,
   todoIndex: TodoIndex<TFile>,
 }
 
@@ -74,7 +74,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
 
       // For completed tasks:
       // - Only show in Today's Done if completed today (handled by includeSelected + completedDate check)
-      // - Don't show in any other bucket based on dueDate
+      // - Don't show in any other horizon based on dueDate
       if (isDone) {
         return includeSelected && isSelected && completedDateIsInRange;
       }
@@ -83,7 +83,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       const isInRangeOrSelected = dueDateIsInRange || (includeSelected && isSelected)
       return isInRangeOrSelected
     }
-    const todosInRange = filteredTodos.filter((todo) => todo.attributes && todoInRange(todo) && !isInCustomTagBucket(todo));
+    const todosInRange = filteredTodos.filter((todo) => todo.attributes && todoInRange(todo) && !isInCustomTagHorizon(todo));
     return todosInRange
   }
 
@@ -93,7 +93,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       && todo.attributes
       && !todo.attributes[settings.selectedAttribute]
       && todo.status !== TodoStatus.Canceled && todo.status !== TodoStatus.Complete
-      && !isInCustomTagBucket(todo))
+      && !isInCustomTagHorizon(todo))
   }
 
   function findTodo(todoId: string): TodoItem<TFile> | undefined {
@@ -263,7 +263,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
     return "";
   }
 
-  function getCustomBucketTodos(tag: string): TodoItem<TFile>[] {
+  function getCustomHorizonTodos(tag: string): TodoItem<TFile>[] {
     return filteredTodos.filter(todo => {
       if (!todo.attributes) return false;
       const tags = todo.attributes['tags'];
@@ -274,13 +274,13 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
     });
   }
 
-  function isInCustomTagBucket(todo: TodoItem<TFile>): boolean {
-    if (!settings.customBuckets) return false;
+  function isInCustomTagHorizon(todo: TodoItem<TFile>): boolean {
+    if (!settings.customHorizons) return false;
 
-    // Get all custom tag buckets
-    const customTagBuckets = settings.customBuckets.filter(b => b.tag);
+    // Get all custom tag horizons
+    const customTagHorizons = settings.customHorizons.filter(b => b.tag);
 
-    if (customTagBuckets.length === 0) return false;
+    if (customTagHorizons.length === 0) return false;
     if (!todo.attributes) return false;
 
     const todoTags = todo.attributes['tags'];
@@ -288,8 +288,8 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
 
     const todoTagList = todoTags.split(',').map(t => t.trim());
 
-    // Check if todo has any of the custom bucket tags
-    return customTagBuckets.some(bucket => todoTagList.includes(bucket.tag!));
+    // Check if todo has any of the custom horizon tags
+    return customTagHorizons.some(horizon => todoTagList.includes(horizon.tag!));
   }
 
   function getOverdueTodos(): TodoItem<TFile>[] {
@@ -298,7 +298,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
         return false;
       }
-      if (isInCustomTagBucket(todo)) {
+      if (isInCustomTagHorizon(todo)) {
         return false;
       }
       const dueDate = findTodoDate(todo, settings.dueDateAttribute);
@@ -306,32 +306,32 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
     });
   }
 
-  function getCustomDateBucketTodos(targetDate: string): TodoItem<TFile>[] {
+  function getCustomDateHorizonTodos(targetDate: string): TodoItem<TFile>[] {
     const target = DateTime.fromISO(targetDate);
     if (!target.isValid) return [];
 
     const start = target.startOf("day");
     const end = start.plus({ days: 1 });
-    // getTodosByDate already filters out custom tag bucket todos
+    // getTodosByDate already filters out custom tag horizon todos
     return getTodosByDate(start, end);
   }
 
   function* getColumns() {
-    const { bucketVisibility, customBuckets } = settings;
+    const { horizonVisibility, customHorizons } = settings;
 
     const today = DateTime.now().startOf("day");
 
-    // Pre-calculate larger bucket ranges to prevent overlaps
-    const monthBucketRanges: Array<{ start: DateTime, end: DateTime }> = [];
-    const quarterBucketRanges: Array<{ start: DateTime, end: DateTime }> = [];
-    const yearBucketRanges: Array<{ start: DateTime, end: DateTime }> = [];
+    // Pre-calculate larger horizon ranges to prevent overlaps
+    const monthHorizonRanges: Array<{ start: DateTime, end: DateTime }> = [];
+    const quarterHorizonRanges: Array<{ start: DateTime, end: DateTime }> = [];
+    const yearHorizonRanges: Array<{ start: DateTime, end: DateTime }> = [];
 
-    // Calculate month bucket ranges - we need to start from where weeks will end
+    // Calculate month horizon ranges - we need to start from where weeks will end
     // to properly calculate overlaps
     let monthCalcStart = today.plus({ days: 1 });
 
-    // Calculate where currentDate will be after week buckets
-    if (bucketVisibility.weeksToShow > 0) {
+    // Calculate where currentDate will be after week horizons
+    if (horizonVisibility.weeksToShow > 0) {
       const firstWeekday = settings.firstWeekday ?? 1;
       let endOfWeek = today;
       while (true) {
@@ -340,32 +340,32 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
           break;
         }
       }
-      monthCalcStart = endOfWeek.plus({ weeks: bucketVisibility.weeksToShow });
+      monthCalcStart = endOfWeek.plus({ weeks: horizonVisibility.weeksToShow });
     }
 
-    if (bucketVisibility.monthsToShow > 0) {
+    if (horizonVisibility.monthsToShow > 0) {
       let monthStart = monthCalcStart.startOf('month');
       if (monthStart < monthCalcStart) {
         monthStart = monthStart.plus({ months: 1 });
       }
-      for (let i = 0; i < bucketVisibility.monthsToShow; i++) {
+      for (let i = 0; i < horizonVisibility.monthsToShow; i++) {
         const monthEnd = monthStart.plus({ months: 1 });
-        monthBucketRanges.push({ start: monthStart, end: monthEnd });
+        monthHorizonRanges.push({ start: monthStart, end: monthEnd });
         monthStart = monthEnd;
       }
     }
 
-    // Calculate quarter bucket ranges - start from where months will end
+    // Calculate quarter horizon ranges - start from where months will end
     let quarterCalcStart = monthCalcStart;
-    if (bucketVisibility.monthsToShow > 0) {
+    if (horizonVisibility.monthsToShow > 0) {
       let tempMonth = monthCalcStart.startOf('month');
       if (tempMonth < monthCalcStart) {
         tempMonth = tempMonth.plus({ months: 1 });
       }
-      quarterCalcStart = tempMonth.plus({ months: bucketVisibility.monthsToShow });
+      quarterCalcStart = tempMonth.plus({ months: horizonVisibility.monthsToShow });
     }
 
-    if (bucketVisibility.showQuarters) {
+    if (horizonVisibility.showQuarters) {
       const endOfYear = today.endOf('year').plus({ days: 1 }).startOf('day');
       let quarterStart = quarterCalcStart.startOf('quarter');
       if (quarterStart < quarterCalcStart) {
@@ -373,69 +373,69 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       }
       while (quarterStart < endOfYear) {
         const quarterEnd = quarterStart.plus({ quarters: 1 });
-        quarterBucketRanges.push({ start: quarterStart, end: quarterEnd });
+        quarterHorizonRanges.push({ start: quarterStart, end: quarterEnd });
         quarterStart = quarterEnd;
       }
     }
 
-    // Calculate next year bucket range - only if it starts next year
-    if (bucketVisibility.showNextYear) {
+    // Calculate next year horizon range - only if it starts next year
+    if (horizonVisibility.showNextYear) {
       const nextYearStart = today.plus({ years: 1 }).startOf('year');
       const nextYearEnd = nextYearStart.plus({ years: 1 });
       // Only add if the next year is actually in the future (not already covered by months/quarters)
       if (nextYearStart.year > today.year) {
-        yearBucketRanges.push({ start: nextYearStart, end: nextYearEnd });
+        yearHorizonRanges.push({ start: nextYearStart, end: nextYearEnd });
       }
     }
 
-    // Check if a week bucket overlaps with month/quarter/year buckets
+    // Check if a week horizon overlaps with month/quarter/year horizons
     function isWeekOverlapping(start: DateTime, end: DateTime): boolean {
-      const allLarger = [...monthBucketRanges, ...quarterBucketRanges, ...yearBucketRanges];
-      return allLarger.some(bucket =>
-        start >= bucket.start && end <= bucket.end
+      const allLarger = [...monthHorizonRanges, ...quarterHorizonRanges, ...yearHorizonRanges];
+      return allLarger.some(horizon =>
+        start >= horizon.start && end <= horizon.end
       );
     }
 
-    // Check if a month bucket overlaps with quarter/year buckets
+    // Check if a month horizon overlaps with quarter/year horizons
     function isMonthOverlapping(start: DateTime, end: DateTime): boolean {
-      const allLarger = [...quarterBucketRanges, ...yearBucketRanges];
-      return allLarger.some(bucket =>
-        start >= bucket.start && end <= bucket.end
+      const allLarger = [...quarterHorizonRanges, ...yearHorizonRanges];
+      return allLarger.some(horizon =>
+        start >= horizon.start && end <= horizon.end
       );
     }
 
-    // Check if a quarter bucket overlaps with year buckets
+    // Check if a quarter horizon overlaps with year horizons
     function isQuarterOverlapping(start: DateTime, end: DateTime): boolean {
-      return yearBucketRanges.some(bucket =>
-        start >= bucket.start && end <= bucket.end
+      return yearHorizonRanges.some(horizon =>
+        start >= horizon.start && end <= horizon.end
       );
     }
 
-    // Custom buckets with position "before" (before backlog)
-    if (customBuckets) {
-      for (const bucket of customBuckets.filter(b => b.position === "before")) {
-        if (bucket.tag) {
+    // Custom horizons with position "before" (before backlog)
+    if (customHorizons) {
+      for (const horizon of customHorizons.filter(b => b.position === "before")) {
+        if (horizon.tag) {
           yield todoColumn(
             "tag",
-            bucket.label,
-            getCustomBucketTodos(bucket.tag),
+            horizon.label,
+            getCustomHorizonTodos(horizon.tag),
             hideEmpty,
             null,
             null);
-        } else if (bucket.date) {
-          const bucketDate = DateTime.fromISO(bucket.date);
+        } else if (horizon.date) {
+          const horizonDate = DateTime.fromISO(horizon.date);
           yield todoColumn(
             "calendar-days",
-            bucket.label,
-            getCustomDateBucketTodos(bucket.date),
+            horizon.label,
+            getCustomDateHorizonTodos(horizon.date),
             hideEmpty,
-            moveToDate(bucketDate),
-            batchMoveToDate(bucketDate));
+            moveToDate(horizonDate),
+            batchMoveToDate(horizonDate));
         }
       }
     }
 
-    if (bucketVisibility.showBacklog) {
+    if (horizonVisibility.showBacklog) {
       yield todoColumn(
         "inbox",
         "Backlog",
@@ -447,7 +447,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
 
     // Show overdue tasks (past due date, not completed)
     // Note: showPast and showOverdue both showed the same thing, so we consolidated to just Overdue
-    if (bucketVisibility.showOverdue || bucketVisibility.showPast) {
+    if (horizonVisibility.showOverdue || horizonVisibility.showPast) {
       yield todoColumn(
         "alert-triangle",
         "Overdue",
@@ -457,26 +457,26 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         null);
     }
 
-    // Custom buckets with position "after" (after backlog, before time buckets)
-    if (customBuckets) {
-      for (const bucket of customBuckets.filter(b => b.position === "after")) {
-        if (bucket.tag) {
+    // Custom horizons with position "after" (after backlog, before time horizons)
+    if (customHorizons) {
+      for (const horizon of customHorizons.filter(b => b.position === "after")) {
+        if (horizon.tag) {
           yield todoColumn(
             "tag",
-            bucket.label,
-            getCustomBucketTodos(bucket.tag),
+            horizon.label,
+            getCustomHorizonTodos(horizon.tag),
             hideEmpty,
             null,
             null);
-        } else if (bucket.date) {
-          const bucketDate = DateTime.fromISO(bucket.date);
+        } else if (horizon.date) {
+          const horizonDate = DateTime.fromISO(horizon.date);
           yield todoColumn(
             "calendar-days",
-            bucket.label,
-            getCustomDateBucketTodos(bucket.date),
+            horizon.label,
+            getCustomDateHorizonTodos(horizon.date),
             hideEmpty,
-            moveToDate(bucketDate),
-            batchMoveToDate(bucketDate));
+            moveToDate(horizonDate),
+            batchMoveToDate(horizonDate));
         }
       }
     }
@@ -509,7 +509,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       const weekday = currentDate.weekday;
       const setting = weekdaySettings.find(s => s.day === weekday);
 
-      if (setting && bucketVisibility[setting.key]) {
+      if (setting && horizonVisibility[setting.key]) {
         const nextDay = currentDate.plus({ days: 1 });
         const todos = getTodosByDate(currentDate, nextDay);
         const style = getWipStyle(todos);
@@ -530,14 +530,14 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       currentDate = currentDate.plus({ days: 1 });
     }
 
-    // Week buckets - start from the calculated endOfWeek (start of next week)
-    if (bucketVisibility.weeksToShow > 0) {
+    // Week horizons - start from the calculated endOfWeek (start of next week)
+    if (horizonVisibility.weeksToShow > 0) {
       let weekStart = endOfWeek; // Already calculated as start of next week
 
-      for (let i = 1; i <= bucketVisibility.weeksToShow; i++) {
+      for (let i = 1; i <= horizonVisibility.weeksToShow; i++) {
         const weekEnd = weekStart.plus({ weeks: 1 });
 
-        // Skip this week if it's entirely contained within a larger bucket (month/quarter/year)
+        // Skip this week if it's entirely contained within a larger horizon (month/quarter/year)
         if (!isWeekOverlapping(weekStart, weekEnd)) {
           const label = `Week +${i} (${weekStart.toFormat("dd/MM")} - ${weekEnd.minus({ days: 1 }).toFormat("dd/MM")})`;
           const todos = getTodosByDate(weekStart, weekEnd);
@@ -558,18 +558,18 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       currentDate = endOfWeek;
     }
 
-    // Month buckets
-    if (bucketVisibility.monthsToShow > 0) {
+    // Month horizons
+    if (horizonVisibility.monthsToShow > 0) {
       // Snap to start of next month
       let monthStart = currentDate.startOf('month');
       if (monthStart < currentDate) {
         monthStart = monthStart.plus({ months: 1 });
       }
 
-      for (let i = 1; i <= bucketVisibility.monthsToShow; i++) {
+      for (let i = 1; i <= horizonVisibility.monthsToShow; i++) {
         const monthEnd = monthStart.plus({ months: 1 });
 
-        // Skip this month if it's entirely contained within a larger bucket (quarter/year)
+        // Skip this month if it's entirely contained within a larger horizon (quarter/year)
         if (!isMonthOverlapping(monthStart, monthEnd)) {
           const label = `Month +${i} (${monthStart.toFormat("MMM dd")} - ${monthEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
           const todos = getTodosByDate(monthStart, monthEnd);
@@ -588,8 +588,8 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       currentDate = monthStart;
     }
 
-    // Quarter buckets - show all remaining quarters until end of current year
-    if (bucketVisibility.showQuarters) {
+    // Quarter horizons - show all remaining quarters until end of current year
+    if (horizonVisibility.showQuarters) {
       const endOfYear = today.endOf('year').plus({ days: 1 }).startOf('day'); // Start of next year
 
       // Snap to start of next quarter
@@ -601,7 +601,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       while (quarterStart < endOfYear) {
         const quarterEnd = quarterStart.plus({ quarters: 1 });
 
-        // Skip this quarter if it's entirely contained within the year bucket
+        // Skip this quarter if it's entirely contained within the year horizon
         if (!isQuarterOverlapping(quarterStart, quarterEnd)) {
           const quarterNum = Math.ceil(quarterStart.month / 3);
           const label = `Q${quarterNum} ${quarterStart.year} (${quarterStart.toFormat("MMM dd")} - ${quarterEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
@@ -621,8 +621,8 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       currentDate = quarterStart;
     }
 
-    // Next year bucket - represents the entire next year
-    if (bucketVisibility.showNextYear) {
+    // Next year horizon - represents the entire next year
+    if (horizonVisibility.showNextYear) {
       const nextYearStart = today.plus({ years: 1 }).startOf('year');
       const nextYearEnd = nextYearStart.plus({ years: 1 });
       const label = `${nextYearStart.year}`;
@@ -637,7 +637,7 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       currentDate = nextYearEnd;
     }
 
-    if (bucketVisibility.showLater) {
+    if (horizonVisibility.showLater) {
       yield todoColumn(
         "calendar-plus",
         "Later",
@@ -647,26 +647,26 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         batchMoveToDate(currentDate));
     }
 
-    // Custom buckets with position "end" (after time buckets)
-    if (customBuckets) {
-      for (const bucket of customBuckets.filter(b => b.position === "end")) {
-        if (bucket.tag) {
+    // Custom horizons with position "end" (after time horizons)
+    if (customHorizons) {
+      for (const horizon of customHorizons.filter(b => b.position === "end")) {
+        if (horizon.tag) {
           yield todoColumn(
             "tag",
-            bucket.label,
-            getCustomBucketTodos(bucket.tag),
+            horizon.label,
+            getCustomHorizonTodos(horizon.tag),
             hideEmpty,
             null,
             null);
-        } else if (bucket.date) {
-          const bucketDate = DateTime.fromISO(bucket.date);
+        } else if (horizon.date) {
+          const horizonDate = DateTime.fromISO(horizon.date);
           yield todoColumn(
             "calendar-days",
-            bucket.label,
-            getCustomDateBucketTodos(bucket.date),
+            horizon.label,
+            getCustomDateHorizonTodos(horizon.date),
             hideEmpty,
-            moveToDate(bucketDate),
-            batchMoveToDate(bucketDate));
+            moveToDate(horizonDate),
+            batchMoveToDate(horizonDate));
         }
       }
     }

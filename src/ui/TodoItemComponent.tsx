@@ -1,11 +1,10 @@
 import * as React from "react";
-import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { App, MarkdownView, Menu, TFile, setIcon } from "obsidian";
-import { IDictionary } from "../domain/IDictionary";
 import { TodoSubtasksContainer } from "./TodoSubtasksContainer";
 import { TodoStatusComponent } from "./TodoStatusComponent";
-import { Consts } from "../domain/Consts";
-import { FileOperations } from "../domain/FileOperations";
+import { Consts } from "../types/constants";
+import { FileOperations } from "../core/operations/file-operations";
 import { StandardDependencies } from "./StandardDependencies";
 import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 import { Sound } from "./SoundPlayer";
@@ -61,7 +60,7 @@ function SelectedBadge(): React.ReactElement {
   );
 }
 
-function getPriority(attributes: IDictionary<string | boolean> | undefined): string | null {
+function getPriority(attributes: Record<string, string | boolean> | undefined): string | null {
   if (!attributes) return null;
 
   const priorityAttr = attributes["priority"] || attributes["importance"];

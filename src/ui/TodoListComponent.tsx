@@ -1,20 +1,19 @@
 import * as React from "react";
-import { IDictionary } from "../domain/IDictionary";
-import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { App, TFile } from "obsidian";
 import { TodoItemComponent } from "./TodoItemComponent";
-import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
-import { ILogger } from "../domain/ILogger";
+import { TaskPlannerSettings } from "../settings/types";
+import { Logger } from "../types/logger";
 import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 import { Sound } from "./SoundPlayer";
-import { Consts } from "../domain/Consts";
+import { Consts } from "../types/constants";
 
 function getPriorityValue(todo: TodoItem<TFile>): number {
   if (!todo.attributes || !todo.attributes["priority"]) {
     return 0;
   }
   const priority = todo.attributes["priority"] as string;
-  const priorities: IDictionary<number> = {
+  const priorities: Record<string, number> = {
     critical: 10,
     high: 9,
     medium: 5,
@@ -73,7 +72,7 @@ function groupTodosByFile(todos: TodoItem<TFile>[]): Map<string, TodoItem<TFile>
 }
 
 export interface TodoListComponentDeps {
-  logger: ILogger;
+  logger: Logger;
   app: App;
   settings: TaskPlannerSettings;
 }

@@ -1,9 +1,9 @@
 import { App } from "obsidian";
-import { ILogger } from "../domain/ILogger";
-import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
+import { Logger } from "../types/logger";
+import { TaskPlannerSettings } from "../settings/types";
 
 export interface StandardDependencies {
-  logger: ILogger;
+  logger: Logger;
   app: App;
   settings: TaskPlannerSettings;
 }

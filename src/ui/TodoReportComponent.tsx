@@ -1,15 +1,15 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { App, TFile } from "obsidian";
-import { ILogger } from "../domain/ILogger";
-import { TodoIndex } from "../domain/TodoIndex";
-import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
-import { TodoItem, TodoStatus } from "../domain/TodoItem";
+import { Logger } from "../types/logger";
+import { TodoIndex } from "../core/index/todo-index";
+import { TaskPlannerSettings } from "../settings/types";
+import { TodoItem, TodoStatus } from "../types/todo";
 import { DateTime } from "luxon";
 import { TodoListComponent } from "./TodoListComponent";
 
 export interface TodoReportComponentDeps {
-  logger: ILogger;
+  logger: Logger;
   todoIndex: TodoIndex<TFile>;
   settings: TaskPlannerSettings;
   app: App;

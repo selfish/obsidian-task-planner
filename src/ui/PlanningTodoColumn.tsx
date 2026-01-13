@@ -1,9 +1,9 @@
 import { App, TFile, setIcon } from "obsidian";
 import * as React from "react";
-import { Consts } from "../domain/Consts";
-import { TodoItem } from "../domain/TodoItem";
-import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
-import { ILogger } from "../domain/ILogger";
+import { Consts } from "../types/constants";
+import { TodoItem } from "../types/todo";
+import { TaskPlannerSettings } from "../settings/types";
+import { Logger } from "../types/logger";
 import { TodoListComponent } from "./TodoListComponent";
 import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 import { Sound } from "./SoundPlayer";
@@ -11,7 +11,7 @@ import { Sound } from "./SoundPlayer";
 export interface PlanningTodoColumnDeps {
   app: App;
   settings: TaskPlannerSettings;
-  logger: ILogger;
+  logger: Logger;
 }
 
 export interface PlanningTodoColumnProps {

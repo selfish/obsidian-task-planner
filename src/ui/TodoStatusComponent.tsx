@@ -1,9 +1,9 @@
 import * as React from "react";
-import { TodoItem, TodoStatus, getTodoId } from "../domain/TodoItem";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { App, Menu, TFile, setIcon } from "obsidian";
-import { FileOperations } from "../domain/FileOperations";
-import { ILogger } from "../domain/ILogger";
-import { TaskPlannerSettings } from "../domain/TaskPlannerSettings";
+import { FileOperations } from "../core/operations/file-operations";
+import { Logger } from "../types/logger";
+import { TaskPlannerSettings } from "../settings/types";
 import { Sound } from "./SoundPlayer";
 import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
 
@@ -27,7 +27,7 @@ function getStatusIcon(status: TodoStatus): string {
 }
 
 export interface TodoStatusComponentDeps {
-  logger: ILogger;
+  logger: Logger;
   app: App;
 }
 

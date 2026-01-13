@@ -11,11 +11,11 @@ A professional task management plugin for Obsidian that helps you track tasks ac
 ## Features
 
 ### Planning Board
-- Kanban-style planning view with time-based buckets
+- Kanban-style planning view with time-based horizons
 - Today section with Todo, In Progress, and Done columns
-- Future planning with configurable day, week, month, quarter, and year buckets
+- Future planning with configurable day, week, month, quarter, and year horizons
 - Drag and drop tasks between time periods
-- Custom buckets filtered by tag or specific dates
+- Custom horizons filtered by tag or specific dates
 - WIP (Work In Progress) limits to manage daily workload
 
 ### Task Management
@@ -90,8 +90,8 @@ Add due dates, priorities, and other metadata:
 
 Configure Task Planner in Settings > Task Planner:
 
-- **Planning Board**: Configure visible time buckets (days, weeks, months, quarters)
-- **Custom Buckets**: Create tag-filtered or date-specific columns
+- **Planning Board**: Configure visible time horizons (days, weeks, months, quarters)
+- **Custom Horizons**: Create tag-filtered or date-specific columns
 - **Task Attributes**: Customize attribute names (due, completed, selected)
 - **Syntax**: Choose between classic (@due) or Dataview ([due::]) syntax
 - **Filtering**: Ignore specific folders or archived content

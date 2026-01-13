@@ -688,21 +688,21 @@
    SETTINGS
    ============================================ */
 
-.th-bucket-grid {
+.th-horizon-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: var(--th-space-md);
   margin: var(--th-space-lg) 0;
 }
 
-.th-bucket-checkbox {
+.th-horizon-checkbox {
   display: flex;
   align-items: center;
   gap: var(--th-space-sm);
   font-size: var(--th-font-sm);
 }
 
-.th-bucket-checkbox input[type="checkbox"] {
+.th-horizon-checkbox input[type="checkbox"] {
   margin: 0;
 }
 
@@ -710,11 +710,11 @@
   margin-bottom: var(--th-space-sm);
 }
 
-.th-bucket-input-container {
+.th-horizon-input-container {
   margin: var(--th-space-md) 0;
 }
 
-.th-bucket-count {
+.th-horizon-count {
   font-weight: 600;
   color: var(--text-accent);
 }
