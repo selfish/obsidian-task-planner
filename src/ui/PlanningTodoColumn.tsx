@@ -101,7 +101,8 @@ export function PlanningTodoColumn({icon, title, hideIfEmpty, onTodoDropped, onB
   }
 
   const isEmpty = todos.length === 0;
-  const emptyClass = isEmpty ? 'th-column--empty' : '';
+  const isToday = substyle && substyle.includes('today');
+  const emptyClass = isEmpty && !isToday ? 'th-column--empty' : '';
 
   return <div className={`th-column ${substyle ? `th-column--${substyle}` : ""} ${emptyClass}`.trim()}>
     <div className="th-column-header">
