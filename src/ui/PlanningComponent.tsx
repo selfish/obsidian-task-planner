@@ -72,7 +72,16 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
       const completedDate = findTodoDate(todo, settings.completedDateAttribute)
       const dueDateIsInRange = dateIsInRange(dueDate)
       const completedDateIsInRange = dateIsInRange(completedDate)
-      const isInRangeOrSelected = dueDateIsInRange || (includeSelected && isSelected && (isDone && completedDateIsInRange || !isDone))
+
+      // For completed tasks:
+      // - Only show in Today's Done if completed today (handled by includeSelected + completedDate check)
+      // - Don't show in any other bucket based on dueDate
+      if (isDone) {
+        return includeSelected && isSelected && completedDateIsInRange;
+      }
+
+      // For incomplete tasks, show if dueDate is in range or if selected
+      const isInRangeOrSelected = dueDateIsInRange || (includeSelected && isSelected)
       return isInRangeOrSelected
     }
     const todosInRange = filteredTodos.filter((todo) => todo.attributes && todoInRange(todo) && !isInCustomTagBucket(todo));
@@ -311,6 +320,98 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
   function* getColumns() {
     const { bucketVisibility, customBuckets } = settings;
 
+    const today = DateTime.now().startOf("day");
+
+    // Pre-calculate larger bucket ranges to prevent overlaps
+    const monthBucketRanges: Array<{ start: DateTime, end: DateTime }> = [];
+    const quarterBucketRanges: Array<{ start: DateTime, end: DateTime }> = [];
+    const yearBucketRanges: Array<{ start: DateTime, end: DateTime }> = [];
+
+    // Calculate month bucket ranges - we need to start from where weeks will end
+    // to properly calculate overlaps
+    let monthCalcStart = today.plus({ days: 1 });
+
+    // Calculate where currentDate will be after week buckets
+    if (bucketVisibility.weeksToShow > 0) {
+      const firstWeekday = settings.firstWeekday ?? 1;
+      let endOfWeek = today;
+      while (true) {
+        endOfWeek = endOfWeek.plus({ days: 1 });
+        if (endOfWeek.weekday === firstWeekday) {
+          break;
+        }
+      }
+      monthCalcStart = endOfWeek.plus({ weeks: bucketVisibility.weeksToShow });
+    }
+
+    if (bucketVisibility.monthsToShow > 0) {
+      let monthStart = monthCalcStart.startOf('month');
+      if (monthStart < monthCalcStart) {
+        monthStart = monthStart.plus({ months: 1 });
+      }
+      for (let i = 0; i < bucketVisibility.monthsToShow; i++) {
+        const monthEnd = monthStart.plus({ months: 1 });
+        monthBucketRanges.push({ start: monthStart, end: monthEnd });
+        monthStart = monthEnd;
+      }
+    }
+
+    // Calculate quarter bucket ranges - start from where months will end
+    let quarterCalcStart = monthCalcStart;
+    if (bucketVisibility.monthsToShow > 0) {
+      let tempMonth = monthCalcStart.startOf('month');
+      if (tempMonth < monthCalcStart) {
+        tempMonth = tempMonth.plus({ months: 1 });
+      }
+      quarterCalcStart = tempMonth.plus({ months: bucketVisibility.monthsToShow });
+    }
+
+    if (bucketVisibility.showQuarters) {
+      const endOfYear = today.endOf('year').plus({ days: 1 }).startOf('day');
+      let quarterStart = quarterCalcStart.startOf('quarter');
+      if (quarterStart < quarterCalcStart) {
+        quarterStart = quarterStart.plus({ quarters: 1 });
+      }
+      while (quarterStart < endOfYear) {
+        const quarterEnd = quarterStart.plus({ quarters: 1 });
+        quarterBucketRanges.push({ start: quarterStart, end: quarterEnd });
+        quarterStart = quarterEnd;
+      }
+    }
+
+    // Calculate next year bucket range - only if it starts next year
+    if (bucketVisibility.showNextYear) {
+      const nextYearStart = today.plus({ years: 1 }).startOf('year');
+      const nextYearEnd = nextYearStart.plus({ years: 1 });
+      // Only add if the next year is actually in the future (not already covered by months/quarters)
+      if (nextYearStart.year > today.year) {
+        yearBucketRanges.push({ start: nextYearStart, end: nextYearEnd });
+      }
+    }
+
+    // Check if a week bucket overlaps with month/quarter/year buckets
+    function isWeekOverlapping(start: DateTime, end: DateTime): boolean {
+      const allLarger = [...monthBucketRanges, ...quarterBucketRanges, ...yearBucketRanges];
+      return allLarger.some(bucket =>
+        start >= bucket.start && end <= bucket.end
+      );
+    }
+
+    // Check if a month bucket overlaps with quarter/year buckets
+    function isMonthOverlapping(start: DateTime, end: DateTime): boolean {
+      const allLarger = [...quarterBucketRanges, ...yearBucketRanges];
+      return allLarger.some(bucket =>
+        start >= bucket.start && end <= bucket.end
+      );
+    }
+
+    // Check if a quarter bucket overlaps with year buckets
+    function isQuarterOverlapping(start: DateTime, end: DateTime): boolean {
+      return yearBucketRanges.some(bucket =>
+        start >= bucket.start && end <= bucket.end
+      );
+    }
+
     // Custom buckets with position "before" (before backlog)
     if (customBuckets) {
       for (const bucket of customBuckets.filter(b => b.position === "before")) {
@@ -345,20 +446,9 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
         batchRemoveDate());
     }
 
-    const today = DateTime.now().startOf("day");
-
-    if (bucketVisibility.showPast) {
-      yield todoColumn(
-        "archive",
-        "Past",
-        getTodosByDate(null, today).filter(
-          todo => todo.status !== TodoStatus.Canceled && todo.status !== TodoStatus.Complete),
-        true,
-        null,
-        null);
-    }
-
-    if (bucketVisibility.showOverdue) {
+    // Show overdue tasks (past due date, not completed)
+    // Note: showPast and showOverdue both showed the same thing, so we consolidated to just Overdue
+    if (bucketVisibility.showOverdue || bucketVisibility.showPast) {
       yield todoColumn(
         "alert-triangle",
         "Overdue",
@@ -447,17 +537,21 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
 
       for (let i = 1; i <= bucketVisibility.weeksToShow; i++) {
         const weekEnd = weekStart.plus({ weeks: 1 });
-        const label = `Week +${i} (${weekStart.toFormat("dd/MM")} - ${weekEnd.minus({ days: 1 }).toFormat("dd/MM")})`;
-        const todos = getTodosByDate(weekStart, weekEnd);
-        const style = getWipStyle(todos);
-        yield todoColumn(
-          "calendar",
-          label,
-          todos,
-          hideEmpty,
-          moveToDate(weekStart),
-          batchMoveToDate(weekStart),
-          style);
+
+        // Skip this week if it's entirely contained within a larger bucket (month/quarter/year)
+        if (!isWeekOverlapping(weekStart, weekEnd)) {
+          const label = `Week +${i} (${weekStart.toFormat("dd/MM")} - ${weekEnd.minus({ days: 1 }).toFormat("dd/MM")})`;
+          const todos = getTodosByDate(weekStart, weekEnd);
+          const style = getWipStyle(todos);
+          yield todoColumn(
+            "calendar",
+            label,
+            todos,
+            hideEmpty,
+            moveToDate(weekStart),
+            batchMoveToDate(weekStart),
+            style);
+        }
         weekStart = weekEnd;
       }
       currentDate = weekStart;
@@ -469,23 +563,27 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
     if (bucketVisibility.monthsToShow > 0) {
       // Snap to start of next month
       let monthStart = currentDate.startOf('month');
-      if (monthStart <= currentDate) {
+      if (monthStart < currentDate) {
         monthStart = monthStart.plus({ months: 1 });
       }
 
       for (let i = 1; i <= bucketVisibility.monthsToShow; i++) {
         const monthEnd = monthStart.plus({ months: 1 });
-        const label = `Month +${i} (${monthStart.toFormat("MMM dd")} - ${monthEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
-        const todos = getTodosByDate(monthStart, monthEnd);
-        const style = getWipStyle(todos);
-        yield todoColumn(
-          "calendar-range",
-          label,
-          todos,
-          hideEmpty,
-          moveToDate(monthStart),
-          batchMoveToDate(monthStart),
-          style);
+
+        // Skip this month if it's entirely contained within a larger bucket (quarter/year)
+        if (!isMonthOverlapping(monthStart, monthEnd)) {
+          const label = `Month +${i} (${monthStart.toFormat("MMM dd")} - ${monthEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
+          const todos = getTodosByDate(monthStart, monthEnd);
+          const style = getWipStyle(todos);
+          yield todoColumn(
+            "calendar-range",
+            label,
+            todos,
+            hideEmpty,
+            moveToDate(monthStart),
+            batchMoveToDate(monthStart),
+            style);
+        }
         monthStart = monthEnd;
       }
       currentDate = monthStart;
@@ -497,24 +595,28 @@ export function PlanningComponent({deps, settings, app}: PlanningComponentProps)
 
       // Snap to start of next quarter
       let quarterStart = currentDate.startOf('quarter');
-      if (quarterStart <= currentDate) {
+      if (quarterStart < currentDate) {
         quarterStart = quarterStart.plus({ quarters: 1 });
       }
 
       while (quarterStart < endOfYear) {
         const quarterEnd = quarterStart.plus({ quarters: 1 });
-        const quarterNum = Math.ceil(quarterStart.month / 3);
-        const label = `Q${quarterNum} ${quarterStart.year} (${quarterStart.toFormat("MMM dd")} - ${quarterEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
-        const todos = getTodosByDate(quarterStart, quarterEnd);
-        const style = getWipStyle(todos);
-        yield todoColumn(
-          "calendar-range",
-          label,
-          todos,
-          hideEmpty,
-          moveToDate(quarterStart),
-          batchMoveToDate(quarterStart),
-          style);
+
+        // Skip this quarter if it's entirely contained within the year bucket
+        if (!isQuarterOverlapping(quarterStart, quarterEnd)) {
+          const quarterNum = Math.ceil(quarterStart.month / 3);
+          const label = `Q${quarterNum} ${quarterStart.year} (${quarterStart.toFormat("MMM dd")} - ${quarterEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
+          const todos = getTodosByDate(quarterStart, quarterEnd);
+          const style = getWipStyle(todos);
+          yield todoColumn(
+            "calendar-range",
+            label,
+            todos,
+            hideEmpty,
+            moveToDate(quarterStart),
+            batchMoveToDate(quarterStart),
+            style);
+        }
         quarterStart = quarterEnd;
       }
       currentDate = quarterStart;
