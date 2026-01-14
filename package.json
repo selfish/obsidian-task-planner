@@ -1,6 +1,6 @@
 {
   "name": "obsidian-task-planner",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Obsidian task management and planner with drag-and-drop task planning, Today focus, backlog, overdue, and weekly time horizons.",
   "main": "main.js",
   "scripts": {
