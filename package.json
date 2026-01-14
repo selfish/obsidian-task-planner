@@ -16,8 +16,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test",
-    "prepare": "husky"
+    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "keywords": [
     "obsidian",
@@ -44,7 +43,6 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.33.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "husky": "^9.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "prettier": "^3.2.0",
