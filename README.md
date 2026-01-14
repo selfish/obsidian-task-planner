@@ -8,7 +8,7 @@
 
 A professional task management plugin for Obsidian that helps you track tasks across your vault, organize your day with intelligent planning, and manage your workload effectively.
 
-> **Note:** This plugin is a fork of [Proletarian Wizard](https://github.com/cfe84/obsidian-pw) by cfe84. See [About This Fork](#about-this-fork) for our philosophy and [CREDITS.md](CREDITS.md) for detailed attribution.
+> **Note:** This plugin is a fork of [Proletarian Wizard](https://github.com/cfe84/obsidian-pw) by cfe84. See [LICENSE](LICENSE) for attribution.
 
 ## Features
 
@@ -102,7 +102,7 @@ Configure Task Planner in Settings > Task Planner:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - npm
 
 ### Quick Start
@@ -123,19 +123,19 @@ npm run validate
 
 ### Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Development build with watch mode |
-| `npm run build` | Production build |
-| `npm run test` | Run tests |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with coverage report |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Run ESLint with auto-fix |
-| `npm run format` | Format code with Prettier |
-| `npm run format:check` | Check code formatting |
-| `npm run typecheck` | TypeScript type checking |
-| `npm run validate` | Run all checks |
+| Script                  | Description                       |
+|-------------------------|-----------------------------------|
+| `npm run dev`           | Development build with watch mode |
+| `npm run build`         | Production build                  |
+| `npm run test`          | Run tests                         |
+| `npm run test:watch`    | Run tests in watch mode           |
+| `npm run test:coverage` | Run tests with coverage report    |
+| `npm run lint`          | Run ESLint                        |
+| `npm run lint:fix`      | Run ESLint with auto-fix          |
+| `npm run format`        | Format code with Prettier         |
+| `npm run format:check`  | Check code formatting             |
+| `npm run typecheck`     | TypeScript type checking          |
+| `npm run validate`      | Run all checks                    |
 
 ### Project Structure
 ```
@@ -172,7 +172,6 @@ npm run test:coverage
 - **Prettier** for code formatting
 - **ESLint** with React and TypeScript plugins
 - **TypeScript** with gradual strictness
-- **Husky** pre-commit hooks
 
 ## Contributing
 
@@ -193,38 +192,6 @@ Quick start:
 4. Commit using conventional commits
 5. Push and open a Pull Request
 
-## About This Fork
-
-Task Planner is a fork of [Proletarian Wizard](https://github.com/cfe84/obsidian-pw) by cfe84. We're grateful for the excellent foundation that project provided.
-
-### Why We Forked
-
-We forked Proletarian Wizard because:
-
-1. **Different vision** - We wanted to explore different design decisions and features
-2. **Independent development** - Our roadmap diverged enough that independent maintenance made sense
-3. **Fresh identity** - A rebrand felt appropriate for the direction we wanted to take
-
-This is not a rejection of the original work. Quite the opposite - Proletarian Wizard was good enough that it inspired us to build upon it! Forking is a sign of respect in open source, not competition.
-
-### Our Relationship with the Original
-
-- **We maintain this independently** - Not synchronized with upstream
-- **We credit generously** - See [CREDITS.md](CREDITS.md) for detailed attribution
-- **We preserve GPL v2** - As required and as we believe is right
-- **We're open to collaboration** - Happy to share ideas with the original project
-
-### Why This Matters
-
-Open source thrives when projects can fork and evolve. Different visions lead to different solutions, and users benefit from having choices. We believe:
-
-- **Forking drives innovation** - Multiple approaches solve different problems
-- **GPL protects freedom** - Ensuring code stays free benefits everyone
-- **Attribution honors creators** - Credit flows to those who deserve it
-- **Community beats ego** - Sharing knowledge matters more than controlling it
-
-We're proud to be part of the open source ecosystem, standing on the shoulders of those who came before us.
-
 ## License
 
 This project is licensed under the GNU General Public License v2.0 - see the [LICENSE](LICENSE) file for details.
@@ -232,8 +199,6 @@ This project is licensed under the GNU General Public License v2.0 - see the [LI
 ### Attribution
 
 This software is based on [Proletarian Wizard](https://github.com/cfe84/obsidian-pw) by cfe84 and contributors, licensed under GPL v2.0.
-
-**For detailed credits and attribution, see [CREDITS.md](CREDITS.md).**
 
 ## Support
 
