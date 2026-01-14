@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened]
 
 # Cancel in-progress runs for the same branch
 concurrency:
@@ -201,7 +203,7 @@ jobs:
             styles.css
           retention-days: 7
 
-  # This job runs after all checks pass - useful for branch protection
+  # Gate job for branch protection - require this single check
   ci-success:
     name: ✅ CI Success
     runs-on: ubuntu-latest

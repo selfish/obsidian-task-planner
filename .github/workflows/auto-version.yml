@@ -1,6 +1,13 @@
 name: Auto Version
 
 on:
+  # Auto-trigger after CI passes on main
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+  # Manual trigger with version type selection
   workflow_dispatch:
     inputs:
       version_type:
@@ -19,6 +26,10 @@ permissions:
 jobs:
   version:
     runs-on: ubuntu-latest
+    # Only run if CI succeeded (for workflow_run) or always (for workflow_dispatch)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: Checkout repository
@@ -47,6 +58,16 @@ jobs:
           CURRENT=$(jq -r '.version' manifest.json)
           echo "VERSION=$CURRENT" >> $GITHUB_OUTPUT
 
+      - name: Determine version bump type
+        id: bump_type
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "TYPE=${{ inputs.version_type }}" >> $GITHUB_OUTPUT
+          else
+            # Default to patch for automatic runs
+            echo "TYPE=patch" >> $GITHUB_OUTPUT
+          fi
+
       - name: Calculate new version
         id: new_version
         run: |
@@ -56,7 +77,7 @@ jobs:
           MINOR="${VERSION_PARTS[1]}"
           PATCH="${VERSION_PARTS[2]}"
 
-          case "${{ inputs.version_type }}" in
+          case "${{ steps.bump_type.outputs.TYPE }}" in
             major)
               MAJOR=$((MAJOR + 1))
               MINOR=0
@@ -101,10 +122,13 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## Version Bump Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## 🏷️ Version Bump Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Previous version: ${{ steps.current_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- New version: ${{ steps.new_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Bump type: ${{ inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Previous version | \`${{ steps.current_version.outputs.VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| New version | \`${{ steps.new_version.outputs.VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bump type | ${{ steps.bump_type.outputs.TYPE }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The release workflow will automatically create a GitHub release for this tag." >> $GITHUB_STEP_SUMMARY
+          echo "The release workflow will automatically create a GitHub release." >> $GITHUB_STEP_SUMMARY
