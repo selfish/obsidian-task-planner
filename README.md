@@ -173,7 +173,6 @@ npm run test:coverage
 - **ESLint** with React and TypeScript plugins
 - **TypeScript** with gradual strictness
 - **Husky** pre-commit hooks
-- **Commitlint** for conventional commits
 
 ## Contributing
 

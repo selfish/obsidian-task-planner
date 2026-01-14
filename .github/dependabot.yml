@@ -37,10 +37,6 @@ updates:
           - "eslint"
           - "eslint-*"
           - "prettier"
-      commitlint:
-        patterns:
-          - "@commitlint/*"
-          - "husky"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
