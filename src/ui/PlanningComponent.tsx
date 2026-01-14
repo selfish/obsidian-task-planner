@@ -255,7 +255,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
     const todoTagList = todoTags.split(",").map((t) => t.trim());
 
     // Check if todo has any of the custom horizon tags
-    return customTagHorizons.some((horizon) => todoTagList.includes(horizon.tag!));
+    return customTagHorizons.some((horizon) => horizon.tag && todoTagList.includes(horizon.tag));
   }
 
   function getOverdueTodos(): TodoItem<TFile>[] {

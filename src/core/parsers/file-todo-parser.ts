@@ -26,11 +26,12 @@ export class FileTodoParser<TFile> {
         return;
       }
 
-      while (parent() && current.indentLevel <= parent()!.indentLevel) {
+      let currentParent = parent();
+      while (currentParent && current.indentLevel <= currentParent.indentLevel) {
         popParent();
+        currentParent = parent();
       }
 
-      const currentParent = parent();
       if (currentParent?.todo && current.isTodo && current.todo) {
         if (!currentParent.todo.subtasks) {
           currentParent.todo.subtasks = [];

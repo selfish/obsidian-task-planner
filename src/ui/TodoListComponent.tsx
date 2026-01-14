@@ -60,10 +60,12 @@ function groupTodosByFile(todos: TodoItem<TFile>[]): Map<string, TodoItem<TFile>
 
   for (const todo of todos) {
     const fileName = todo.file.file.name;
-    if (!groups.has(fileName)) {
-      groups.set(fileName, []);
+    let fileTodos = groups.get(fileName);
+    if (!fileTodos) {
+      fileTodos = [];
+      groups.set(fileName, fileTodos);
     }
-    groups.get(fileName)!.push(todo);
+    fileTodos.push(todo);
   }
 
   return groups;
