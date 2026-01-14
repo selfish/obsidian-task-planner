@@ -4,8 +4,6 @@ import { TodoItem } from "../types/todo";
 import { App, TFile } from "obsidian";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
-import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
-import { Sound } from "./SoundPlayer";
 
 export interface TodoSubtasksContainerDeps {
   logger: Logger;
@@ -16,23 +14,22 @@ export interface TodoSubtasksContainerDeps {
 export interface TodoSubtasksContainerProps {
   subtasks?: TodoItem<TFile>[];
   deps: TodoSubtasksContainerDeps;
-  playSound?: TaskPlannerEvent<Sound>;
   dontCrossCompleted?: boolean;
 }
 
-export function TodoSubtasksContainer({subtasks, deps, playSound, dontCrossCompleted}: TodoSubtasksContainerProps) {
+export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: TodoSubtasksContainerProps) {
   const [isFolded, setIsFolded] = React.useState(false);
 
   function toggleSubElement() {
     setIsFolded(!isFolded);
   }
 
-  function onClickFoldButton(evt: any) {
+  function onClickFoldButton(evt: React.MouseEvent) {
     if (evt.defaultPrevented) {
-      return
+      return;
     }
-    evt.preventDefault()
-    toggleSubElement()
+    evt.preventDefault();
+    toggleSubElement();
   }
 
   // Don't render anything if no subtasks
@@ -40,17 +37,20 @@ export function TodoSubtasksContainer({subtasks, deps, playSound, dontCrossCompl
     return null;
   }
 
-  return <>
-    <span className="th-subtasks-toggle" onClick={onClickFoldButton}>
-      {isFolded ? " ▶" : " ▼"}
-    </span>
-    {
-      isFolded
-      ? ""
-      : <div className="th-subtasks-container">
-        {subtasks.map(task => <TodoItemComponent
-          key={task.text} todo={task} deps={deps} playSound={playSound} dontCrossCompleted={dontCrossCompleted}/>)}
-      </div>
-    }
-  </>;
+  return (
+    <>
+      <span className="th-subtasks-toggle" onClick={onClickFoldButton}>
+        {isFolded ? " ▶" : " ▼"}
+      </span>
+      {isFolded ? (
+        ""
+      ) : (
+        <div className="th-subtasks-container">
+          {subtasks.map((task) => (
+            <TodoItemComponent key={task.text} todo={task} deps={deps} dontCrossCompleted={dontCrossCompleted} />
+          ))}
+        </div>
+      )}
+    </>
+  );
 }

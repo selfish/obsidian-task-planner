@@ -29,7 +29,7 @@ export class StatusOperations {
         if (completion !== null) {
           attributes.attributes[key] = completion;
         }
-      } else if (val === true){
+      } else if (val === true) {
         // try to convert tags like @today into @due(the_date)
         const completion = Completion.completeDate(key);
         if (completion !== null) {
@@ -70,18 +70,7 @@ export class StatusOperations {
 
   private markToStatus = (mark: string) => {
     mark = mark.toLowerCase();
-    return mark === "]" || mark === "-" || mark === "c"? TodoStatus.Canceled
-        : mark === ">"
-          ? TodoStatus.InProgress
-          : mark === "!"
-            ? TodoStatus.AttentionRequired
-            : mark === "x"
-              ? TodoStatus.Complete
-              : mark === " "
-                ? TodoStatus.Todo
-                : mark === "d"
-                  ? TodoStatus.Delegated
-                  : TodoStatus.Todo;
+    return mark === "]" || mark === "-" || mark === "c" ? TodoStatus.Canceled : mark === ">" ? TodoStatus.InProgress : mark === "!" ? TodoStatus.AttentionRequired : mark === "x" ? TodoStatus.Complete : mark === " " ? TodoStatus.Todo : mark === "d" ? TodoStatus.Delegated : TodoStatus.Todo;
   };
 
   private getIndentationLevel(str: string) {

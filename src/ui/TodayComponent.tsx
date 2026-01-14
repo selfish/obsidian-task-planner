@@ -1,13 +1,13 @@
-import * as React from "react";
 import { StandardDependencies } from "./StandardDependencies";
 import { TodoItem } from "../types/todo";
 import { TFile } from "obsidian";
 
 export interface TodayComponentProps {
-  deps: StandardDependencies,
-  todos: TodoItem<TFile>[]
+  deps: StandardDependencies;
+  todos: TodoItem<TFile>[];
 }
 
-export function TodayComponent({deps, todos}: TodayComponentProps) {
-  
+// Placeholder component for future Today view implementation
+export function TodayComponent(_props: TodayComponentProps): null {
+  return null;
 }

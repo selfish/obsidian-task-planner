@@ -4,8 +4,6 @@ import { App, TFile } from "obsidian";
 import { TodoItemComponent } from "./TodoItemComponent";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
-import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
-import { Sound } from "./SoundPlayer";
 import { Consts } from "../types/constants";
 
 function getPriorityValue(todo: TodoItem<TFile>): number {
@@ -52,7 +50,7 @@ function sortTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
 }
 
 function cleanFileName(fileName: string): string {
-  let name = fileName.replace(/\.md$/, "");
+  const name = fileName.replace(/\.md$/, "");
   const cleaned = name.replace(/^[\d- ]+/, "").trim();
   return cleaned || name;
 }
@@ -80,11 +78,10 @@ export interface TodoListComponentDeps {
 export interface TodoListComponentProps {
   todos: TodoItem<TFile>[];
   deps: TodoListComponentDeps;
-  playSound?: TaskPlannerEvent<Sound>;
   dontCrossCompleted?: boolean;
 }
 
-export function TodoListComponent({ todos, deps, playSound, dontCrossCompleted }: TodoListComponentProps): React.ReactElement {
+export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListComponentProps): React.ReactElement {
   const sortedTodos = React.useMemo(() => sortTodos(todos), [todos]);
   const groupedTodos = React.useMemo(() => groupTodosByFile(sortedTodos), [sortedTodos]);
 
@@ -100,39 +97,28 @@ export function TodoListComponent({ todos, deps, playSound, dontCrossCompleted }
   }
 
   function onGroupDragStart(ev: React.DragEvent, fileTodos: TodoItem<TFile>[]): void {
-    const visibleIncompleteTodos = fileTodos.filter(todo => {
+    const visibleIncompleteTodos = fileTodos.filter((todo) => {
       if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
         return false;
       }
       return sortedTodos.includes(todo);
     });
-    const todoIds = visibleIncompleteTodos.map(todo => getTodoId(todo)).join(",");
+    const todoIds = visibleIncompleteTodos.map((todo) => getTodoId(todo)).join(",");
     ev.dataTransfer.setData(Consts.TodoGroupDragType, todoIds);
   }
 
   return (
     <div>
-      {Array.from(groupedTodos.entries()).map(([fileName, fileTodos]) => {
+      {Array.from(groupedTodos.entries()).map(([_fileName, fileTodos]) => {
         const displayName = getDisplayName(fileTodos[0].file.file);
         const fileKey = fileTodos[0].file.file.path;
         return (
           <div key={fileKey} className="th-task-group">
-            <div
-              className="th-task-group-header"
-              draggable="true"
-              onDragStart={ev => onGroupDragStart(ev, fileTodos)}
-            >
+            <div className="th-task-group-header" draggable="true" onDragStart={(ev) => onGroupDragStart(ev, fileTodos)}>
               {displayName}
             </div>
-            {fileTodos.map(todo => (
-              <TodoItemComponent
-                todo={todo}
-                key={getTodoId(todo)}
-                deps={deps}
-                playSound={playSound}
-                dontCrossCompleted={dontCrossCompleted}
-                hideFileRef={true}
-              />
+            {fileTodos.map((todo) => (
+              <TodoItemComponent todo={todo} key={getTodoId(todo)} deps={deps} dontCrossCompleted={dontCrossCompleted} hideFileRef={true} />
             ))}
           </div>
         );

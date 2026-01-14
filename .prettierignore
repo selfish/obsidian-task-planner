@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+main.js
+*.map
+dist/
+
+# Obsidian
+data.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+# Lock files
+package-lock.json
+yarn.lock
+
+# Coverage
+coverage/
+
+# Other
+*.md
+LICENSE

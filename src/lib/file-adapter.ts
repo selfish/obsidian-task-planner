@@ -4,7 +4,10 @@ import { App, TFile } from "obsidian";
 export class ObsidianFile implements FileAdapter<TFile> {
   name: string;
 
-  constructor(private app: App, public file: TFile) {
+  constructor(
+    private app: App,
+    public file: TFile
+  ) {
     this.name = file.basename;
   }
 

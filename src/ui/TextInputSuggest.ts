@@ -23,7 +23,7 @@ class Suggest<T> {
       this.onSuggestionMouseover(event, el);
     });
 
-    scope.register([], "ArrowUp", event => {
+    scope.register([], "ArrowUp", (event) => {
       if (!event.isComposing) {
         this.setSelectedItem(this.selectedItem - 1, true);
         return false;
@@ -31,7 +31,7 @@ class Suggest<T> {
       return true;
     });
 
-    scope.register([], "ArrowDown", event => {
+    scope.register([], "ArrowDown", (event) => {
       if (!event.isComposing) {
         this.setSelectedItem(this.selectedItem + 1, true);
         return false;
@@ -39,7 +39,7 @@ class Suggest<T> {
       return true;
     });
 
-    scope.register([], "Enter", event => {
+    scope.register([], "Enter", (event) => {
       if (!event.isComposing) {
         this.useSelectedItem(event);
         return false;
@@ -64,7 +64,7 @@ class Suggest<T> {
     this.containerEl.empty();
     const suggestionEls: HTMLDivElement[] = [];
 
-    values.forEach(value => {
+    values.forEach((value) => {
       const suggestionEl = this.containerEl.createDiv("suggestion-item");
       this.owner.renderSuggestion(value, suggestionEl);
       suggestionEls.push(suggestionEl);

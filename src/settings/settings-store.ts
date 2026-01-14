@@ -5,7 +5,7 @@ const storageKey = "TaskPlanner.PlanningSettings";
 export class PlanningSettingsStore {
   static getSettings(): PlanningSettings {
     const serializedValue = localStorage.getItem(storageKey);
-    let value = getDefaultSettings();
+    const value = getDefaultSettings();
     if (serializedValue) {
       const saved = JSON.parse(serializedValue);
       Object.assign(value, saved);
@@ -18,10 +18,10 @@ export class PlanningSettingsStore {
     localStorage.setItem(storageKey, serializedValue);
   }
 
-  static decorateSetterWithSaveSettings(setter: (value: PlanningSettings) => void): ((value: PlanningSettings) => void) {
-    return settings => {
+  static decorateSetterWithSaveSettings(setter: (value: PlanningSettings) => void): (value: PlanningSettings) => void {
+    return (settings) => {
       setter(settings);
       this.saveSettings(settings);
-    }
+    };
   }
 }

@@ -1,39 +1,41 @@
 import { TodoItem } from "../../types/todo";
 
 export class TodoMatcher<T> {
-  private matchTerm: string
-  private regex: RegExp
-  constructor(matchTerm: string, private fuzzySearch = false) {
-    this.matchTerm = matchTerm.toLowerCase()
-    this.matches = this.matches.bind(this)
-    this.regex = RegExp(matchTerm.replace(/ /g, ""), "gi")
+  private matchTerm: string;
+  private regex: RegExp;
+  constructor(
+    matchTerm: string,
+    private fuzzySearch = false
+  ) {
+    this.matchTerm = matchTerm.toLowerCase();
+    this.matches = this.matches.bind(this);
+    this.regex = RegExp(matchTerm.replace(/ /g, ""), "gi");
   }
 
   public matches(todo: TodoItem<T>): boolean {
-
     if (!this.matchTerm) {
       return true;
     }
     if (this.fuzzySearch) {
-      return this.fuzzyMatch(todo)
+      return this.fuzzyMatch(todo);
     } else {
-      return this.exactMatch(todo)
+      return this.exactMatch(todo);
     }
   }
 
   private exactMatch(todo: TodoItem<T>) {
-    return todo.text.search(this.regex) >= 0
+    return todo.text.search(this.regex) >= 0;
   }
 
   private fuzzyMatch(todo: TodoItem<T>) {
     let i = 0;
-    const todoText = todo.text.toLowerCase()
-    for (let char of this.matchTerm) {
-      let matchIndex = todoText.indexOf(char, i)
+    const todoText = todo.text.toLowerCase();
+    for (const char of this.matchTerm) {
+      const matchIndex = todoText.indexOf(char, i);
       if (matchIndex < 0) {
-        return false
+        return false;
       }
-      i = matchIndex
+      i = matchIndex;
     }
     return true;
   }

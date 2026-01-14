@@ -11,10 +11,7 @@ export class FileTodoParser<TFile> {
     this.statusOperations = new StatusOperations(settings);
   }
 
-  private createTodoTreeStructure(
-    lines: string[],
-    parsingResults: TodoParsingResult<TFile>[]
-  ): void {
+  private createTodoTreeStructure(lines: string[], parsingResults: TodoParsingResult<TFile>[]): void {
     const parentStack: TodoParsingResult<TFile>[] = [];
     const parent = (): TodoParsingResult<TFile> | undefined => parentStack[parentStack.length - 1];
     const pushParent = (p: TodoParsingResult<TFile>): void => {
@@ -24,7 +21,7 @@ export class FileTodoParser<TFile> {
       parentStack.pop();
     };
 
-    parsingResults.forEach(current => {
+    parsingResults.forEach((current) => {
       if (lines[current.lineNumber]?.match(/^\s*$/)) {
         return;
       }
@@ -55,7 +52,7 @@ export class FileTodoParser<TFile> {
       }
     }
     for (const subtask of toRemove) {
-      const idx = todos.findIndex(t => t === subtask);
+      const idx = todos.findIndex((t) => t === subtask);
       if (idx >= 0) {
         todos.splice(idx, 1);
       }
@@ -65,11 +62,9 @@ export class FileTodoParser<TFile> {
   async parseMdFileAsync(file: FileAdapter<TFile>): Promise<TodoItem<TFile>[]> {
     const content = await file.getContentAsync();
     const lines = content.split("\n");
-    const parsingResults = lines.map((line, number) =>
-      this.statusOperations.toTodo<TFile>(line, number)
-    );
+    const parsingResults = lines.map((line, number) => this.statusOperations.toTodo<TFile>(line, number));
 
-    const todoParsingResults = parsingResults.filter(result => result.isTodo);
+    const todoParsingResults = parsingResults.filter((result) => result.isTodo);
     this.createTodoTreeStructure(lines, todoParsingResults);
 
     const todos: TodoItem<TFile>[] = [];

@@ -5,8 +5,6 @@ import { TodoItem } from "../types/todo";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
 import { TodoListComponent } from "./TodoListComponent";
-import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
-import { Sound } from "./SoundPlayer";
 
 export interface PlanningTodoColumnDeps {
   app: App;
@@ -23,23 +21,12 @@ export interface PlanningTodoColumnProps {
   hideIfEmpty: boolean;
   deps: PlanningTodoColumnDeps;
   substyle?: string;
-  playSound?: TaskPlannerEvent<Sound>;
 }
 
 const CLASSNAME_NORMAL = "";
 const CLASSNAME_HOVER = "th-column-content--hover";
 
-export function PlanningTodoColumn({
-  icon,
-  title,
-  hideIfEmpty,
-  onTodoDropped,
-  onBatchTodoDropped,
-  todos,
-  deps,
-  substyle,
-  playSound,
-}: PlanningTodoColumnProps): React.ReactElement | null {
+export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle }: PlanningTodoColumnProps): React.ReactElement | null {
   const [hoverClassName, setHoverClassName] = React.useState(CLASSNAME_NORMAL);
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
@@ -81,7 +68,7 @@ export function PlanningTodoColumn({
       } else if (onTodoDropped) {
         const promises = todoIds.map(
           (todoId, index) =>
-            new Promise(resolve => {
+            new Promise((resolve) => {
               setTimeout(() => {
                 onTodoDropped(todoId);
                 resolve(undefined);
@@ -113,14 +100,8 @@ export function PlanningTodoColumn({
         <span ref={iconRef} className="th-column-icon"></span>
         <span className="th-column-title">{title}</span>
       </div>
-      <div
-        className={`th-column-content ${substyle ? `th-column-content--${substyle}` : ""} ${hoverClassName}`}
-        onDragOver={onDragOver}
-        onDragEnter={onDragEnter}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-      >
-        <TodoListComponent deps={deps} todos={todos} playSound={playSound} />
+      <div className={`th-column-content ${substyle ? `th-column-content--${substyle}` : ""} ${hoverClassName}`} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
+        <TodoListComponent deps={deps} todos={todos} />
       </div>
     </div>
   );

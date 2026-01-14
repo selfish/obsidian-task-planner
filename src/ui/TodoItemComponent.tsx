@@ -6,29 +6,27 @@ import { TodoStatusComponent } from "./TodoStatusComponent";
 import { Consts } from "../types/constants";
 import { FileOperations } from "../core/operations/file-operations";
 import { StandardDependencies } from "./StandardDependencies";
-import { TaskPlannerEvent } from "../events/TaskPlannerEvent";
-import { Sound } from "./SoundPlayer";
 
 interface PriorityBadgeProps {
   priority: string;
 }
 
+const PRIORITY_ICON_MAP: Record<string, string> = {
+  critical: "zap",
+  highest: "zap",
+  high: "arrow-up",
+  medium: "minus",
+  low: "arrow-down",
+  lowest: "arrow-down-circle",
+};
+
 function PriorityBadge({ priority }: PriorityBadgeProps): React.ReactElement {
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
-  const iconMap: Record<string, string> = {
-    critical: "zap",
-    highest: "zap",
-    high: "arrow-up",
-    medium: "minus",
-    low: "arrow-down",
-    lowest: "arrow-down-circle",
-  };
-
   React.useEffect(() => {
-    if (iconRef.current && iconMap[priority]) {
+    if (iconRef.current && PRIORITY_ICON_MAP[priority]) {
       iconRef.current.innerHTML = "";
-      setIcon(iconRef.current, iconMap[priority]);
+      setIcon(iconRef.current, PRIORITY_ICON_MAP[priority]);
     }
   }, [priority]);
 
@@ -98,19 +96,12 @@ function getDisplayName(file: TFile, app: App): string {
 
 export interface TodoItemComponentProps {
   todo: TodoItem<TFile>;
-  playSound?: TaskPlannerEvent<Sound>;
   dontCrossCompleted?: boolean;
   deps: StandardDependencies;
   hideFileRef?: boolean;
 }
 
-export function TodoItemComponent({
-  todo,
-  deps,
-  playSound,
-  dontCrossCompleted,
-  hideFileRef,
-}: TodoItemComponentProps): React.ReactElement {
+export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef }: TodoItemComponentProps): React.ReactElement {
   const app = deps.app;
   const settings = deps.settings;
   const fileOperations = new FileOperations(settings);
@@ -128,10 +119,7 @@ export function TodoItemComponent({
 
     const lineContent = view.editor.getLine(line);
     view.editor.setSelection({ ch: 0, line }, { ch: lineContent.length, line });
-    view.editor.scrollIntoView(
-      { from: { line, ch: 0 }, to: { line, ch: lineContent.length } },
-      true
-    );
+    view.editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: lineContent.length } }, true);
   }
 
   function onClickContainer(ev: React.MouseEvent<HTMLDivElement, MouseEvent>): void {
@@ -139,15 +127,10 @@ export function TodoItemComponent({
     openFileAsync(todo.file.file, todo.line || 0, ev.altKey || ev.ctrlKey || ev.metaKey);
   }
 
-  function addChangePriorityMenuItem(
-    menu: Menu,
-    name: string,
-    icon: string,
-    label: string
-  ): void {
+  function addChangePriorityMenuItem(menu: Menu, name: string, icon: string, label: string): void {
     if (name === todo.attributes?.["priority"]) return;
 
-    menu.addItem(item => {
+    menu.addItem((item) => {
       item.setTitle(`Change priority to ${label}`);
       item.setIcon(icon);
       item.onClick(() => {
@@ -166,21 +149,17 @@ export function TodoItemComponent({
     addChangePriorityMenuItem(menu, "medium", "minus", "Medium");
     addChangePriorityMenuItem(menu, "low", "arrow-down", "Low");
     addChangePriorityMenuItem(menu, "lowest", "arrow-down-circle", "Lowest");
-    menu.addItem(item => {
+    menu.addItem((item) => {
       item.setTitle("Reset priority");
       item.setIcon("reset");
       item.onClick(() => fileOperations.removeAttributeAsync(todo, "priority"));
     });
     menu.addSeparator();
-    menu.addItem(item => {
+    menu.addItem((item) => {
       item.setTitle("Toggle pinned");
       item.setIcon("pin");
       item.onClick(() => {
-        fileOperations.updateAttributeAsync(
-          todo,
-          settings.selectedAttribute,
-          !todo.attributes?.[settings.selectedAttribute]
-        );
+        fileOperations.updateAttributeAsync(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
       });
     });
     menu.showAtMouseEvent(evt.nativeEvent);
@@ -195,42 +174,22 @@ export function TodoItemComponent({
   const priority = getPriority(todo.attributes);
   const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
   const cardClassName = `th-task-card ${isCompleted ? "th-task-card--completed" : ""}`;
-  const textClassName = `th-task-text ${
-    !dontCrossCompleted && isCompleted ? "th-task-text--completed" : ""
-  }`;
+  const textClassName = `th-task-text ${!dontCrossCompleted && isCompleted ? "th-task-text--completed" : ""}`;
 
   return (
-    <div
-      className={cardClassName}
-      draggable="true"
-      onDragStart={onDragStart}
-      onClick={onClickContainer}
-      onAuxClick={onAuxClickContainer}
-    >
+    <div className={cardClassName} draggable="true" onDragStart={onDragStart} onClick={onClickContainer} onAuxClick={onAuxClickContainer}>
       <div className="th-task-content">
-        <TodoStatusComponent
-          todo={todo}
-          deps={{ logger: deps.logger, app: app }}
-          settings={settings}
-          playSound={playSound}
-        />
+        <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
         <div className="th-task-body">
           <div className={textClassName}>{cleanWikiLinks(todo.text)}</div>
-          {!hideFileRef && (
-            <div className="th-task-file-ref">{getDisplayName(todo.file.file, app)}</div>
-          )}
+          {!hideFileRef && <div className="th-task-file-ref">{getDisplayName(todo.file.file, app)}</div>}
           {(priority || isSelected) && (
             <div className="th-task-metadata">
               {priority && <PriorityBadge priority={priority} />}
               {isSelected && <SelectedBadge />}
             </div>
           )}
-          <TodoSubtasksContainer
-            subtasks={todo.subtasks}
-            deps={deps}
-            key={"Subtasks-" + todo.text}
-            dontCrossCompleted={true}
-          />
+          <TodoSubtasksContainer subtasks={todo.subtasks} deps={deps} key={"Subtasks-" + todo.text} dontCrossCompleted={true} />
         </div>
       </div>
     </div>

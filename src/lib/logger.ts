@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Logger } from "../types/logger";
 
 export enum LogLevel {

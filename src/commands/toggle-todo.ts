@@ -9,7 +9,7 @@ export class ToggleTodoCommand implements Command {
 
   constructor(private lineOperations: StatusOperations) {}
 
-  editorCallback(editor: Editor, ctx: MarkdownView | MarkdownFileInfo): void {
+  editorCallback(editor: Editor, _ctx: MarkdownView | MarkdownFileInfo): void {
     const lineNumber = editor.getCursor("from").line;
     let line = editor.getLine(lineNumber);
     const todo = this.lineOperations.toTodo(line, lineNumber);

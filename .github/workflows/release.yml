@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Verify manifest version matches tag
+        run: |
+          MANIFEST_VERSION=$(jq -r '.version' manifest.json)
+          TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: manifest.json version ($MANIFEST_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Create release archive
+        run: |
+          mkdir -p release
+          cp main.js manifest.json styles.css release/
+          cd release && zip -r ../obsidian-task-planner-${{ steps.get_version.outputs.VERSION }}.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## What's New
+
+            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+            ## Installation
+
+            ### From Community Plugins (Recommended)
+            1. Open Obsidian Settings > Community Plugins
+            2. Search for "Task Planner"
+            3. Click Install, then Enable
+
+            ### Manual Installation
+            1. Download `main.js`, `manifest.json`, and `styles.css` from this release
+            2. Create folder: `<vault>/.obsidian/plugins/task-planner/`
+            3. Copy the downloaded files into the folder
+            4. Reload Obsidian and enable the plugin
+          files: |
+            main.js
+            manifest.json
+            styles.css
+            obsidian-task-planner-${{ steps.get_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

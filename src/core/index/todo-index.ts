@@ -33,7 +33,7 @@ export class TodoIndex<T> {
 
   private ignoreFile(file: FileAdapter<T>): boolean {
     if (this.settings.ignoreArchivedTodos) {
-      const isIgnored = this.settings.ignoredFolders.some(folder => file.isInFolder(folder));
+      const isIgnored = this.settings.ignoredFolders.some((folder) => file.isInFolder(folder));
       if (isIgnored) {
         this.deps.logger.debug(`TodoIndex: File ignored because archived: ${file.id}`);
         return true;
@@ -43,8 +43,8 @@ export class TodoIndex<T> {
   }
 
   filesLoaded(files: FileAdapter<T>[]): void {
-    const filteredFiles = files.filter(file => !this.ignoreFile(file));
-    this.deps.folderTodoParser.ParseFilesAsync(filteredFiles).then(todos => {
+    const filteredFiles = files.filter((file) => !this.ignoreFile(file));
+    this.deps.folderTodoParser.ParseFilesAsync(filteredFiles).then((todos) => {
       this.files = todos;
       this.triggerUpdate();
     });
@@ -55,7 +55,7 @@ export class TodoIndex<T> {
 
     this.deps.logger.debug(`TodoIndex: File updated: ${file.id}`);
     const index = this.findFileIndex(file);
-    this.deps.fileTodoParser.parseMdFileAsync(file).then(todos => {
+    this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
       this.files[index].todos = todos;
       this.triggerUpdate();
     });
@@ -79,14 +79,14 @@ export class TodoIndex<T> {
     if (this.ignoreFile(file)) return;
 
     this.deps.logger.debug(`TodoIndex: File created: ${file.id}`);
-    this.deps.fileTodoParser.parseMdFileAsync(file).then(todos => {
+    this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
       this.files.push({ todos, file });
       this.triggerUpdate();
     });
   }
 
   private findFileIndex(file: FileAdapter<T>): number {
-    const index = this.files.findIndex(todosInFile => todosInFile.file.id === file.id);
+    const index = this.files.findIndex((todosInFile) => todosInFile.file.id === file.id);
     if (index < 0) {
       this.deps.logger.error(`Todos not found for file '${file.name}'`);
       throw Error(`TodoIndex: File not found in index: ${file.id}`);

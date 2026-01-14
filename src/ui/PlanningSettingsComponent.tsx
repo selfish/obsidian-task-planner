@@ -1,20 +1,20 @@
 import * as React from "react";
 import { PlanningSettings } from "./PlanningSettings";
-import { App } from "obsidian";
+import { App, setIcon } from "obsidian";
 
 export interface PlanningSettingsComponentProps {
   setPlanningSettings: (settings: PlanningSettings) => void;
-  planningSettings: PlanningSettings,
-  totalTasks?: number,
-  completedToday?: number,
-  app?: App,
-  onRefresh?: () => void,
+  planningSettings: PlanningSettings;
+  totalTasks?: number;
+  completedToday?: number;
+  app?: App;
+  onRefresh?: () => void;
 }
 
-export function PlanningSettingsComponent({setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh}: PlanningSettingsComponentProps) {
-
-  let {hideEmpty, hideDone, searchParameters} = planningSettings;
-  let {searchPhrase, fuzzySearch} = searchParameters;
+export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh }: PlanningSettingsComponentProps) {
+  let { hideEmpty, hideDone } = planningSettings;
+  const { searchParameters } = planningSettings;
+  let { searchPhrase, fuzzySearch } = searchParameters;
 
   function saveSettings() {
     setPlanningSettings({
@@ -24,7 +24,7 @@ export function PlanningSettingsComponent({setPlanningSettings, planningSettings
         fuzzySearch,
         searchPhrase,
       },
-      wipLimit: planningSettings.wipLimit
+      wipLimit: planningSettings.wipLimit,
     });
   }
 
@@ -50,8 +50,10 @@ export function PlanningSettingsComponent({setPlanningSettings, planningSettings
 
   function onOpenSettings() {
     if (app) {
-      (app as any).setting.open();
-      (app as any).setting.openTabById('task-planner');
+      // Access internal Obsidian API for settings
+      const appWithSettings = app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } };
+      appWithSettings.setting.open();
+      appWithSettings.setting.openTabById("task-planner");
     }
   }
 
@@ -60,79 +62,49 @@ export function PlanningSettingsComponent({setPlanningSettings, planningSettings
 
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
-      const { setIcon } = require('obsidian');
-      settingsIconRef.current.innerHTML = '';
-      setIcon(settingsIconRef.current, 'settings');
+      settingsIconRef.current.innerHTML = "";
+      setIcon(settingsIconRef.current, "settings");
     }
     if (refreshIconRef.current && app) {
-      const { setIcon } = require('obsidian');
-      refreshIconRef.current.innerHTML = '';
-      setIcon(refreshIconRef.current, 'refresh-cw');
+      refreshIconRef.current.innerHTML = "";
+      setIcon(refreshIconRef.current, "refresh-cw");
     }
   }, [app]);
 
-  const completionPercent = totalTasks > 0 ? Math.round((completedToday || 0) / totalTasks * 100) : 0;
+  const completionPercent = totalTasks > 0 ? Math.round(((completedToday || 0) / totalTasks) * 100) : 0;
 
-  return <div className="th-header">
-    <div className="th-header-title">
-      <h1>Task Planner</h1>
-      {(totalTasks > 0 || completedToday > 0) && (
-        <div className="th-header-stats">
-          <span className="th-stat">{completedToday || 0} done</span>
-          <span className="th-stat-separator">•</span>
-          <span className="th-stat">{totalTasks || 0} active</span>
-          <div className="th-progress-bar">
-            <div className="th-progress-fill" style={{ width: `${completionPercent}%` }}></div>
+  return (
+    <div className="th-header">
+      <div className="th-header-title">
+        <h1>Task Planner</h1>
+        {(totalTasks > 0 || completedToday > 0) && (
+          <div className="th-header-stats">
+            <span className="th-stat">{completedToday || 0} done</span>
+            <span className="th-stat-separator">•</span>
+            <span className="th-stat">{totalTasks || 0} active</span>
+            <div className="th-progress-bar">
+              <div className="th-progress-fill" style={{ width: `${completionPercent}%` }}></div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <div className="th-header-controls">
+        <input type="text" className="th-search-input" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
+        <label className="th-checkbox-label">
+          <input type="checkbox" checked={fuzzySearch} onChange={onFuzzyClicked} />
+          <span>Fuzzy</span>
+        </label>
+        <label className="th-checkbox-label">
+          <input type="checkbox" checked={hideEmpty} onChange={onHideEmptyClicked} />
+          <span>Hide empty</span>
+        </label>
+        <label className="th-checkbox-label">
+          <input type="checkbox" checked={hideDone} onChange={onHideDoneClicked} />
+          <span>Hide done</span>
+        </label>
+        {onRefresh && <button ref={refreshIconRef} className="th-settings-button" onClick={onRefresh} aria-label="Refresh planning board" />}
+        <button ref={settingsIconRef} className="th-settings-button" onClick={onOpenSettings} aria-label="Open plugin settings" />
+      </div>
     </div>
-    <div className="th-header-controls">
-      <input
-        type="text"
-        className="th-search-input"
-        placeholder="Filter tasks..."
-        onChange={onSearchChange}
-        value={searchPhrase}
-      />
-      <label className="th-checkbox-label">
-        <input
-          type="checkbox"
-          checked={fuzzySearch}
-          onChange={onFuzzyClicked}
-        />
-        <span>Fuzzy</span>
-      </label>
-      <label className="th-checkbox-label">
-        <input
-          type="checkbox"
-          checked={hideEmpty}
-          onChange={onHideEmptyClicked}
-        />
-        <span>Hide empty</span>
-      </label>
-      <label className="th-checkbox-label">
-        <input
-          type="checkbox"
-          checked={hideDone}
-          onChange={onHideDoneClicked}
-        />
-        <span>Hide done</span>
-	  </label>
-	  {onRefresh && (
-	    <button
-	 	  ref={refreshIconRef}
-		  className="th-settings-button"
-		  onClick={onRefresh}
-		  aria-label="Refresh planning board"
-	    />
-	  )}
-	  <button
-	 	  ref={settingsIconRef}
-		  className="th-settings-button"
-		  onClick={onOpenSettings}
-		  aria-label="Open plugin settings"
-	  />
-    </div>
-  </div>;
+  );
 }

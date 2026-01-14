@@ -5,8 +5,7 @@ export class LineParser {
   constructor(private settings?: TaskPlannerSettings) {}
 
   parseLine(line: string): LineStructure {
-    const regexp =
-      /^(\s*)?(?:([*-]|\d+\.)\s*)?(?:(\[.?\])\s+)?(?:((?:\d\d\d\d-)?\d\d-\d\d):\s*)?(.+)/;
+    const regexp = /^(\s*)?(?:([*-]|\d+\.)\s*)?(?:(\[.?\])\s+)?(?:((?:\d\d\d\d-)?\d\d-\d\d):\s*)?(.+)/;
     const parsed = regexp.exec(line);
     if (!parsed) {
       return {
@@ -27,11 +26,8 @@ export class LineParser {
   }
 
   lineToString(line: LineStructure): string {
-    const space = (item: string, char: string = " ") =>
-      item ? `${item}${char}` : "";
-    return `${line.indentation}${space(line.listMarker)}${space(
-      line.checkbox
-    )}${space(line.date, ": ")}${line.line}`;
+    const space = (item: string, char: string = " ") => (item ? `${item}${char}` : "");
+    return `${line.indentation}${space(line.listMarker)}${space(line.checkbox)}${space(line.date, ": ")}${line.line}`;
   }
 
   /**
@@ -43,7 +39,8 @@ export class LineParser {
     if (this.settings?.useDataviewSyntax) {
       // Example pattern for [key:: value]
       return /\[([^:\]]+)::([^\]]+)\]/g;
-    } else { // Classic pattern for @key(value)
+    } else {
+      // Classic pattern for @key(value)
       return /@(\w+)(?:\(([^)]+)\))?/g;
     }
   }
@@ -87,7 +84,7 @@ export class LineParser {
    *   `[due:: 2025-01-01]`
    */
   private attributeToString(key: string, value: string | boolean): string {
-		if (this.settings?.useDataviewSyntax) {
+    if (this.settings?.useDataviewSyntax) {
       // For Dataview: `[key:: value]`
       // In case value is boolean (like a tag), just store the key or do some fallback
       if (typeof value === "boolean") {
@@ -145,8 +142,6 @@ export class LineParser {
       .join(" ");
 
     // add a space only if there are attributes
-    return attributeStr
-      ? `${textWithoutAttributes} ${attributeStr}`.trim()
-      : textWithoutAttributes;
+    return attributeStr ? `${textWithoutAttributes} ${attributeStr}`.trim() : textWithoutAttributes;
   }
 }

@@ -19,35 +19,27 @@ export interface TodoSidePanelComponentProps {
   deps: TodoSidePanelComponentDeps;
 }
 
-export function TodoSidePanelComponent({deps}: TodoSidePanelComponentProps) {
+export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const settings = deps.settings;
   const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
 
   React.useEffect(() => {
     const unsubscribe = deps.todoIndex.onUpdateEvent.listen(async (todos: TodoItem<TFile>[]) => {
-      setTodos(todos.filter(todo =>
-        todo.status !== TodoStatus.Complete
-        && todo.status !== TodoStatus.Canceled));
+      setTodos(todos.filter((todo) => todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled));
     });
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [deps.todoIndex])
+  }, [deps.todoIndex]);
 
   function getSelectedTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
-    return todos.filter(todo => todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled && !!todo.attributes[settings.selectedAttribute])
+    return todos.filter((todo) => todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled && !!todo.attributes[settings.selectedAttribute]);
   }
-  
+
   function getDueTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
     const todoIsDue = (todo: TodoItem<TFile>) => {
-      if (
-        todo.status === TodoStatus.Complete ||
-        todo.status === TodoStatus.Canceled ||
-        !todo.attributes ||
-        !todo.attributes[settings.dueDateAttribute]
-      )
-        return false;
+      if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled || !todo.attributes || !todo.attributes[settings.dueDateAttribute]) return false;
       try {
         const date = DateTime.fromISO(`${todo.attributes[settings.dueDateAttribute]}`);
         return date < now;
@@ -55,22 +47,22 @@ export function TodoSidePanelComponent({deps}: TodoSidePanelComponentProps) {
         deps.logger.error(`Error while parsing date: ${err}`);
         return false;
       }
-    }
+    };
     const now = DateTime.now();
-    const todosWithOverdueDate = todos.filter(
-      (todo) => todo.attributes && todoIsDue(todo)
-    );
-    return todosWithOverdueDate
+    const todosWithOverdueDate = todos.filter((todo) => todo.attributes && todoIsDue(todo));
+    return todosWithOverdueDate;
   }
 
-  return <div className="th-panel">
-    <b>Selected:</b>
-    <TodoListComponent todos={getSelectedTodos(todos)} deps={deps}/>
-    <b>Due:</b>
-    <TodoListComponent todos={getDueTodos(todos)} deps={deps}/>
-    <b>All:</b>
-    <TodoListComponent todos={todos} deps={deps}/>
-  </div>
+  return (
+    <div className="th-panel">
+      <b>Selected:</b>
+      <TodoListComponent todos={getSelectedTodos(todos)} deps={deps} />
+      <b>Due:</b>
+      <TodoListComponent todos={getDueTodos(todos)} deps={deps} />
+      <b>All:</b>
+      <TodoListComponent todos={todos} deps={deps} />
+    </div>
+  );
 }
 
 export function MountSidePanelComponent(onElement: HTMLElement, props: TodoSidePanelComponentProps) {

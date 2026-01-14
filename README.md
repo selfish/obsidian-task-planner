@@ -2,6 +2,8 @@
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![GitHub release](https://img.shields.io/github/v/release/selfish/obsidian-task-planner)](https://github.com/selfish/obsidian-task-planner/releases)
+[![CI](https://github.com/selfish/obsidian-task-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/selfish/obsidian-task-planner/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/selfish/obsidian-task-planner/branch/main/graph/badge.svg)](https://codecov.io/gh/selfish/obsidian-task-planner)
 [![Obsidian Plugin](https://img.shields.io/badge/Obsidian-Plugin-purple)](https://obsidian.md)
 
 A professional task management plugin for Obsidian that helps you track tasks across your vault, organize your day with intelligent planning, and manage your workload effectively.
@@ -98,7 +100,13 @@ Configure Task Planner in Settings > Task Planner:
 
 ## Development
 
-### Building from Source
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Quick Start
+
 ```bash
 # Install dependencies
 npm install
@@ -108,30 +116,83 @@ npm run dev
 
 # Production build
 npm run build
+
+# Run all validation (lint, types, format, tests)
+npm run validate
 ```
+
+### Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Development build with watch mode |
+| `npm run build` | Production build |
+| `npm run test` | Run tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Run ESLint with auto-fix |
+| `npm run format` | Format code with Prettier |
+| `npm run format:check` | Check code formatting |
+| `npm run typecheck` | TypeScript type checking |
+| `npm run validate` | Run all checks |
 
 ### Project Structure
 ```
 src/
-  Commands/       # Editor commands
-  domain/         # Core business logic
+  commands/       # Editor commands
+  core/           # Core business logic
   events/         # Event handling
-  infrastructure/ # Platform integrations
+  lib/            # Shared utilities
+  settings/       # Plugin settings
+  types/          # TypeScript types
   ui/             # React components
-  Views/          # Obsidian views
+  views/          # Obsidian views
+__tests__/        # Test files
+  __mocks__/      # Mock implementations
 ```
+
+### Testing
+
+We use Jest for testing with comprehensive Obsidian API mocks:
+
+```bash
+# Run tests
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+### Code Quality
+
+- **Prettier** for code formatting
+- **ESLint** with React and TypeScript plugins
+- **TypeScript** with gradual strictness
+- **Husky** pre-commit hooks
+- **Commitlint** for conventional commits
 
 ## Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a Pull Request.
 
+We use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
+
+```bash
+feat(planning): add drag-and-drop reordering
+fix(parser): handle empty attributes correctly
+docs: update installation instructions
+```
+
 Quick start:
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes and test them
-4. Commit your changes (`git commit -m 'Add amazing feature'`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+3. Make your changes and run `npm run validate`
+4. Commit using conventional commits
+5. Push and open a Pull Request
 
 ## About This Fork
 

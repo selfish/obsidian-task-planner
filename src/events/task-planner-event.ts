@@ -22,8 +22,8 @@ export class TaskPlannerEvent<T> {
 
   async fireAsync(evtDetails: T): Promise<void> {
     await Promise.all(
-      this.handlers.map(handler =>
-        handler(evtDetails).catch(err => {
+      this.handlers.map((handler) =>
+        handler(evtDetails).catch((err) => {
           console.error("[Task Planner] Event handler error:", err);
         })
       )
