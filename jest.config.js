@@ -13,9 +13,7 @@ module.exports = {
           jsx: 'react',
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
-          strict: false,
-          noImplicitAny: false,
-          strictNullChecks: false,
+          strict: true,
         },
       },
     ],
@@ -28,15 +26,28 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/main.ts',
+    // Exclude UI components (require React testing setup or Obsidian API)
+    '!src/ui/**/*.{ts,tsx}',
+    // Exclude Obsidian-dependent files
+    '!src/views/**/*.ts',
+    '!src/settings/settings-tab.ts',
+    '!src/settings/settings-store.ts',
+    '!src/settings/planning-settings.ts',
+    '!src/lib/file-adapter.ts',
+    // Exclude Obsidian-dependent commands
+    '!src/commands/open-planning.ts',
+    '!src/commands/open-report.ts',
+    // Exclude duplicate files
+    '!src/events/TaskPlannerEvent.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
-      branches: 50,
-      functions: 50,
-      lines: 50,
-      statements: 50,
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
     },
   },
   testPathIgnorePatterns: ['/node_modules/', '/__mocks__/'],

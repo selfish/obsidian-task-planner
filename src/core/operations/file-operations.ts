@@ -102,10 +102,12 @@ export class FileOperations {
     const todosByFile = new Map<FileAdapter<T>, TodoItem<T>[]>();
     for (const todo of todos) {
       const file = todo.file;
-      if (!todosByFile.has(file)) {
-        todosByFile.set(file, []);
+      let fileTodos = todosByFile.get(file);
+      if (!fileTodos) {
+        fileTodos = [];
+        todosByFile.set(file, fileTodos);
       }
-      todosByFile.get(file)!.push(todo);
+      fileTodos.push(todo);
     }
 
     // Update each file once with all changes
@@ -129,10 +131,12 @@ export class FileOperations {
     const todosByFile = new Map<FileAdapter<T>, TodoItem<T>[]>();
     for (const todo of todos) {
       const file = todo.file;
-      if (!todosByFile.has(file)) {
-        todosByFile.set(file, []);
+      let fileTodos = todosByFile.get(file);
+      if (!fileTodos) {
+        fileTodos = [];
+        todosByFile.set(file, fileTodos);
       }
-      todosByFile.get(file)!.push(todo);
+      fileTodos.push(todo);
     }
 
     // Update each file once with all changes
@@ -152,10 +156,12 @@ export class FileOperations {
     const todosByFile = new Map<FileAdapter<T>, TodoItem<T>[]>();
     for (const todo of todos) {
       const file = todo.file;
-      if (!todosByFile.has(file)) {
-        todosByFile.set(file, []);
+      let fileTodos = todosByFile.get(file);
+      if (!fileTodos) {
+        fileTodos = [];
+        todosByFile.set(file, fileTodos);
       }
-      todosByFile.get(file)!.push(todo);
+      fileTodos.push(todo);
     }
 
     // Update each file once with all changes

@@ -10,18 +10,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '22.x'
           cache: 'npm'
 
       - name: Install dependencies
@@ -42,18 +38,29 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Report bundle size
+        run: |
+          MAIN_SIZE=$(wc -c < main.js | tr -d ' ')
+          MAIN_SIZE_KB=$(echo "scale=1; $MAIN_SIZE / 1024" | bc)
+          echo "## Bundle Size" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| main.js | ${MAIN_SIZE_KB} KB |" >> $GITHUB_STEP_SUMMARY
+          if [ -f styles.css ]; then
+            CSS_SIZE=$(wc -c < styles.css | tr -d ' ')
+            CSS_SIZE_KB=$(echo "scale=1; $CSS_SIZE / 1024" | bc)
+            echo "| styles.css | ${CSS_SIZE_KB} KB |" >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Upload coverage to Codecov
-        if: matrix.node-version == '20.x'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
           flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
       - name: Upload build artifacts
-        if: matrix.node-version == '20.x'
         uses: actions/upload-artifact@v4
         with:
           name: build
