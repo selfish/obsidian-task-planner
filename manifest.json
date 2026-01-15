@@ -1,10 +1,10 @@
 {
-  "id": "task-planner",
-  "name": "Task Planner",
-  "author": "Selfish",
-  "description": "Obsidian task management and planner with drag-and-drop task planning, Today focus, backlog, overdue, and weekly time horizons.",
-  "authorUrl": "https://github.com/selfish",
-  "version": "1.0.4",
-  "minAppVersion": "1.0.0",
-  "isDesktopOnly": true
+	"id": "task-planner",
+	"name": "Task Planner",
+	"author": "Selfish",
+	"description": "Obsidian task management and planner with drag-and-drop task planning, Today focus, backlog, overdue, and weekly time horizons.",
+	"authorUrl": "https://github.com/selfish",
+	"version": "1.1.0",
+	"minAppVersion": "1.0.0",
+	"isDesktopOnly": true
 }
