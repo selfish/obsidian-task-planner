@@ -1,8 +1,10 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
 
 # Cancel in-progress runs for the same branch (handles push+PR duplicate triggers)
 concurrency:

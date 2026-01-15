@@ -151,7 +151,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Quarters")
-      .setDesc("Show remaining quarters of the current year (Q1, Q2, Q3, Q4)")
+      .setDesc("Show remaining quarters of the current year")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.horizonVisibility.showQuarters).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showQuarters = value;
@@ -178,7 +178,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     limitsDesc.setText("Set limits to avoid overcommitting and maintain sustainable workload.");
 
     new Setting(containerEl)
-      .setName("Daily WIP limit")
+      .setName("Daily work in progress limit")
       .setDesc("Maximum tasks in progress per day (0 = unlimited). Columns turn red when exceeded.")
       .addText((txt) =>
         txt.setValue(this.plugin.settings.defaultDailyWipLimit.toString()).onChange(async (txtValue) => {
@@ -215,7 +215,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       })
       .addText((text) => {
         dateInput = text.inputEl;
-        text.setPlaceholder("Date YYYY-MM-DD (optional)");
+        text.setPlaceholder("Date yyyy-mm-dd (optional)");
         text.inputEl.addClass("th-input-date");
       })
       .addDropdown((dropdown) => {
@@ -309,14 +309,14 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     new Setting(containerEl).setName("Task attributes").setHeading();
 
     const attributesDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    attributesDesc.setText("Configure how tasks are tagged and tracked in your markdown files.");
+    attributesDesc.setText("Configure how tasks are tagged and tracked in your Markdown files.");
 
     new Setting(containerEl)
       .setName("Due date attribute")
       .setDesc("Attribute name for task due dates (no spaces)")
       .addText((text) =>
         text
-          .setPlaceholder("due")
+          .setPlaceholder("Due")
           .setValue(this.plugin.settings.dueDateAttribute)
           .onChange(async (value) => {
             if (value && !value.contains(" ")) {
@@ -331,7 +331,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .setDesc("Attribute name for task completion dates (no spaces)")
       .addText((text) =>
         text
-          .setPlaceholder("completed")
+          .setPlaceholder("Completed")
           .setValue(this.plugin.settings.completedDateAttribute)
           .onChange(async (value) => {
             if (value && !value.contains(" ")) {
@@ -346,7 +346,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .setDesc("Attribute name for pinning/selecting important tasks (no spaces)")
       .addText((text) =>
         text
-          .setPlaceholder("selected")
+          .setPlaceholder("Selected")
           .setValue(this.plugin.settings.selectedAttribute)
           .onChange(async (value) => {
             if (value && !value.contains(" ")) {
@@ -358,7 +358,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Attribute syntax")
-      .setDesc("Choose how task attributes are written in your markdown files")
+      .setDesc("Choose how task attributes are written in your Markdown files")
       .addDropdown((dropdown) => {
         dropdown.addOption("classic", "Classic: @due(2025-01-01)");
         dropdown.addOption("dataview", "Dataview: [due:: 2025-01-01]");
@@ -382,7 +382,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .addSearch((search) => {
         folderSearchInput = search;
         new FolderSuggest(search.inputEl, this.app);
-        search.setPlaceholder("Example: Archive");
+        search.setPlaceholder("Example: archive");
       })
       .addButton((button) => {
         button.setIcon("plus");
@@ -419,7 +419,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Ignore archived todos")
-      .setDesc("Skip todos in files within the Archive folder")
+      .setDesc("Skip todos in files within the archive folder")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.ignoreArchivedTodos).onChange(async (value) => {
           this.plugin.settings.ignoreArchivedTodos = value;

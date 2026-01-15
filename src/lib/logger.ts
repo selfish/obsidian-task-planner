@@ -13,7 +13,9 @@ export enum LogLevel {
  * This implementation satisfies the Logger interface without producing output.
  */
 export class ConsoleLogger implements Logger {
-  constructor(_logLevel: LogLevel) {}
+  constructor(_logLevel: LogLevel) {
+    // Log level ignored - this is a no-op logger
+  }
 
   debug(_msg: string): void {
     // No-op: Obsidian plugins should not use console
