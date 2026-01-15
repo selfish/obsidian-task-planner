@@ -117,22 +117,23 @@
     }
   }
 
-  .subtasks {
-    margin-top: var(--space-xs);
-    margin-left: var(--space-lg);
-    padding-left: var(--space-sm);
-    border-left: 2px solid var(--background-modifier-border);
+  .subtasks-container {
+    margin-top: var(--space-sm);
+    position: relative;
 
-    .toggle {
+    .subtasks-toggle {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 2px 4px;
+      gap: var(--space-xs);
+      padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
       font-size: var(--font-xs);
       color: var(--text-muted);
-      cursor: pointer;
+      background: var(--background-secondary);
+      border: 1px solid var(--background-modifier-border);
       border-radius: var(--radius-sm);
+      cursor: pointer;
       transition: var(--transition);
+			height: max-content;
 
       &:hover {
         background: var(--background-modifier-hover);
@@ -140,9 +141,26 @@
       }
 
       .icon {
+        display: flex;
         width: 12px;
         height: 12px;
+
+        svg {
+          width: 12px;
+          height: 12px;
+        }
       }
+
+      .count {
+        font-weight: 500;
+      }
+    }
+
+    .subtasks {
+      margin-top: var(--space-xs);
+      margin-left: 6px;
+      padding-left: var(--space-sm);
+      border-left: 2px solid var(--background-modifier-border);
     }
   }
 }
