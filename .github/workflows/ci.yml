@@ -126,7 +126,7 @@ jobs:
       - name: Run tests
         id: test
         run: |
-          if ! npm run test:coverage 2>&1 | tee test-output.txt; then
+          if ! JEST_JUNIT_CLASSNAME="{filepath}" npx jest --coverage --reporters=default --reporters=jest-junit 2>&1 | tee test-output.txt; then
             echo "## ❌ Tests Failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Test output:" >> $GITHUB_STEP_SUMMARY
@@ -145,6 +145,12 @@ jobs:
           files: ./coverage/lcov.info
           flags: unittests
           fail_ci_if_error: false
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     name: 🏗️ Build
