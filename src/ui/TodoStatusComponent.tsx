@@ -80,8 +80,9 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
     deps.logger.debug(`Changing status on ${getTodoId(todo)}`);
     evt.preventDefault();
     const wasCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
-    todo.status = wasCompleted ? TodoStatus.Todo : TodoStatus.Complete;
-    fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
+    const newStatus = wasCompleted ? TodoStatus.Todo : TodoStatus.Complete;
+    const updatedTodo = { ...todo, status: newStatus };
+    fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
   };
 
   return <div ref={iconRef} className="th-task-checkbox" onClick={onclick} onAuxClick={onauxclick}></div>;

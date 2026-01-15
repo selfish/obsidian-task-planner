@@ -12,40 +12,41 @@ export interface PlanningSettingsComponentProps {
 }
 
 export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh }: PlanningSettingsComponentProps) {
-  let { hideEmpty, hideDone } = planningSettings;
-  const { searchParameters } = planningSettings;
-  let { searchPhrase, fuzzySearch } = searchParameters;
+  const { hideEmpty, hideDone, searchParameters } = planningSettings;
+  const { searchPhrase, fuzzySearch } = searchParameters;
 
-  function saveSettings() {
+  function onHideEmptyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
     setPlanningSettings({
-      hideEmpty,
-      hideDone,
-      searchParameters: {
-        fuzzySearch,
-        searchPhrase,
-      },
-      wipLimit: planningSettings.wipLimit,
+      ...planningSettings,
+      hideEmpty: ev.target.checked,
     });
   }
 
-  function onHideEmptyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
-    hideEmpty = ev.target.checked;
-    saveSettings();
-  }
-
   function onHideDoneClicked(ev: React.ChangeEvent<HTMLInputElement>) {
-    hideDone = ev.target.checked;
-    saveSettings();
+    setPlanningSettings({
+      ...planningSettings,
+      hideDone: ev.target.checked,
+    });
   }
 
   function onFuzzyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
-    fuzzySearch = ev.target.checked;
-    saveSettings();
+    setPlanningSettings({
+      ...planningSettings,
+      searchParameters: {
+        ...searchParameters,
+        fuzzySearch: ev.target.checked,
+      },
+    });
   }
 
   function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>) {
-    searchPhrase = ev.target.value;
-    saveSettings();
+    setPlanningSettings({
+      ...planningSettings,
+      searchParameters: {
+        ...searchParameters,
+        searchPhrase: ev.target.value,
+      },
+    });
   }
 
   function onOpenSettings() {
