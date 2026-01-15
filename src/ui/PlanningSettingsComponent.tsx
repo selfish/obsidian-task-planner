@@ -9,9 +9,10 @@ export interface PlanningSettingsComponentProps {
   completedToday?: number;
   app?: App;
   onRefresh?: () => void;
+  onOpenReport?: () => void;
 }
 
-export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh }: PlanningSettingsComponentProps) {
+export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh, onOpenReport }: PlanningSettingsComponentProps) {
   const { hideEmpty, hideDone, searchParameters } = planningSettings;
   const { searchPhrase, fuzzySearch } = searchParameters;
 
@@ -60,6 +61,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
 
   const settingsIconRef = React.useRef<HTMLButtonElement>(null);
   const refreshIconRef = React.useRef<HTMLButtonElement>(null);
+  const reportIconRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
@@ -69,6 +71,10 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     if (refreshIconRef.current && app) {
       refreshIconRef.current.replaceChildren();
       setIcon(refreshIconRef.current, "refresh-cw");
+    }
+    if (reportIconRef.current && app) {
+      reportIconRef.current.replaceChildren();
+      setIcon(reportIconRef.current, "list-checks");
     }
   }, [app]);
 
@@ -103,6 +109,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
           <input type="checkbox" checked={hideDone} onChange={onHideDoneClicked} />
           <span>Hide done</span>
         </label>
+        {onOpenReport && <button ref={reportIconRef} className="settings-btn" onClick={onOpenReport} aria-label="Open report" />}
         {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh planning board" />}
         <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Open plugin settings" />
       </div>
