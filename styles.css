@@ -607,6 +607,7 @@
 
 .th-progress-fill {
   height: 100%;
+  width: var(--progress-width, 0%);
   background: var(--interactive-accent);
   transition: width 0.3s ease;
 }
