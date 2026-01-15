@@ -40,7 +40,7 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
 
   React.useEffect(() => {
     if (iconRef.current) {
-      iconRef.current.innerHTML = "";
+      iconRef.current.replaceChildren();
       setIcon(iconRef.current, getStatusIcon(todo.status));
     }
   }, [todo.status]);

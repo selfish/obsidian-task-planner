@@ -25,7 +25,7 @@ function PriorityBadge({ priority }: PriorityBadgeProps): React.ReactElement {
 
   React.useEffect(() => {
     if (iconRef.current && PRIORITY_ICON_MAP[priority]) {
-      iconRef.current.innerHTML = "";
+      iconRef.current.replaceChildren();
       setIcon(iconRef.current, PRIORITY_ICON_MAP[priority]);
     }
   }, [priority]);
@@ -45,7 +45,7 @@ function SelectedBadge(): React.ReactElement {
 
   React.useEffect(() => {
     if (iconRef.current) {
-      iconRef.current.innerHTML = "";
+      iconRef.current.replaceChildren();
       setIcon(iconRef.current, "pin");
     }
   }, []);

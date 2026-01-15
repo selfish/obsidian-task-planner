@@ -32,7 +32,7 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
 
   React.useEffect(() => {
     if (iconRef.current && icon) {
-      iconRef.current.innerHTML = "";
+      iconRef.current.replaceChildren();
       setIcon(iconRef.current, icon);
     }
   }, [icon]);
