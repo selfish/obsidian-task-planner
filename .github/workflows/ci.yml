@@ -4,9 +4,9 @@ on:
   push:
   pull_request:
 
-# Cancel in-progress runs for the same branch
+# Cancel in-progress runs for the same branch (handles push+PR duplicate triggers)
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
