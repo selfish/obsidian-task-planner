@@ -2,7 +2,7 @@ import { Command, Workspace } from "obsidian";
 import { TodoReportView } from "../views/todo-report-view";
 
 export class OpenReportCommand implements Command {
-  id = "task-planner.open-report";
+  id = "open-report";
   name = "Open todo report";
   icon = "list-checks";
 

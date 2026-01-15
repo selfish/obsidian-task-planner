@@ -3,7 +3,7 @@ import { TodoStatus } from "../types/todo";
 import { Command, Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
 
 export class ToggleOngoingTodoCommand implements Command {
-  id = "task-planner.toggle-ongoing-todo";
+  id = "toggle-ongoing-todo";
   name = "Mark todo as ongoing / unchecked";
   icon = "clock";
 

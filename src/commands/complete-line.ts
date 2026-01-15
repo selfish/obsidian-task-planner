@@ -2,7 +2,7 @@ import { StatusOperations } from "../core/operations/status-operations";
 import { Command, Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
 
 export class CompleteLineCommand implements Command {
-  id = "task-planner.complete-line";
+  id = "complete-line";
   name = "Complete line attributes";
   icon = "check-small";
 
