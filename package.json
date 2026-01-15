@@ -7,9 +7,6 @@
     "dev": "node esbuild.config.mjs",
     "build": "tsc -p tsconfig.json --noEmit && node esbuild.config.mjs production",
     "deploy": "cp manifest.json main.js styles.css \"$OBSIDIAN_PATH/.obsidian/plugins/obsidian-task-planner\" && echo 'Deployed to $OBSIDIAN_PATH/.obsidian/plugins/obsidian-task-planner'",
-    "preversion": "git diff-index --quiet HEAD -- || (echo 'Error: Working directory not clean. Commit or stash changes first.' && exit 1)",
-    "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "postversion": "git push && git push --tags && echo '✓ Release tagged and pushed. GitHub Actions will create the release.'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -18,7 +15,10 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "preversion": "git diff-index --quiet HEAD -- || (echo 'Error: Working directory not clean. Commit or stash changes first.' && exit 1)",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "obsidian",
