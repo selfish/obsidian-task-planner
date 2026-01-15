@@ -28,6 +28,7 @@ yarn.lock
 
 # Testing
 coverage/
+junit.xml
 
 # Husky
 .husky/_/
