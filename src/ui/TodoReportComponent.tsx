@@ -5,7 +5,7 @@ import { Logger } from "../types/logger";
 import { TodoIndex } from "../core/index/todo-index";
 import { TaskPlannerSettings } from "../settings/types";
 import { TodoItem, TodoStatus } from "../types/todo";
-import { DateTime } from "luxon";
+import { moment, Moment } from "../utils/moment";
 import { TodoListComponent } from "./TodoListComponent";
 
 export interface TodoReportComponentDeps {
@@ -25,29 +25,29 @@ interface Container {
 }
 
 interface DateContainer extends Container {
-  from: DateTime;
-  to: DateTime;
+  from: Moment;
+  to: Moment;
 }
 
-function moveToPreviousDay(date: DateTime): DateTime {
-  return date.plus({ days: -1 });
+function moveToPreviousDay(date: Moment): Moment {
+  return date.clone().subtract(1, "days");
 }
 
-function moveToPreviousMonday(date: DateTime) {
+function moveToPreviousMonday(date: Moment): Moment {
   do {
     date = moveToPreviousDay(date);
-  } while (date.weekday !== 1);
+  } while (date.isoWeekday() !== 1);
   return date;
 }
 
-function findTodoDate<T>(todo: TodoItem<T>, attribute: string): DateTime | null {
+function findTodoDate<T>(todo: TodoItem<T>, attribute: string): Moment | null {
   if (!todo.attributes) {
     return null;
   }
   const attr = todo.attributes[attribute];
   if (attr) {
-    const d = DateTime.fromISO(`${todo.attributes[attribute]}`);
-    return d.isValid ? d : null;
+    const d = moment(`${todo.attributes[attribute]}`);
+    return d.isValid() ? d : null;
   }
   return null;
 }
@@ -64,12 +64,12 @@ function findTodoCompletionDate(todo: TodoItem<TFile>, settings: TaskPlannerSett
   return null;
 }
 
-function formatInterval(from: DateTime, to: DateTime) {
-  const format = from.year === DateTime.now().year ? "LLL dd" : "yyyy LLL dd";
-  return `${from.toFormat(format)} to ${to.plus({ days: -1 }).toFormat(format)}`;
+function formatInterval(from: Moment, to: Moment) {
+  const format = from.year() === moment().year() ? "MMM DD" : "YYYY MMM DD";
+  return `${from.format(format)} to ${to.clone().subtract(1, "days").format(format)}`;
 }
 
-function getOneWeekFrom(startDate: DateTime): DateContainer {
+function getOneWeekFrom(startDate: Moment): DateContainer {
   const to = startDate;
   const from = moveToPreviousMonday(startDate);
   return {
@@ -80,14 +80,14 @@ function getOneWeekFrom(startDate: DateTime): DateContainer {
   };
 }
 
-function moveToPreviousMonth(date: DateTime) {
+function moveToPreviousMonth(date: Moment): Moment {
   do {
     date = moveToPreviousDay(date);
-  } while (date.day > 1);
+  } while (date.date() > 1);
   return date;
 }
 
-function getOneMonthFrom(startDate: DateTime): DateContainer {
+function getOneMonthFrom(startDate: Moment): DateContainer {
   const to = startDate;
   const from = moveToPreviousMonth(startDate);
   return {
@@ -98,17 +98,15 @@ function getOneMonthFrom(startDate: DateTime): DateContainer {
   };
 }
 
-function getDateContainers(minDate: DateTime, numberOfWeeks: number, _numberOfMonths: number): DateContainer[] {
-  const now = new Date();
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  let dateCursor = DateTime.fromJSDate(tomorrow);
+function getDateContainers(minDate: Moment, numberOfWeeks: number, _numberOfMonths: number): DateContainer[] {
+  let dateCursor = moment().add(1, "days").startOf("day");
   const containers = [];
-  for (let i = 0; i < numberOfWeeks && dateCursor.diff(minDate).milliseconds > 0; i++) {
+  for (let i = 0; i < numberOfWeeks && dateCursor.diff(minDate) > 0; i++) {
     const week = getOneWeekFrom(dateCursor);
     containers.push(week);
     dateCursor = week.from;
   }
-  while (dateCursor.diff(minDate).milliseconds > 0) {
+  while (dateCursor.diff(minDate) > 0) {
     const month = getOneMonthFrom(dateCursor);
     containers.push(month);
     dateCursor = month.from;
@@ -127,7 +125,7 @@ function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], setti
       if (!date) {
         return false;
       }
-      return container.from.diff(date).toMillis() <= 0 && container.to.diff(date).toMillis() > 0;
+      return container.from.diff(date) <= 0 && container.to.diff(date) > 0;
     });
   });
   const emptyContainer: Container = {
@@ -138,14 +136,14 @@ function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], setti
   return containers;
 }
 
-function getMinDate(todos: TodoItem<TFile>[], settings: TaskPlannerSettings): DateTime | null {
+function getMinDate(todos: TodoItem<TFile>[], settings: TaskPlannerSettings): Moment {
   return todos.reduce((min, thisTodo) => {
     const completionDate = findTodoCompletionDate(thisTodo, settings);
     if (completionDate) {
-      return min.diff(completionDate).milliseconds > 0 ? completionDate : min;
+      return min.diff(completionDate) > 0 ? completionDate : min;
     }
     return min;
-  }, DateTime.now());
+  }, moment());
 }
 
 function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, numberOfMonths: number, settings: TaskPlannerSettings): DateContainer[] {

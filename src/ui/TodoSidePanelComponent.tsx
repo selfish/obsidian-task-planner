@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App, TFile } from "obsidian";
 import { TodoItem, TodoStatus } from "../types/todo";
 import { TaskPlannerSettings } from "../settings/types";
-import { DateTime } from "luxon";
+import { moment } from "../utils/moment";
 import { TodoIndex } from "../core/index/todo-index";
 import { Logger } from "../types/logger";
 import { TodoListComponent } from "./TodoListComponent";
@@ -38,17 +38,17 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   }
 
   function getDueTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
+    const now = moment();
     const todoIsDue = (todo: TodoItem<TFile>) => {
       if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled || !todo.attributes || !todo.attributes[settings.dueDateAttribute]) return false;
       try {
-        const date = DateTime.fromISO(`${todo.attributes[settings.dueDateAttribute]}`);
-        return date < now;
+        const date = moment(`${todo.attributes[settings.dueDateAttribute]}`);
+        return date.isBefore(now);
       } catch (err) {
         deps.logger.error(`Error while parsing date: ${err}`);
         return false;
       }
     };
-    const now = DateTime.now();
     const todosWithOverdueDate = todos.filter((todo) => todo.attributes && todoIsDue(todo));
     return todosWithOverdueDate;
   }

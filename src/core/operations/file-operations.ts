@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { moment } from "../../utils/moment";
 import { LineStructure } from "../../types/parsing";
 import { LineParser } from "../parsers/line-parser";
 import { TaskPlannerSettings } from "../../settings/types";
@@ -74,7 +74,7 @@ export class FileOperations {
         newCheckBox = "";
     }
     await this.updateCheckboxAsync(todo, newCheckBox);
-    const completedAttributeValue = isCompleted ? DateTime.now().toISODate() : undefined;
+    const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
     await this.updateAttributeAsync(todo, completedAttribute, completedAttributeValue);
   }
 
@@ -195,7 +195,7 @@ export class FileOperations {
 
         // Update completed attribute
         const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
-        const completedAttributeValue = isCompleted ? DateTime.now().toISODate() : undefined;
+        const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
         const attributes = this.lineParser.parseAttributes(line.line);
         if (completedAttributeValue === undefined) {
           delete attributes.attributes[completedAttribute];
