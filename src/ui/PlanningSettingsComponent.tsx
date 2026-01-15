@@ -83,7 +83,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
             <span className="th-stat-separator">•</span>
             <span className="th-stat">{totalTasks || 0} active</span>
             <div className="th-progress-bar">
-              <div className="th-progress-fill" style={{ '--progress-width': `${completionPercent}%` } as React.CSSProperties}></div>
+              <div className="th-progress-fill" style={{ "--progress-width": `${completionPercent}%` } as React.CSSProperties}></div>
             </div>
           </div>
         )}

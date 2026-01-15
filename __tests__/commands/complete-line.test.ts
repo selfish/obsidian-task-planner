@@ -24,7 +24,7 @@ describe('CompleteLineCommand', () => {
 
   describe('properties', () => {
     it('should have correct id', () => {
-      expect(command.id).toBe('task-planner.complete-line');
+      expect(command.id).toBe('complete-line');
     });
 
     it('should have correct name', () => {

@@ -24,7 +24,7 @@ describe('ToggleOngoingTodoCommand', () => {
 
   describe('properties', () => {
     it('should have correct id', () => {
-      expect(command.id).toBe('task-planner.toggle-ongoing-todo');
+      expect(command.id).toBe('toggle-ongoing-todo');
     });
 
     it('should have correct name', () => {
