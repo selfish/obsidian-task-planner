@@ -1,0 +1,81 @@
+.task-planner {
+  .weekday-selector {
+    margin: var(--size-4-4) 0 var(--size-4-6) 0;
+
+    .label {
+      font-size: var(--font-ui-small);
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: var(--size-4-2);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: var(--size-4-1);
+      max-width: 400px;
+    }
+
+    .day {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--size-4-2) var(--size-4-1);
+      background: var(--background-primary);
+      border: 1.5px solid var(--background-modifier-border);
+      border-radius: var(--radius-s);
+      font-size: var(--font-ui-smaller);
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      min-height: 32px;
+
+      &:hover {
+        background: var(--background-modifier-hover);
+        border-color: var(--background-modifier-border-hover);
+        color: var(--text-normal);
+      }
+
+      &.active {
+        background: var(--interactive-accent);
+        border-color: var(--interactive-accent);
+        color: var(--text-on-accent);
+        font-weight: 600;
+
+        &:hover {
+          background: var(--interactive-accent-hover);
+          border-color: var(--interactive-accent-hover);
+        }
+      }
+    }
+  }
+
+  .horizon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-md);
+    margin: var(--space-lg) 0;
+
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--font-sm);
+
+      input[type="checkbox"] {
+        margin: 0;
+      }
+    }
+  }
+
+  .horizon-input {
+    margin: var(--space-md) 0;
+  }
+
+  .horizon-count {
+    font-weight: 600;
+    color: var(--text-accent);
+  }
+}

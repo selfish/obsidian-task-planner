@@ -200,7 +200,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
     const tomorrow = today.clone().add(1, "day");
     const columnCount = hideDone ? 2 : 3;
 
-    yield todoColumn("circle", "Todo", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Todo]), false, moveToDateAndStatus(today, TodoStatus.Todo), batchMoveToDateAndStatus(today, TodoStatus.Todo), `today today-${columnCount}-cols`);
+    yield todoColumn("circle", "Todo", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Todo]), false, moveToDateAndStatus(today, TodoStatus.Todo), batchMoveToDateAndStatus(today, TodoStatus.Todo), `today cols-${columnCount}`);
 
     yield todoColumn(
       "clock",
@@ -209,11 +209,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
       false,
       moveToDateAndStatus(today, TodoStatus.InProgress),
       batchMoveToDateAndStatus(today, TodoStatus.InProgress),
-      `today today-${columnCount}-cols`
+      `today cols-${columnCount}`
     );
 
     if (!hideDone) {
-      yield todoColumn("check-circle", "Done", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Canceled, TodoStatus.Complete]), false, moveToDateAndStatus(today, TodoStatus.Complete), batchMoveToDateAndStatus(today, TodoStatus.Complete), `today today-${columnCount}-cols today-done`);
+      yield todoColumn("check-circle", "Done", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Canceled, TodoStatus.Complete]), false, moveToDateAndStatus(today, TodoStatus.Complete), batchMoveToDateAndStatus(today, TodoStatus.Complete), `today cols-${columnCount} done`);
     }
   }
 
@@ -613,16 +613,16 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
   }, []);
 
   return (
-    <div className="th-planning-board">
+    <div className="board">
       <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} />
-      <div className="th-today-section">
-        <div className="th-today-header">
-          <span className="th-today-icon">☀️</span>
+      <div className="today-section">
+        <div className="header">
+          <span className="icon">☀️</span>
           <span>Today</span>
         </div>
-        <div className="th-today-columns">{Array.from(getTodayColumns())}</div>
+        <div className="columns">{Array.from(getTodayColumns())}</div>
       </div>
-      <div className="th-future-section" ref={futureSectionRef}>
+      <div className="future" ref={futureSectionRef}>
         {Array.from(getColumns())}
       </div>
     </div>
@@ -630,6 +630,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
 }
 
 export function MountPlanningComponent(onElement: HTMLElement, props: PlanningComponentProps) {
+  onElement.addClass("task-planner");
   const client = createRoot(onElement);
   client.render(<PlanningComponent {...props}></PlanningComponent>);
 }

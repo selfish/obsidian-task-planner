@@ -85,5 +85,5 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
     fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
   };
 
-  return <div ref={iconRef} className="th-task-checkbox" onClick={onclick} onAuxClick={onauxclick}></div>;
+  return <div ref={iconRef} className="checkbox" onClick={onclick} onAuxClick={onauxclick}></div>;
 }

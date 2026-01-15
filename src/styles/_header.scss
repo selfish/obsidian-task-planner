@@ -1,0 +1,133 @@
+.task-planner {
+  .board > .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-lg);
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
+    background: var(--background-primary);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      order: 1;
+
+      h1 {
+        margin: 0;
+        font-size: var(--font-lg);
+        font-weight: 600;
+        color: var(--text-normal);
+        line-height: 1;
+        white-space: nowrap;
+      }
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+      flex-wrap: wrap;
+      order: 2;
+      justify-content: flex-end;
+    }
+
+    .stats {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--font-xs);
+      color: var(--text-muted);
+      white-space: nowrap;
+
+      .stat {
+        font-weight: 500;
+
+        &.separator {
+          color: var(--text-faint);
+        }
+      }
+    }
+  }
+
+  .progress {
+    width: 80px;
+    height: 3px;
+    background: var(--background-modifier-border);
+    border-radius: 2px;
+    overflow: hidden;
+
+    .fill {
+      height: 100%;
+      width: var(--progress-width, 0%);
+      background: var(--interactive-accent);
+      transition: width 0.3s ease;
+    }
+  }
+
+  .search {
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-sm);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-md);
+    color: var(--text-normal);
+    min-width: 200px;
+
+    &:focus {
+      outline: none;
+      border-color: var(--interactive-accent);
+      box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.1);
+    }
+
+    &::placeholder {
+      color: var(--text-faint);
+    }
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+
+    input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    &:hover {
+      color: var(--text-normal);
+    }
+  }
+
+  .settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+    order: 3;
+
+    &:hover {
+      background: var(--background-modifier-hover);
+      color: var(--text-normal);
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}

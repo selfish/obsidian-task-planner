@@ -1,0 +1,48 @@
+// All variables scoped under .task-planner for isolation
+.task-planner {
+  // Spacing Scale - DENSE
+  --space-xs: 0.125rem;  // 2px
+  --space-sm: 0.25rem;   // 4px
+  --space-md: 0.5rem;    // 8px
+  --space-lg: 0.75rem;   // 12px
+  --space-xl: 1rem;      // 16px
+  --space-2xl: 1.5rem;   // 24px
+
+  // Typography Scale
+  --font-xs: 0.688rem;   // 11px
+  --font-sm: 0.813rem;   // 13px
+  --font-base: 0.875rem; // 14px
+  --font-md: 1rem;       // 16px
+  --font-lg: 1.125rem;   // 18px
+
+  // Line Heights
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  // Border Radius
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+
+  // Shadows
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+  // Transitions
+  --transition: all 0.15s ease;
+
+  // Priority Colors
+  --priority-critical: #dc2626;
+  --priority-high: #ea580c;
+  --priority-medium: #2563eb;
+  --priority-low: #64748b;
+  --priority-lowest: #94a3b8;
+
+  // Layout
+  --column-min: 240px;
+  --column-max: 320px;
+  --column-gap: var(--space-md);
+
+  // Icons
+  --icon-size: 16px;
+}

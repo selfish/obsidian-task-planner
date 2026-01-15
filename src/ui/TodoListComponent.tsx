@@ -115,8 +115,8 @@ export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListC
         const displayName = getDisplayName(fileTodos[0].file.file);
         const fileKey = fileTodos[0].file.file.path;
         return (
-          <div key={fileKey} className="th-task-group">
-            <div className="th-task-group-header" draggable="true" onDragStart={(ev) => onGroupDragStart(ev, fileTodos)}>
+          <div key={fileKey} className="group">
+            <div className="header" draggable="true" onDragStart={(ev) => onGroupDragStart(ev, fileTodos)}>
               {displayName}
             </div>
             {fileTodos.map((todo) => (

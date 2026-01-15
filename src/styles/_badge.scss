@@ -1,0 +1,57 @@
+.task-planner {
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 6px 2px 4px;
+    font-size: var(--font-xs);
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+
+    .icon {
+      width: 10px;
+      height: 10px;
+
+      svg.svg-icon {
+        width: 10px;
+        height: 10px;
+      }
+    }
+
+    // Priority badges
+    &.priority {
+      color: white;
+
+      &.critical { background: var(--priority-critical); }
+      &.high { background: var(--priority-high); }
+      &.medium { background: var(--priority-medium); }
+      &.low { background: var(--priority-low); }
+      &.lowest {
+        background: var(--priority-lowest);
+        color: var(--text-normal);
+      }
+    }
+
+    // Tag badge
+    &.tag {
+      background: var(--background-secondary);
+      color: var(--text-muted);
+      border: 1px solid var(--background-modifier-border);
+    }
+
+    // Project badge
+    &.project {
+      background: var(--background-secondary);
+      color: var(--text-accent);
+      border: 1px solid var(--interactive-accent);
+    }
+
+    // Selected/Pinned badge
+    &.selected {
+      background: var(--interactive-accent);
+      color: var(--text-on-accent);
+      padding: 2px 4px;
+    }
+  }
+}

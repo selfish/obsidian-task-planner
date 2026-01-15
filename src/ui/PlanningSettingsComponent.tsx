@@ -75,36 +75,36 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const completionPercent = totalTasks > 0 ? Math.round(((completedToday || 0) / totalTasks) * 100) : 0;
 
   return (
-    <div className="th-header">
-      <div className="th-header-title">
+    <div className="header">
+      <div className="title">
         <h1>Task Planner</h1>
         {(totalTasks > 0 || completedToday > 0) && (
-          <div className="th-header-stats">
-            <span className="th-stat">{completedToday || 0} done</span>
-            <span className="th-stat-separator">•</span>
-            <span className="th-stat">{totalTasks || 0} active</span>
-            <div className="th-progress-bar">
-              <div className="th-progress-fill" style={{ "--progress-width": `${completionPercent}%` } as React.CSSProperties}></div>
+          <div className="stats">
+            <span className="stat">{completedToday || 0} done</span>
+            <span className="stat separator">•</span>
+            <span className="stat">{totalTasks || 0} active</span>
+            <div className="progress">
+              <div className="fill" style={{ "--progress-width": `${completionPercent}%` } as React.CSSProperties}></div>
             </div>
           </div>
         )}
       </div>
-      <div className="th-header-controls">
-        <input type="text" className="th-search-input" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
-        <label className="th-checkbox-label">
+      <div className="controls">
+        <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
+        <label className="checkbox-label">
           <input type="checkbox" checked={fuzzySearch} onChange={onFuzzyClicked} />
           <span>Fuzzy</span>
         </label>
-        <label className="th-checkbox-label">
+        <label className="checkbox-label">
           <input type="checkbox" checked={hideEmpty} onChange={onHideEmptyClicked} />
           <span>Hide empty</span>
         </label>
-        <label className="th-checkbox-label">
+        <label className="checkbox-label">
           <input type="checkbox" checked={hideDone} onChange={onHideDoneClicked} />
           <span>Hide done</span>
         </label>
-        {onRefresh && <button ref={refreshIconRef} className="th-settings-button" onClick={onRefresh} aria-label="Refresh planning board" />}
-        <button ref={settingsIconRef} className="th-settings-button" onClick={onOpenSettings} aria-label="Open plugin settings" />
+        {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh planning board" />}
+        <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Open plugin settings" />
       </div>
     </div>
   );

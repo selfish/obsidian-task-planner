@@ -158,8 +158,8 @@ function mapContainerToComponent(container: Container, deps: TodoReportComponent
   // TODO: Implement folding functionality
   const folded = false;
   return (
-    <div key={container.title} className="th-report-container">
-      <h2 className="th-report-header">
+    <div key={container.title} className="container">
+      <h2 className="section-header">
         {container.title} <span>{folded ? "▶" : "▼"}</span>
       </h2>
       {!folded ? <TodoListComponent deps={deps} todos={container.todos} dontCrossCompleted={true} key={container.title}></TodoListComponent> : ""}
@@ -181,18 +181,20 @@ export function TodoReportComponent({ deps }: TodoReportComponentProps) {
   const containers = React.useMemo(() => assembleTodosByDate(todos, numberOfWeeks, numberOfMonths, deps.settings), [todos, numberOfWeeks, numberOfMonths, deps.settings]);
 
   return (
-    <div className="th-report">
+    <>
       <div>
         <h1>
           <span>✅</span> Completed todos
         </h1>
       </div>
       <div>{containers.map((container) => mapContainerToComponent(container, deps))}</div>
-    </div>
+    </>
   );
 }
 
 export function MountTodoReportComponent(onElement: HTMLElement, props: TodoReportComponentProps) {
+  onElement.addClass("task-planner");
+  onElement.addClass("report");
   const client = createRoot(onElement);
   client.render(<TodoReportComponent {...props}></TodoReportComponent>);
 }

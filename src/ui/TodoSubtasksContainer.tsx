@@ -39,13 +39,13 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
 
   return (
     <>
-      <span className="th-subtasks-toggle" onClick={onClickFoldButton}>
+      <span className="toggle" onClick={onClickFoldButton}>
         {isFolded ? " ▶" : " ▼"}
       </span>
       {isFolded ? (
         ""
       ) : (
-        <div className="th-subtasks-container">
+        <div className="subtasks">
           {subtasks.map((task) => (
             <TodoItemComponent key={task.text} todo={task} deps={deps} dontCrossCompleted={dontCrossCompleted} />
           ))}

@@ -1,0 +1,20 @@
+.task-planner {
+  &.report {
+    padding: var(--space-lg);
+
+    .container {
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+      background: var(--background-secondary);
+      border: 1px solid var(--background-modifier-border);
+      border-radius: var(--radius-md);
+    }
+
+    .section-header {
+      font-size: var(--font-lg);
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+      color: var(--text-normal);
+    }
+  }
+}

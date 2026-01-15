@@ -1,0 +1,100 @@
+// Remove Obsidian's default padding for our views
+.workspace-leaf-content[data-type="task-planner.planning"] .view-content,
+.workspace-leaf-content[data-type="task-planner.todo-list"] .view-content,
+.workspace-leaf-content[data-type="task-planner.report"] .view-content {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.task-planner {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: var(--space-md);
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+
+  .board {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .today-section {
+    background: var(--background-secondary);
+    border: 2px solid var(--background-modifier-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    flex-shrink: 0;
+    max-height: 35%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+      font-size: var(--font-lg);
+      font-weight: 600;
+      color: var(--text-normal);
+      flex-shrink: 0;
+
+      .icon {
+        color: var(--interactive-accent);
+      }
+    }
+
+    .columns {
+      display: grid;
+      gap: var(--space-md);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      grid-auto-rows: 100%;
+      align-items: stretch;
+
+      &:has(.cols-3) {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+
+      &:has(.cols-2) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      @media (min-width: 900px) {
+        &:has(.cols-3) {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        &:has(.cols-2) {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    }
+  }
+
+  .future {
+    display: flex;
+    gap: var(--column-gap);
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: var(--space-md);
+    flex: 1;
+    min-height: 0;
+    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: space-between;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}

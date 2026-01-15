@@ -33,8 +33,8 @@ function PriorityBadge({ priority }: PriorityBadgeProps): React.ReactElement {
   const label = priority.charAt(0).toUpperCase() + priority.slice(1);
 
   return (
-    <span className={`th-badge th-badge--priority-${priority}`}>
-      <span ref={iconRef} className="th-badge-icon"></span>
+    <span className={`badge priority ${priority}`}>
+      <span ref={iconRef} className="icon"></span>
       {label}
     </span>
   );
@@ -51,8 +51,8 @@ function SelectedBadge(): React.ReactElement {
   }, []);
 
   return (
-    <span className="th-badge th-badge--selected">
-      <span ref={iconRef} className="th-badge-icon"></span>
+    <span className="badge selected">
+      <span ref={iconRef} className="icon"></span>
     </span>
   );
 }
@@ -172,19 +172,19 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   const isSelected = !!todo.attributes?.[settings.selectedAttribute];
   const priority = getPriority(todo.attributes);
   const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
-  const cardClassName = `th-task-card ${isCompleted ? "th-task-card--completed" : ""}`;
-  const textClassName = `th-task-text ${!dontCrossCompleted && isCompleted ? "th-task-text--completed" : ""}`;
+  const cardClasses = ["card", isCompleted && "completed"].filter(Boolean).join(" ");
+  const textClasses = ["text", !dontCrossCompleted && isCompleted && "completed"].filter(Boolean).join(" ");
 
   return (
-    <div className={cardClassName} draggable="true" onDragStart={onDragStart} onClick={onClickContainer} onAuxClick={onAuxClickContainer}>
-      <div className="th-task-content">
+    <div className={cardClasses} draggable="true" onDragStart={onDragStart} onClick={onClickContainer} onAuxClick={onAuxClickContainer}>
+      <div className="content">
         <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
-        <div className="th-task-body">
-          <div className={textClassName}>{cleanWikiLinks(todo.text)}</div>
-          {!hideFileRef && <div className="th-task-file-ref">{getDisplayName(todo.file.file, app)}</div>}
+        <div className="body">
+          <div className={textClasses}>{cleanWikiLinks(todo.text)}</div>
+          {!hideFileRef && <div className="file-ref">{getDisplayName(todo.file.file, app)}</div>}
           {(priority || isSelected) && (
-            <div className="th-task-metadata">
-			  {isSelected && <SelectedBadge />}
+            <div className="meta">
+              {isSelected && <SelectedBadge />}
               {priority && <PriorityBadge priority={priority} />}
             </div>
           )}

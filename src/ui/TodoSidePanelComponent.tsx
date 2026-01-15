@@ -54,18 +54,20 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   }
 
   return (
-    <div className="th-panel">
+    <>
       <b>Selected:</b>
       <TodoListComponent todos={getSelectedTodos(todos)} deps={deps} />
       <b>Due:</b>
       <TodoListComponent todos={getDueTodos(todos)} deps={deps} />
       <b>All:</b>
       <TodoListComponent todos={todos} deps={deps} />
-    </div>
+    </>
   );
 }
 
 export function MountSidePanelComponent(onElement: HTMLElement, props: TodoSidePanelComponentProps) {
+  onElement.addClass("task-planner");
+  onElement.addClass("panel");
   const root = createRoot(onElement);
   root.render(<TodoSidePanelComponent {...props}></TodoSidePanelComponent>);
 }

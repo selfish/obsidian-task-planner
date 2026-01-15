@@ -23,11 +23,8 @@ export interface PlanningTodoColumnProps {
   substyle?: string;
 }
 
-const CLASSNAME_NORMAL = "";
-const CLASSNAME_HOVER = "th-column-content--hover";
-
 export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle }: PlanningTodoColumnProps): React.ReactElement | null {
-  const [hoverClassName, setHoverClassName] = React.useState(CLASSNAME_NORMAL);
+  const [isHovering, setIsHovering] = React.useState(false);
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
@@ -44,20 +41,20 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
 
   function onDragEnter(ev: React.DragEvent): void {
     ev.stopPropagation();
-    setHoverClassName(CLASSNAME_HOVER);
+    setIsHovering(true);
   }
 
   function onDragLeave(ev: React.DragEvent): void {
     if (ev.currentTarget.contains(ev.relatedTarget as Node)) {
       return;
     }
-    setHoverClassName(CLASSNAME_NORMAL);
+    setIsHovering(false);
   }
 
   async function onDrop(ev: React.DragEvent): Promise<void> {
     ev.preventDefault();
     ev.stopPropagation();
-    setHoverClassName(CLASSNAME_NORMAL);
+    setIsHovering(false);
 
     const groupIds = ev.dataTransfer.getData(Consts.TodoGroupDragType);
     if (groupIds) {
@@ -90,17 +87,32 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
     return null;
   }
 
-  const isEmpty = todos.length === 0;
-  const isToday = substyle && substyle.includes("today");
-  const emptyClass = isEmpty && !isToday ? "th-column--empty" : "";
+  // Build column classes
+  const isToday = substyle?.includes("today");
+  const columnClasses = ["column", isToday && "today", todos.length === 0 && !isToday && "empty"].filter(Boolean).join(" ");
+
+  // Build content classes from substyle
+  const contentModifiers: string[] = [];
+  if (substyle) {
+    if (substyle.includes("today")) contentModifiers.push("today");
+    if (substyle.includes("cols-3") || substyle.includes("today-3-cols")) contentModifiers.push("cols-3");
+    if (substyle.includes("cols-2") || substyle.includes("today-2-cols")) contentModifiers.push("cols-2");
+    if (substyle.includes("overdue")) contentModifiers.push("overdue");
+    if (substyle.includes("backlog")) contentModifiers.push("backlog");
+    if (substyle.includes("done") || substyle.includes("today-done")) contentModifiers.push("done");
+    if (substyle.includes("wip-exceeded")) contentModifiers.push("wip-exceeded");
+  }
+  if (isHovering) contentModifiers.push("hover");
+
+  const contentClasses = ["content", ...contentModifiers].join(" ");
 
   return (
-    <div className={`th-column ${substyle ? `th-column--${substyle}` : ""} ${emptyClass}`.trim()}>
-      <div className="th-column-header">
-        <span ref={iconRef} className="th-column-icon"></span>
-        <span className="th-column-title">{title}</span>
+    <div className={columnClasses}>
+      <div className="header">
+        <span ref={iconRef} className="icon"></span>
+        <span className="title">{title}</span>
       </div>
-      <div className={`th-column-content ${substyle ? `th-column-content--${substyle}` : ""} ${hoverClassName}`} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
+      <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
         <TodoListComponent deps={deps} todos={todos} />
       </div>
     </div>
