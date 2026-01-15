@@ -3,7 +3,7 @@ import { TodoStatus } from "../types/todo";
 import { Command, Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
 
 export class ToggleTodoCommand implements Command {
-  id = "task-planner.toggle-todo";
+  id = "toggle-todo";
   name = "Mark todo as checked / unchecked";
   icon = "check-small";
 

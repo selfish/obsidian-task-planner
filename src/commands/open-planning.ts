@@ -2,7 +2,7 @@ import { Command, Workspace } from "obsidian";
 import { PlanningView } from "../views/planning-view";
 
 export class OpenPlanningCommand implements Command {
-  id = "task-planner.open-planning";
+  id = "open-planning";
   name = "Open planning";
   icon = "calendar-glyph";
 
