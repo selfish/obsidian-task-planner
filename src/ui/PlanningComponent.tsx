@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { Logger } from "../types/logger";
 import { App, TFile } from "obsidian";
-import { DateTime } from "luxon";
+import { moment, Moment } from "../utils/moment";
 import { TodoIndex } from "../core/index/todo-index";
 import { FileOperations } from "../core/operations/file-operations";
 import { TaskPlannerSettings } from "../settings/types";
@@ -12,14 +12,14 @@ import { PlanningTodoColumn } from "./PlanningTodoColumn";
 import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { PlanningSettingsStore } from "./PlanningSettingsStore";
 
-function findTodoDate<T>(todo: TodoItem<T>, attribute: string): DateTime | null {
+function findTodoDate<T>(todo: TodoItem<T>, attribute: string): Moment | null {
   if (!todo.attributes) {
     return null;
   }
   const attr = todo.attributes[attribute];
   if (attr) {
-    const d = DateTime.fromISO(`${todo.attributes[attribute]}`);
-    return d.isValid ? d : null;
+    const d = moment(`${todo.attributes[attribute]}`);
+    return d.isValid() ? d : null;
   }
   return null;
 }
@@ -59,8 +59,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
     };
   }, [deps.todoIndex]);
 
-  function getTodosByDate(from: DateTime | null, to: DateTime | null, includeSelected: boolean = false): TodoItem<TFile>[] {
-    const dateIsInRange = (date: DateTime | null) => date && (from === null || date >= from) && (to === null || date < to);
+  function getTodosByDate(from: Moment | null, to: Moment | null, includeSelected: boolean = false): TodoItem<TFile>[] {
+    const dateIsInRange = (date: Moment | null) => date && (from === null || date.isSameOrAfter(from)) && (to === null || date.isBefore(to));
     function todoInRange<T>(todo: TodoItem<T>) {
       const isDone = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
       const isSelected = todo.attributes && !!todo.attributes[settings.selectedAttribute];
@@ -92,7 +92,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
     return todos.find((todo) => getTodoId(todo) === todoId);
   }
 
-  function moveToDate(date: DateTime) {
+  function moveToDate(date: Moment) {
     return (todoId: string) => {
       const todo = findTodo(todoId);
       deps.logger.debug(`Moving ${todoId} to ${date}`);
@@ -100,11 +100,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
         deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
         return;
       }
-      fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, date.toISODate()).then();
+      fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, date.format("YYYY-MM-DD")).then();
     };
   }
 
-  function batchMoveToDate(date: DateTime) {
+  function batchMoveToDate(date: Moment) {
     return async (todoIds: string[]) => {
       const todos = todoIds.map((id) => findTodo(id)).filter((todo) => todo !== undefined) as TodoItem<TFile>[];
       if (todos.length === 0) {
@@ -112,7 +112,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
         return;
       }
       deps.logger.debug(`Batch moving ${todos.length} todos to ${date}`);
-      await fileOperations.batchUpdateAttributeAsync(todos, settings.dueDateAttribute, date.toISODate());
+      await fileOperations.batchUpdateAttributeAsync(todos, settings.dueDateAttribute, date.format("YYYY-MM-DD"));
     };
   }
 
@@ -135,7 +135,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
     };
   }
 
-  function moveToDateAndStatus(date: DateTime, status: TodoStatus) {
+  function moveToDateAndStatus(date: Moment, status: TodoStatus) {
     return (todoId: string) => {
       const todo = findTodo(todoId);
       deps.logger.debug(`Moving ${todoId} to ${date}`);
@@ -144,13 +144,13 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
         return;
       }
       todo.status = status;
-      fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, date.toISODate()).then(() => {
+      fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, date.format("YYYY-MM-DD")).then(() => {
         fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
       });
     };
   }
 
-  function batchMoveToDateAndStatus(date: DateTime, status: TodoStatus) {
+  function batchMoveToDateAndStatus(date: Moment, status: TodoStatus) {
     return async (todoIds: string[]) => {
       const todos = todoIds.map((id) => findTodo(id)).filter((todo) => todo !== undefined) as TodoItem<TFile>[];
       if (todos.length === 0) {
@@ -163,14 +163,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
       todos.forEach((todo) => (todo.status = status));
 
       // Batch update date attribute
-      await fileOperations.batchUpdateAttributeAsync(todos, settings.dueDateAttribute, date.toISODate());
+      await fileOperations.batchUpdateAttributeAsync(todos, settings.dueDateAttribute, date.format("YYYY-MM-DD"));
 
       // Batch update status
       await fileOperations.batchUpdateTodoStatusAsync(todos, settings.completedDateAttribute);
     };
   }
 
-  function getTodosByDateAndStatus(from: DateTime, to: DateTime, status: TodoStatus[]) {
+  function getTodosByDateAndStatus(from: Moment, to: Moment, status: TodoStatus[]) {
     const todos = getTodosByDate(from, to, true);
     return todos.filter((todo) => status.includes(todo.status));
   }
@@ -196,8 +196,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
   }
 
   function* getTodayColumns() {
-    const today = DateTime.now().startOf("day");
-    const tomorrow = today.plus({ day: 1 });
+    const today = moment().startOf("day");
+    const tomorrow = today.clone().add(1, "day");
     const columnCount = hideDone ? 2 : 3;
 
     yield todoColumn("circle", "Todo", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Todo]), false, moveToDateAndStatus(today, TodoStatus.Todo), batchMoveToDateAndStatus(today, TodoStatus.Todo), `today today-${columnCount}-cols`);
@@ -259,7 +259,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
   }
 
   function getOverdueTodos(): TodoItem<TFile>[] {
-    const today = DateTime.now().startOf("day");
+    const today = moment().startOf("day");
     return filteredTodos.filter((todo) => {
       if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
         return false;
@@ -268,16 +268,16 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
         return false;
       }
       const dueDate = findTodoDate(todo, settings.dueDateAttribute);
-      return dueDate && dueDate < today;
+      return dueDate && dueDate.isBefore(today);
     });
   }
 
   function getCustomDateHorizonTodos(targetDate: string): TodoItem<TFile>[] {
-    const target = DateTime.fromISO(targetDate);
-    if (!target.isValid) return [];
+    const target = moment(targetDate);
+    if (!target.isValid()) return [];
 
     const start = target.startOf("day");
-    const end = start.plus({ days: 1 });
+    const end = start.clone().add(1, "days");
     // getTodosByDate already filters out custom tag horizon todos
     return getTodosByDate(start, end);
   }
@@ -285,86 +285,86 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
   function* getColumns() {
     const { horizonVisibility, customHorizons } = settings;
 
-    const today = DateTime.now().startOf("day");
+    const today = moment().startOf("day");
 
     // Pre-calculate larger horizon ranges to prevent overlaps
-    const monthHorizonRanges: Array<{ start: DateTime; end: DateTime }> = [];
-    const quarterHorizonRanges: Array<{ start: DateTime; end: DateTime }> = [];
-    const yearHorizonRanges: Array<{ start: DateTime; end: DateTime }> = [];
+    const monthHorizonRanges: Array<{ start: Moment; end: Moment }> = [];
+    const quarterHorizonRanges: Array<{ start: Moment; end: Moment }> = [];
+    const yearHorizonRanges: Array<{ start: Moment; end: Moment }> = [];
 
     // Calculate month horizon ranges - we need to start from where weeks will end
     // to properly calculate overlaps
-    let monthCalcStart = today.plus({ days: 1 });
+    let monthCalcStart = today.clone().add(1, "days");
 
     // Calculate where currentDate will be after week horizons
     if (horizonVisibility.weeksToShow > 0) {
       const firstWeekday = settings.firstWeekday ?? 1;
-      let endOfWeek = today;
-      const daysUntilNextWeek = (firstWeekday - endOfWeek.weekday + 7) % 7 || 7;
-      endOfWeek = endOfWeek.plus({ days: daysUntilNextWeek });
-      monthCalcStart = endOfWeek.plus({ weeks: horizonVisibility.weeksToShow });
+      let endOfWeek = today.clone();
+      const daysUntilNextWeek = (firstWeekday - endOfWeek.isoWeekday() + 7) % 7 || 7;
+      endOfWeek = endOfWeek.add(daysUntilNextWeek, "days");
+      monthCalcStart = endOfWeek.clone().add(horizonVisibility.weeksToShow, "weeks");
     }
 
     if (horizonVisibility.monthsToShow > 0) {
-      let monthStart = monthCalcStart.startOf("month");
-      if (monthStart < monthCalcStart) {
-        monthStart = monthStart.plus({ months: 1 });
+      let monthStart = monthCalcStart.clone().startOf("month");
+      if (monthStart.isBefore(monthCalcStart)) {
+        monthStart = monthStart.add(1, "months");
       }
       for (let i = 0; i < horizonVisibility.monthsToShow; i++) {
-        const monthEnd = monthStart.plus({ months: 1 });
-        monthHorizonRanges.push({ start: monthStart, end: monthEnd });
+        const monthEnd = monthStart.clone().add(1, "months");
+        monthHorizonRanges.push({ start: monthStart.clone(), end: monthEnd });
         monthStart = monthEnd;
       }
     }
 
     // Calculate quarter horizon ranges - start from where months will end
-    let quarterCalcStart = monthCalcStart;
+    let quarterCalcStart = monthCalcStart.clone();
     if (horizonVisibility.monthsToShow > 0) {
-      let tempMonth = monthCalcStart.startOf("month");
-      if (tempMonth < monthCalcStart) {
-        tempMonth = tempMonth.plus({ months: 1 });
+      let tempMonth = monthCalcStart.clone().startOf("month");
+      if (tempMonth.isBefore(monthCalcStart)) {
+        tempMonth = tempMonth.add(1, "months");
       }
-      quarterCalcStart = tempMonth.plus({ months: horizonVisibility.monthsToShow });
+      quarterCalcStart = tempMonth.add(horizonVisibility.monthsToShow, "months");
     }
 
     if (horizonVisibility.showQuarters) {
-      const endOfYear = today.endOf("year").plus({ days: 1 }).startOf("day");
-      let quarterStart = quarterCalcStart.startOf("quarter");
-      if (quarterStart < quarterCalcStart) {
-        quarterStart = quarterStart.plus({ quarters: 1 });
+      const endOfYear = today.clone().endOf("year").add(1, "days").startOf("day");
+      let quarterStart = quarterCalcStart.clone().startOf("quarter");
+      if (quarterStart.isBefore(quarterCalcStart)) {
+        quarterStart = quarterStart.add(1, "quarters");
       }
-      while (quarterStart < endOfYear) {
-        const quarterEnd = quarterStart.plus({ quarters: 1 });
-        quarterHorizonRanges.push({ start: quarterStart, end: quarterEnd });
+      while (quarterStart.isBefore(endOfYear)) {
+        const quarterEnd = quarterStart.clone().add(1, "quarters");
+        quarterHorizonRanges.push({ start: quarterStart.clone(), end: quarterEnd });
         quarterStart = quarterEnd;
       }
     }
 
     // Calculate next year horizon range - only if it starts next year
     if (horizonVisibility.showNextYear) {
-      const nextYearStart = today.plus({ years: 1 }).startOf("year");
-      const nextYearEnd = nextYearStart.plus({ years: 1 });
+      const nextYearStart = today.clone().add(1, "years").startOf("year");
+      const nextYearEnd = nextYearStart.clone().add(1, "years");
       // Only add if the next year is actually in the future (not already covered by months/quarters)
-      if (nextYearStart.year > today.year) {
+      if (nextYearStart.year() > today.year()) {
         yearHorizonRanges.push({ start: nextYearStart, end: nextYearEnd });
       }
     }
 
     // Check if a week horizon overlaps with month/quarter/year horizons
-    function isWeekOverlapping(start: DateTime, end: DateTime): boolean {
+    function isWeekOverlapping(start: Moment, end: Moment): boolean {
       const allLarger = [...monthHorizonRanges, ...quarterHorizonRanges, ...yearHorizonRanges];
-      return allLarger.some((horizon) => start >= horizon.start && end <= horizon.end);
+      return allLarger.some((horizon) => start.isSameOrAfter(horizon.start) && end.isSameOrBefore(horizon.end));
     }
 
     // Check if a month horizon overlaps with quarter/year horizons
-    function isMonthOverlapping(start: DateTime, end: DateTime): boolean {
+    function isMonthOverlapping(start: Moment, end: Moment): boolean {
       const allLarger = [...quarterHorizonRanges, ...yearHorizonRanges];
-      return allLarger.some((horizon) => start >= horizon.start && end <= horizon.end);
+      return allLarger.some((horizon) => start.isSameOrAfter(horizon.start) && end.isSameOrBefore(horizon.end));
     }
 
     // Check if a quarter horizon overlaps with year horizons
-    function isQuarterOverlapping(start: DateTime, end: DateTime): boolean {
-      return yearHorizonRanges.some((horizon) => start >= horizon.start && end <= horizon.end);
+    function isQuarterOverlapping(start: Moment, end: Moment): boolean {
+      return yearHorizonRanges.some((horizon) => start.isSameOrAfter(horizon.start) && end.isSameOrBefore(horizon.end));
     }
 
     // Custom horizons with position "before" (before backlog)
@@ -373,7 +373,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
         if (horizon.tag) {
           yield todoColumn("tag", horizon.label, getCustomHorizonTodos(horizon.tag), hideEmpty, null, null);
         } else if (horizon.date) {
-          const horizonDate = DateTime.fromISO(horizon.date);
+          const horizonDate = moment(horizon.date);
           yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, moveToDate(horizonDate), batchMoveToDate(horizonDate));
         }
       }
@@ -395,14 +395,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
         if (horizon.tag) {
           yield todoColumn("tag", horizon.label, getCustomHorizonTodos(horizon.tag), hideEmpty, null, null);
         } else if (horizon.date) {
-          const horizonDate = DateTime.fromISO(horizon.date);
+          const horizonDate = moment(horizon.date);
           yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, moveToDate(horizonDate), batchMoveToDate(horizonDate));
         }
       }
     }
 
     // Individual weekdays (Monday through Sunday) - only until end of current week
-    let currentDate = today.plus({ days: 1 }); // Start from tomorrow
+    let currentDate = today.clone().add(1, "days"); // Start from tomorrow
     const weekdaySettings = [
       { day: 1, key: "showMonday", label: "Monday" },
       { day: 2, key: "showTuesday", label: "Tuesday" },
@@ -415,40 +415,40 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
 
     // Calculate end of current week based on firstWeekday setting
     const firstWeekday = settings.firstWeekday ?? 1;
-    let endOfWeek = today;
-    const daysUntilNextWeekStart = (firstWeekday - endOfWeek.weekday + 7) % 7 || 7;
-    endOfWeek = endOfWeek.plus({ days: daysUntilNextWeekStart });
+    let endOfWeek = today.clone();
+    const daysUntilNextWeekStart = (firstWeekday - endOfWeek.isoWeekday() + 7) % 7 || 7;
+    endOfWeek = endOfWeek.add(daysUntilNextWeekStart, "days");
 
     // Show selected weekdays only until end of current week
     let isFirstDay = true;
-    while (currentDate < endOfWeek) {
-      const weekday = currentDate.weekday;
+    while (currentDate.isBefore(endOfWeek)) {
+      const weekday = currentDate.isoWeekday();
       const setting = weekdaySettings.find((s) => s.day === weekday);
 
       if (setting && horizonVisibility[setting.key]) {
-        const nextDay = currentDate.plus({ days: 1 });
+        const nextDay = currentDate.clone().add(1, "days");
         const todos = getTodosByDate(currentDate, nextDay);
         const style = getWipStyle(todos);
-        const label = isFirstDay ? "Tomorrow" : currentDate.toFormat("cccc dd/MM");
+        const label = isFirstDay ? "Tomorrow" : currentDate.format("dddd DD/MM");
 
         yield todoColumn(isFirstDay ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style);
 
         isFirstDay = false;
       }
 
-      currentDate = currentDate.plus({ days: 1 });
+      currentDate = currentDate.clone().add(1, "days");
     }
 
     // Week horizons - start from the calculated endOfWeek (start of next week)
     if (horizonVisibility.weeksToShow > 0) {
-      let weekStart = endOfWeek; // Already calculated as start of next week
+      let weekStart = endOfWeek.clone(); // Already calculated as start of next week
 
       for (let i = 1; i <= horizonVisibility.weeksToShow; i++) {
-        const weekEnd = weekStart.plus({ weeks: 1 });
+        const weekEnd = weekStart.clone().add(1, "weeks");
 
         // Skip this week if it's entirely contained within a larger horizon (month/quarter/year)
         if (!isWeekOverlapping(weekStart, weekEnd)) {
-          const label = `Week +${i} (${weekStart.toFormat("dd/MM")} - ${weekEnd.minus({ days: 1 }).toFormat("dd/MM")})`;
+          const label = `Week +${i} (${weekStart.format("DD/MM")} - ${weekEnd.clone().subtract(1, "days").format("DD/MM")})`;
           const todos = getTodosByDate(weekStart, weekEnd);
           const style = getWipStyle(todos);
           yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style);
@@ -457,23 +457,23 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
       }
       currentDate = weekStart;
     } else {
-      currentDate = endOfWeek;
+      currentDate = endOfWeek.clone();
     }
 
     // Month horizons
     if (horizonVisibility.monthsToShow > 0) {
       // Snap to start of next month
-      let monthStart = currentDate.startOf("month");
-      if (monthStart < currentDate) {
-        monthStart = monthStart.plus({ months: 1 });
+      let monthStart = currentDate.clone().startOf("month");
+      if (monthStart.isBefore(currentDate)) {
+        monthStart = monthStart.add(1, "months");
       }
 
       for (let i = 1; i <= horizonVisibility.monthsToShow; i++) {
-        const monthEnd = monthStart.plus({ months: 1 });
+        const monthEnd = monthStart.clone().add(1, "months");
 
         // Skip this month if it's entirely contained within a larger horizon (quarter/year)
         if (!isMonthOverlapping(monthStart, monthEnd)) {
-          const label = `Month +${i} (${monthStart.toFormat("MMM dd")} - ${monthEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
+          const label = `Month +${i} (${monthStart.format("MMM DD")} - ${monthEnd.clone().subtract(1, "days").format("MMM DD")})`;
           const todos = getTodosByDate(monthStart, monthEnd);
           const style = getWipStyle(todos);
           yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style);
@@ -485,21 +485,21 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
 
     // Quarter horizons - show all remaining quarters until end of current year
     if (horizonVisibility.showQuarters) {
-      const endOfYear = today.endOf("year").plus({ days: 1 }).startOf("day"); // Start of next year
+      const endOfYear = today.clone().endOf("year").add(1, "days").startOf("day"); // Start of next year
 
       // Snap to start of next quarter
-      let quarterStart = currentDate.startOf("quarter");
-      if (quarterStart < currentDate) {
-        quarterStart = quarterStart.plus({ quarters: 1 });
+      let quarterStart = currentDate.clone().startOf("quarter");
+      if (quarterStart.isBefore(currentDate)) {
+        quarterStart = quarterStart.add(1, "quarters");
       }
 
-      while (quarterStart < endOfYear) {
-        const quarterEnd = quarterStart.plus({ quarters: 1 });
+      while (quarterStart.isBefore(endOfYear)) {
+        const quarterEnd = quarterStart.clone().add(1, "quarters");
 
         // Skip this quarter if it's entirely contained within the year horizon
         if (!isQuarterOverlapping(quarterStart, quarterEnd)) {
-          const quarterNum = Math.ceil(quarterStart.month / 3);
-          const label = `Q${quarterNum} ${quarterStart.year} (${quarterStart.toFormat("MMM dd")} - ${quarterEnd.minus({ days: 1 }).toFormat("MMM dd")})`;
+          const quarterNum = Math.ceil((quarterStart.month() + 1) / 3);
+          const label = `Q${quarterNum} ${quarterStart.year()} (${quarterStart.format("MMM DD")} - ${quarterEnd.clone().subtract(1, "days").format("MMM DD")})`;
           const todos = getTodosByDate(quarterStart, quarterEnd);
           const style = getWipStyle(todos);
           yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(quarterStart), batchMoveToDate(quarterStart), style);
@@ -511,9 +511,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
 
     // Next year horizon - represents the entire next year
     if (horizonVisibility.showNextYear) {
-      const nextYearStart = today.plus({ years: 1 }).startOf("year");
-      const nextYearEnd = nextYearStart.plus({ years: 1 });
-      const label = `${nextYearStart.year}`;
+      const nextYearStart = today.clone().add(1, "years").startOf("year");
+      const nextYearEnd = nextYearStart.clone().add(1, "years");
+      const label = `${nextYearStart.year()}`;
       const todos = getTodosByDate(nextYearStart, nextYearEnd);
       yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextYearStart), batchMoveToDate(nextYearStart));
       currentDate = nextYearEnd;
@@ -529,7 +529,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
         if (horizon.tag) {
           yield todoColumn("tag", horizon.label, getCustomHorizonTodos(horizon.tag), hideEmpty, null, null);
         } else if (horizon.date) {
-          const horizonDate = DateTime.fromISO(horizon.date);
+          const horizonDate = moment(horizon.date);
           yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, moveToDate(horizonDate), batchMoveToDate(horizonDate));
         }
       }
@@ -544,10 +544,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
   }, [filteredTodos]);
 
   const completedToday = React.useMemo(() => {
-    const today = DateTime.now().startOf("day");
-    const tomorrow = today.plus({ day: 1 });
+    const today = moment().startOf("day");
+    const tomorrow = today.clone().add(1, "day");
     // Using getTodosByDate inline logic to avoid dependency issues
-    const dateIsInRange = (date: DateTime | null) => date && date >= today && date < tomorrow;
+    const dateIsInRange = (date: Moment | null) => date && date.isSameOrAfter(today) && date.isBefore(tomorrow);
     const completedTodos = filteredTodos.filter((todo) => {
       if (todo.status !== TodoStatus.Complete) return false;
       if (!todo.attributes) return false;

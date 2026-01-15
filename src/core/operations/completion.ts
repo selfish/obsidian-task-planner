@@ -1,5 +1,5 @@
 import * as chrono from "chrono-node";
-import { DateTime } from "luxon";
+import { moment } from "../../utils/moment";
 
 export class Completion {
   private completeAttribute(_beginning: string): string[] {
@@ -12,7 +12,7 @@ export class Completion {
   public static completeDate(prompt: string): string | null {
     const parseResult = chrono.parseDate(prompt);
     if (parseResult !== null) {
-      return DateTime.fromJSDate(parseResult).toLocal().toISODate();
+      return moment(parseResult).format("YYYY-MM-DD");
     }
     return null;
   }

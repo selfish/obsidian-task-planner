@@ -422,10 +422,9 @@ export const Keymap = {
   isModifier: jest.fn().mockReturnValue(false),
 };
 
-// Moment (re-export from the global moment if available)
-export const moment = {
-  now: () => Date.now(),
-};
+// Re-export moment from the moment package
+import momentLib from "moment";
+export const moment = momentLib;
 
 // Debounce utility
 export function debounce<T extends (...args: any[]) => any>(
