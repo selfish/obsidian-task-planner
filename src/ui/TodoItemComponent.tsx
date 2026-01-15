@@ -53,7 +53,6 @@ function SelectedBadge(): React.ReactElement {
   return (
     <span className="th-badge th-badge--selected">
       <span ref={iconRef} className="th-badge-icon"></span>
-      Pinned
     </span>
   );
 }
@@ -185,8 +184,8 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
           {!hideFileRef && <div className="th-task-file-ref">{getDisplayName(todo.file.file, app)}</div>}
           {(priority || isSelected) && (
             <div className="th-task-metadata">
+			  {isSelected && <SelectedBadge />}
               {priority && <PriorityBadge priority={priority} />}
-              {isSelected && <SelectedBadge />}
             </div>
           )}
           <TodoSubtasksContainer subtasks={todo.subtasks} deps={deps} key={"Subtasks-" + todo.text} dontCrossCompleted={true} />

@@ -398,8 +398,8 @@
 .th-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
+  gap: 2px;
+  padding: 2px 6px 2px 4px;
   font-size: var(--th-font-xs);
   font-weight: 500;
   border-radius: var(--th-radius-sm);
@@ -455,6 +455,7 @@
 .th-badge--selected {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
+  padding: 2px 4px;
 }
 
 /* File Reference */
