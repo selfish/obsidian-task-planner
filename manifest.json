@@ -4,7 +4,7 @@
   "author": "Selfish",
   "description": "Professional task management for Obsidian. Track tasks across your vault, organize your day with intelligent planning, and manage your workload with smart suggestions.",
   "authorUrl": "https://github.com/selfish",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minAppVersion": "1.0.0",
   "isDesktopOnly": false
 }
