@@ -35,17 +35,12 @@
       flex-grow: 1;
 
       > .content {
-        border: 1px solid var(--text-faint);
-	    repeating-linear-gradient(
-	      135deg,
-	      var(--background-primary) 0 16px,
-	      color-mix(
-	        in srgb,
-	          var(--background-primary-alt) 25%,
-	          var(--background-primary) 75%
-	        )
-	      16px 32px
-	    )
+        border: 1px dashed var(--text-faint);
+        background: repeating-linear-gradient(
+          135deg,
+          var(--background-primary) 0 16px,
+          var(--background-primary-alt) 16px 32px
+        );
       }
     }
 

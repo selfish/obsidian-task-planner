@@ -44,7 +44,7 @@ export class TodoIndex<T> {
 
   filesLoaded(files: FileAdapter<T>[]): void {
     const filteredFiles = files.filter((file) => !this.ignoreFile(file));
-    this.deps.folderTodoParser.ParseFilesAsync(filteredFiles).then((todos) => {
+    void this.deps.folderTodoParser.ParseFilesAsync(filteredFiles).then((todos) => {
       this.files = todos;
       this.triggerUpdate();
     });
@@ -55,7 +55,7 @@ export class TodoIndex<T> {
 
     this.deps.logger.debug(`TodoIndex: File updated: ${file.id}`);
     const index = this.findFileIndex(file);
-    this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
+    void this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
       this.files[index].todos = todos;
       this.triggerUpdate();
     });
@@ -79,7 +79,7 @@ export class TodoIndex<T> {
     if (this.ignoreFile(file)) return;
 
     this.deps.logger.debug(`TodoIndex: File created: ${file.id}`);
-    this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
+    void this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
       this.files.push({ todos, file });
       this.triggerUpdate();
     });
@@ -95,6 +95,6 @@ export class TodoIndex<T> {
   }
 
   private triggerUpdate(): void {
-    this.onUpdateEvent.fireAsync(this.todos);
+    void this.onUpdateEvent.fireAsync(this.todos);
   }
 }

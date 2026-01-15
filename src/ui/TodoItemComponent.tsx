@@ -123,7 +123,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
 
   function onClickContainer(ev: React.MouseEvent<HTMLDivElement, MouseEvent>): void {
     if (ev.defaultPrevented) return;
-    openFileAsync(todo.file.file, todo.line || 0, ev.altKey || ev.ctrlKey || ev.metaKey);
+    void openFileAsync(todo.file.file, todo.line || 0, ev.altKey || ev.ctrlKey || ev.metaKey);
   }
 
   function addChangePriorityMenuItem(menu: Menu, name: string, icon: string, label: string): void {
@@ -133,7 +133,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
       item.setTitle(`Change priority to ${label}`);
       item.setIcon(icon);
       item.onClick(() => {
-        fileOperations.updateAttributeAsync(todo, "priority", name);
+        void fileOperations.updateAttributeAsync(todo, "priority", name);
       });
     });
   }
@@ -151,14 +151,14 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     menu.addItem((item) => {
       item.setTitle("Reset priority");
       item.setIcon("reset");
-      item.onClick(() => fileOperations.removeAttributeAsync(todo, "priority"));
+      item.onClick(() => void fileOperations.removeAttributeAsync(todo, "priority"));
     });
     menu.addSeparator();
     menu.addItem((item) => {
       item.setTitle("Toggle pinned");
       item.setIcon("pin");
       item.onClick(() => {
-        fileOperations.updateAttributeAsync(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
+        void fileOperations.updateAttributeAsync(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
       });
     });
     menu.showAtMouseEvent(evt.nativeEvent);

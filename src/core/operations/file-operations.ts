@@ -82,7 +82,6 @@ export class FileOperations {
     const file = todo.file;
     const lineNumber = todo.line;
     if (lineNumber === undefined) {
-      console.error(`Todo '${todo.text}' is missing line (${lineNumber})`);
       return;
     }
     const content = await file.getContentAsync();
@@ -111,7 +110,7 @@ export class FileOperations {
     }
 
     // Update each file once with all changes
-    for (const [_file, fileTodos] of todosByFile) {
+    for (const [, fileTodos] of todosByFile) {
       await this.batchUpdateFileAsync(fileTodos, (line) => {
         const attributes = this.lineParser.parseAttributes(line.line);
         if (attributeValue === false || attributeValue === undefined) {
@@ -140,7 +139,7 @@ export class FileOperations {
     }
 
     // Update each file once with all changes
-    for (const [_file, fileTodos] of todosByFile) {
+    for (const [, fileTodos] of todosByFile) {
       await this.batchUpdateFileAsync(fileTodos, (line) => {
         const attributes = this.lineParser.parseAttributes(line.line);
         delete attributes.attributes[attributeName];
@@ -165,7 +164,7 @@ export class FileOperations {
     }
 
     // Update each file once with all changes
-    for (const [_file, fileTodos] of todosByFile) {
+    for (const [, fileTodos] of todosByFile) {
       await this.batchUpdateFileAsync(fileTodos, (line, todo) => {
         // Update checkbox
         let newCheckBox;
@@ -219,7 +218,6 @@ export class FileOperations {
     for (const todo of todos) {
       const lineNumber = todo.line;
       if (lineNumber === undefined) {
-        console.error(`Todo '${todo.text}' is missing line (${lineNumber})`);
         continue;
       }
       const line = this.lineParser.parseLine(lines[lineNumber]);

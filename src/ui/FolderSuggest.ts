@@ -24,7 +24,7 @@ export class FolderSuggest extends TextInputSuggest<TFolder> {
     el.setText(folder.path);
   }
 
-  selectSuggestion(folder: TFolder): void {
+  selectSuggestion(folder: TFolder, _evt: MouseEvent | KeyboardEvent): void {
     this.inputEl.value = folder.path;
     this.inputEl.trigger("input");
     this.close();

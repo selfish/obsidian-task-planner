@@ -1,3 +1,20 @@
+// Settings tab styles (outside main .task-planner wrapper)
+.th-settings-desc {
+  margin-bottom: var(--size-4-4);
+}
+
+.th-input-label {
+  width: 150px;
+}
+
+.th-input-tag {
+  width: 120px;
+}
+
+.th-input-date {
+  width: 160px;
+}
+
 .task-planner {
   .weekday-selector {
     margin: var(--size-4-4) 0 var(--size-4-6) 0;

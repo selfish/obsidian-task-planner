@@ -176,7 +176,7 @@ export default class TaskPlannerPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  async refreshPlanningViews(): Promise<void> {
+  refreshPlanningViews(): void {
     const leaves = this.app.workspace.getLeavesOfType(PlanningView.viewType);
     for (const leaf of leaves) {
       const view = leaf.view as PlanningView;

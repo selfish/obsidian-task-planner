@@ -37,7 +37,7 @@ export class Completion {
     if (beginning <= 1 || content[beginning] !== "@" || content[beginning - 1] !== " ") {
       return "";
     }
-    return content.substr(beginning, position - beginning);
+    return content.substring(beginning, position);
   }
 
   complete(content: string, position: number): string[] {
@@ -47,10 +47,10 @@ export class Completion {
     }
     const valueBeginningIndex = currentWordBeginning.indexOf("(");
     if (valueBeginningIndex >= 0) {
-      const attributeName = currentWordBeginning.substr(1, valueBeginningIndex - 1); // ignore @
-      const valueBeginning = currentWordBeginning.substr(valueBeginningIndex + 1, currentWordBeginning.length - valueBeginningIndex - 1);
+      const attributeName = currentWordBeginning.substring(1, valueBeginningIndex); // ignore @
+      const valueBeginning = currentWordBeginning.substring(valueBeginningIndex + 1);
       return this.completeAttributeValue(attributeName, valueBeginning);
     }
-    return this.completeAttribute(currentWordBeginning.substr(1, currentWordBeginning.length - 1));
+    return this.completeAttribute(currentWordBeginning.substring(1));
   }
 }

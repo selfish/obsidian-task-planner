@@ -173,7 +173,10 @@ export function TodoReportComponent({ deps }: TodoReportComponentProps) {
   const [numberOfWeeks] = React.useState(4);
   const [numberOfMonths] = React.useState(5);
   React.useEffect(() => {
-    const unsubscribe = deps.todoIndex.onUpdateEvent.listen(async (todos) => setTodos(todos));
+    const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos) => {
+      setTodos(todos);
+      return Promise.resolve();
+    });
     return () => {
       if (unsubscribe) unsubscribe();
     };
