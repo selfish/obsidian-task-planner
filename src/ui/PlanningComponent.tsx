@@ -34,9 +34,10 @@ export interface PlanningComponentProps {
   settings: TaskPlannerSettings;
   app: App;
   onRefresh?: () => void;
+  onOpenReport?: () => void;
 }
 
-export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningComponentProps) {
+export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport }: PlanningComponentProps) {
   const settingsStore = React.useMemo(() => new PlanningSettingsStore(app), [app]);
   const savedSettings = React.useMemo(() => settingsStore.getSettings(), [settingsStore]);
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
@@ -620,7 +621,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
 
   return (
     <div className="board">
-      <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} />
+      <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} onOpenReport={onOpenReport} />
       <div className="today-section">
         <div className="header">
           <span className="icon">☀️</span>

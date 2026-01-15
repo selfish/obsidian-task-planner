@@ -1,12 +1,13 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { App, TFile } from "obsidian";
+import { App, TFile, setIcon } from "obsidian";
 import { Logger } from "../types/logger";
 import { TodoIndex } from "../core/index/todo-index";
 import { TaskPlannerSettings } from "../settings/types";
 import { TodoItem, TodoStatus } from "../types/todo";
 import { moment, Moment } from "../utils/moment";
 import { TodoListComponent } from "./TodoListComponent";
+import { TodoMatcher } from "../core/matchers/todo-matcher";
 
 export interface TodoReportComponentDeps {
   logger: Logger;
@@ -17,9 +18,11 @@ export interface TodoReportComponentDeps {
 
 export interface TodoReportComponentProps {
   deps: TodoReportComponentDeps;
+  onOpenPlanning?: () => void;
 }
 
 interface Container {
+  id: string;
   title: string;
   todos: TodoItem<TFile>[];
 }
@@ -27,6 +30,15 @@ interface Container {
 interface DateContainer extends Container {
   from: Moment;
   to: Moment;
+}
+
+type StatusFilter = "all" | "completed" | "canceled";
+
+interface ReportSettings {
+  searchPhrase: string;
+  fuzzySearch: boolean;
+  statusFilter: StatusFilter;
+  collapsedSections: Record<string, boolean>;
 }
 
 function moveToPreviousDay(date: Moment): Moment {
@@ -65,14 +77,15 @@ function findTodoCompletionDate(todo: TodoItem<TFile>, settings: TaskPlannerSett
 }
 
 function formatInterval(from: Moment, to: Moment) {
-  const format = from.year() === moment().year() ? "MMM DD" : "YYYY MMM DD";
-  return `${from.format(format)} to ${to.clone().subtract(1, "days").format(format)}`;
+  const format = from.year() === moment().year() ? "MMM D" : "MMM D, YYYY";
+  return `${from.format(format)} - ${to.clone().subtract(1, "days").format(format)}`;
 }
 
 function getOneWeekFrom(startDate: Moment): DateContainer {
   const to = startDate;
   const from = moveToPreviousMonday(startDate);
   return {
+    id: `week-${from.format("YYYY-MM-DD")}`,
     from,
     to,
     title: formatInterval(from, to),
@@ -91,16 +104,17 @@ function getOneMonthFrom(startDate: Moment): DateContainer {
   const to = startDate;
   const from = moveToPreviousMonth(startDate);
   return {
+    id: `month-${from.format("YYYY-MM")}`,
     from,
     to,
-    title: formatInterval(from, to),
+    title: from.format("MMMM YYYY"),
     todos: [],
   };
 }
 
-function getDateContainers(minDate: Moment, numberOfWeeks: number, _numberOfMonths: number): DateContainer[] {
+function getDateContainers(minDate: Moment, numberOfWeeks: number): DateContainer[] {
   let dateCursor = moment().add(1, "days").startOf("day");
-  const containers = [];
+  const containers: DateContainer[] = [];
   for (let i = 0; i < numberOfWeeks && dateCursor.diff(minDate) > 0; i++) {
     const week = getOneWeekFrom(dateCursor);
     containers.push(week);
@@ -114,26 +128,51 @@ function getDateContainers(minDate: Moment, numberOfWeeks: number, _numberOfMont
   return containers;
 }
 
-function filterTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
-  return todos.filter((todo) => todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled);
+function filterTodosByStatus(todos: TodoItem<TFile>[], statusFilter: StatusFilter): TodoItem<TFile>[] {
+  return todos.filter((todo) => {
+    if (statusFilter === "all") {
+      return todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+    }
+    if (statusFilter === "completed") {
+      return todo.status === TodoStatus.Complete;
+    }
+    if (statusFilter === "canceled") {
+      return todo.status === TodoStatus.Canceled;
+    }
+    return false;
+  });
 }
 
 function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], settings: TaskPlannerSettings): Container[] {
+  const assignedTodoIds = new Set<string>();
+
   containers.forEach((container) => {
     container.todos = todos.filter((todo) => {
       const date = findTodoCompletionDate(todo, settings);
       if (!date) {
         return false;
       }
-      return container.from.diff(date) <= 0 && container.to.diff(date) > 0;
+      const isInRange = container.from.diff(date) <= 0 && container.to.diff(date) > 0;
+      if (isInRange) {
+        assignedTodoIds.add(`${todo.file.path}-${todo.line}`);
+      }
+      return isInRange;
     });
   });
+
   const emptyContainer: Container = {
+    id: "no-date",
     title: "No date",
     todos: todos.filter((todo) => !findTodoCompletionDate(todo, settings)),
   };
-  (containers as Container[]).push(emptyContainer);
-  return containers;
+
+  // Only add no-date container if it has todos
+  const result: Container[] = containers.filter((c) => c.todos.length > 0);
+  if (emptyContainer.todos.length > 0) {
+    result.push(emptyContainer);
+  }
+
+  return result;
 }
 
 function getMinDate(todos: TodoItem<TFile>[], settings: TaskPlannerSettings): Moment {
@@ -146,32 +185,136 @@ function getMinDate(todos: TodoItem<TFile>[], settings: TaskPlannerSettings): Mo
   }, moment());
 }
 
-function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, numberOfMonths: number, settings: TaskPlannerSettings): DateContainer[] {
-  todos = filterTodos(todos);
+function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, settings: TaskPlannerSettings): Container[] {
+  // Return empty array early if no todos
+  if (todos.length === 0) {
+    return [];
+  }
   const minDate = getMinDate(todos, settings);
-  const containers = getDateContainers(minDate, numberOfWeeks, numberOfMonths);
-  groupTodos(todos, containers, settings);
-  return containers;
+  const containers = getDateContainers(minDate, numberOfWeeks);
+  return groupTodos(todos, containers, settings);
 }
 
-function mapContainerToComponent(container: Container, deps: TodoReportComponentDeps) {
-  // TODO: Implement folding functionality
-  const folded = false;
+function ReportHeader({
+  reportSettings,
+  setReportSettings,
+  stats,
+  app,
+  onOpenPlanning,
+}: {
+  reportSettings: ReportSettings;
+  setReportSettings: (settings: ReportSettings) => void;
+  stats: { total: number; completed: number; canceled: number };
+  app: App;
+  onOpenPlanning?: () => void;
+}) {
+  const { searchPhrase, fuzzySearch, statusFilter } = reportSettings;
+
+  const planningIconRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    if (planningIconRef.current && app) {
+      planningIconRef.current.replaceChildren();
+      setIcon(planningIconRef.current, "calendar");
+    }
+  }, [app]);
+
+  function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>) {
+    setReportSettings({
+      ...reportSettings,
+      searchPhrase: ev.target.value,
+    });
+  }
+
+  function onFuzzyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
+    setReportSettings({
+      ...reportSettings,
+      fuzzySearch: ev.target.checked,
+    });
+  }
+
+  function onStatusFilterChange(ev: React.ChangeEvent<HTMLSelectElement>) {
+    setReportSettings({
+      ...reportSettings,
+      statusFilter: ev.target.value as StatusFilter,
+    });
+  }
+
   return (
-    <div key={container.title} className="container">
-      <h2 className="section-header">
-        {container.title} <span>{folded ? "▶" : "▼"}</span>
-      </h2>
-      {!folded ? <TodoListComponent deps={deps} todos={container.todos} dontCrossCompleted={true} key={container.title}></TodoListComponent> : ""}
+    <div className="header">
+      <div className="title">
+        <h1>Completed Tasks</h1>
+        <div className="stats">
+          <span className="stat">{stats.total} total</span>
+          <span className="stat separator">•</span>
+          <span className="stat completed">{stats.completed} completed</span>
+          <span className="stat separator">•</span>
+          <span className="stat canceled">{stats.canceled} canceled</span>
+        </div>
+      </div>
+      <div className="controls">
+        <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
+        <label className="checkbox-label">
+          <input type="checkbox" checked={fuzzySearch} onChange={onFuzzyClicked} />
+          <span>Fuzzy</span>
+        </label>
+        <select className="status-filter" value={statusFilter} onChange={onStatusFilterChange}>
+          <option value="all">All</option>
+          <option value="completed">Completed</option>
+          <option value="canceled">Canceled</option>
+        </select>
+        {onOpenPlanning && <button ref={planningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" />}
+      </div>
     </div>
   );
 }
 
-export function TodoReportComponent({ deps }: TodoReportComponentProps) {
+function ReportSection({
+  container,
+  deps,
+  isCollapsed,
+  onToggle,
+}: {
+  container: Container;
+  deps: TodoReportComponentDeps;
+  isCollapsed: boolean;
+  onToggle: () => void;
+}) {
+  const chevronRef = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    if (chevronRef.current) {
+      chevronRef.current.replaceChildren();
+      setIcon(chevronRef.current, isCollapsed ? "chevron-right" : "chevron-down");
+    }
+  }, [isCollapsed]);
+
+  return (
+    <div className={`report-section ${isCollapsed ? "collapsed" : ""}`}>
+      <button className="section-header" onClick={onToggle}>
+        <span ref={chevronRef} className="chevron"></span>
+        <span className="section-title">{container.title}</span>
+        <span className="section-count">{container.todos.length}</span>
+      </button>
+      {!isCollapsed && (
+        <div className="section-content">
+          <TodoListComponent deps={deps} todos={container.todos} dontCrossCompleted={true} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponentProps) {
   const [todos, setTodos] = React.useState(deps.todoIndex.todos);
-  // Using fixed values for now; setters kept for future UI controls
   const [numberOfWeeks] = React.useState(4);
-  const [numberOfMonths] = React.useState(5);
+  const [reportSettings, setReportSettings] = React.useState<ReportSettings>({
+    searchPhrase: "",
+    fuzzySearch: false,
+    statusFilter: "all",
+    collapsedSections: {},
+  });
+
   React.useEffect(() => {
     const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos) => {
       setTodos(todos);
@@ -181,17 +324,90 @@ export function TodoReportComponent({ deps }: TodoReportComponentProps) {
       if (unsubscribe) unsubscribe();
     };
   }, [deps.todoIndex]);
-  const containers = React.useMemo(() => assembleTodosByDate(todos, numberOfWeeks, numberOfMonths, deps.settings), [todos, numberOfWeeks, numberOfMonths, deps.settings]);
+
+  // Filter todos by status
+  const statusFilteredTodos = React.useMemo(() => filterTodosByStatus(todos, reportSettings.statusFilter), [todos, reportSettings.statusFilter]);
+
+  // Filter by search
+  const filteredTodos = React.useMemo(() => {
+    if (!reportSettings.searchPhrase) return statusFilteredTodos;
+    const filter = new TodoMatcher(reportSettings.searchPhrase, reportSettings.fuzzySearch);
+    return statusFilteredTodos.filter((todo) => filter.matches(todo));
+  }, [statusFilteredTodos, reportSettings.searchPhrase, reportSettings.fuzzySearch]);
+
+  // Group into containers
+  const containers = React.useMemo(() => assembleTodosByDate(filteredTodos, numberOfWeeks, deps.settings), [filteredTodos, numberOfWeeks, deps.settings]);
+
+  // Calculate stats
+  const stats = React.useMemo(() => {
+    const completed = todos.filter((t) => t.status === TodoStatus.Complete).length;
+    const canceled = todos.filter((t) => t.status === TodoStatus.Canceled).length;
+    return {
+      total: completed + canceled,
+      completed,
+      canceled,
+    };
+  }, [todos]);
+
+  function toggleSection(id: string) {
+    setReportSettings((prev) => ({
+      ...prev,
+      collapsedSections: {
+        ...prev.collapsedSections,
+        [id]: !prev.collapsedSections[id],
+      },
+    }));
+  }
+
+  function collapseAll() {
+    const allCollapsed: Record<string, boolean> = {};
+    containers.forEach((c) => {
+      allCollapsed[c.id] = true;
+    });
+    setReportSettings((prev) => ({
+      ...prev,
+      collapsedSections: allCollapsed,
+    }));
+  }
+
+  function expandAll() {
+    setReportSettings((prev) => ({
+      ...prev,
+      collapsedSections: {},
+    }));
+  }
+
+  const allCollapsed = containers.length > 0 && containers.every((c) => reportSettings.collapsedSections[c.id]);
 
   return (
-    <>
-      <div>
-        <h1>
-          <span>✅</span> Completed todos
-        </h1>
+    <div className="report-container">
+      <ReportHeader reportSettings={reportSettings} setReportSettings={setReportSettings} stats={stats} app={deps.app} onOpenPlanning={onOpenPlanning} />
+      <div className="report-actions">
+        <button className="action-btn" onClick={allCollapsed ? expandAll : collapseAll}>
+          {allCollapsed ? "Expand all" : "Collapse all"}
+        </button>
+        <span className="result-count">
+          {filteredTodos.length} {filteredTodos.length === 1 ? "task" : "tasks"} in {containers.length} {containers.length === 1 ? "period" : "periods"}
+        </span>
       </div>
-      <div>{containers.map((container) => mapContainerToComponent(container, deps))}</div>
-    </>
+      <div className="report-content">
+        {containers.length === 0 ? (
+          <div className="empty-state">
+            <span>
+              {reportSettings.statusFilter === "all"
+                ? "No completed or canceled tasks found"
+                : reportSettings.statusFilter === "completed"
+                  ? "No completed tasks found"
+                  : "No canceled tasks found"}
+            </span>
+          </div>
+        ) : (
+          containers.map((container) => (
+            <ReportSection key={container.id} container={container} deps={deps} isCollapsed={!!reportSettings.collapsedSections[container.id]} onToggle={() => toggleSection(container.id)} />
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 

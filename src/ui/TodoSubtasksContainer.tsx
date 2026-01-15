@@ -47,7 +47,7 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
       ) : (
         <div className="subtasks">
           {subtasks.map((task) => (
-            <TodoItemComponent key={task.text} todo={task} deps={deps} dontCrossCompleted={dontCrossCompleted} />
+							<TodoItemComponent key={task.text} todo={task} deps={deps} dontCrossCompleted={dontCrossCompleted} />
           ))}
         </div>
       )}
