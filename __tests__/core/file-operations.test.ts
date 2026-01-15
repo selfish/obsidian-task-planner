@@ -82,7 +82,6 @@ describe('FileOperations', () => {
     });
 
     it('should handle todo without line number', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       const file = createMockFileAdapter('- [ ] Task');
       const todo: TodoItem<unknown> = {
         status: TodoStatus.Todo,
@@ -93,9 +92,8 @@ describe('FileOperations', () => {
 
       await operations.updateAttributeAsync(todo, 'due', '2025-01-15');
 
-      expect(consoleSpy).toHaveBeenCalled();
+      // Should silently skip - no file modification when line number is missing
       expect(file.setContentAsync).not.toHaveBeenCalled();
-      consoleSpy.mockRestore();
     });
   });
 
@@ -368,7 +366,6 @@ describe('FileOperations', () => {
     });
 
     it('should skip todos with missing line numbers in batch', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       const fileContent = '- [ ] Task one\n- [ ] Task two';
       const file = createMockFileAdapter(fileContent);
       const todos = [
@@ -378,11 +375,9 @@ describe('FileOperations', () => {
 
       await operations.batchUpdateTodoStatusAsync(todos, 'completed');
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('missing line'));
-      // Should still update the valid todo
+      // Should silently skip the todo without line number but still update the valid todo
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [x] Task one');
-      consoleSpy.mockRestore();
     });
 
     it('should add completed date for completed status in batch', async () => {

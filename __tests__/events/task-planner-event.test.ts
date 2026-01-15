@@ -100,25 +100,21 @@ describe('TaskPlannerEvent', () => {
       expect(executionOrder).toEqual([2, 1]);
     });
 
-    it('should catch and log errors from handlers', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    it('should catch errors from handlers silently and continue', async () => {
       const event = new TaskPlannerEvent<string>();
-      const error = new Error('Handler error');
 
       const failingHandler: EventHandler<string> = async () => {
-        throw error;
+        throw new Error('Handler error');
       };
       const successHandler = jest.fn().mockResolvedValue(undefined);
 
       event.listen(failingHandler);
       event.listen(successHandler);
 
+      // Should not throw and should still call the success handler
       await event.fireAsync('test');
 
-      expect(consoleSpy).toHaveBeenCalledWith('[Task Planner] Event handler error:', error);
       expect(successHandler).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
 
     it('should work with no handlers', async () => {

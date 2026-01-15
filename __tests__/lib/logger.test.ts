@@ -29,6 +29,9 @@ describe('ConsoleLogger', () => {
     });
   });
 
+  // Note: ConsoleLogger is a no-op implementation because Obsidian plugins
+  // should not use console logging. All tests verify that no console output occurs.
+
   describe('with DEBUG log level', () => {
     let logger: ConsoleLogger;
 
@@ -36,52 +39,33 @@ describe('ConsoleLogger', () => {
       logger = new ConsoleLogger(LogLevel.DEBUG);
     });
 
-    it('should log debug messages', () => {
+    it('should not log debug messages (no-op)', () => {
       logger.debug('Debug message');
-      expect(consoleDebugSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[Task Planner][DEBUG]')
-      );
-      expect(consoleDebugSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Debug message')
-      );
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
-    it('should log info messages', () => {
+    it('should not log info messages (no-op)', () => {
       logger.info('Info message');
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[Task Planner][INFO]')
-      );
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Info message')
-      );
+      expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
-    it('should log warn messages', () => {
+    it('should not log warn messages (no-op)', () => {
       logger.warn('Warn message');
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[Task Planner][WARN]')
-      );
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Warn message')
-      );
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it('should log error messages', () => {
+    it('should not log error messages (no-op)', () => {
       logger.error('Error message');
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[Task Planner][ERROR]')
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Error message')
-      );
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
-    it('should include timestamp in messages', () => {
-      logger.debug('Test');
-      // Time format should be something like "12:34:56"
-      expect(consoleDebugSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/\d{1,2}:\d{2}:\d{2}/)
-      );
+    it('should accept messages without throwing', () => {
+      expect(() => {
+        logger.debug('Test');
+        logger.info('Test');
+        logger.warn('Test');
+        logger.error('Test');
+      }).not.toThrow();
     });
   });
 
@@ -97,19 +81,19 @@ describe('ConsoleLogger', () => {
       expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
-    it('should log info messages', () => {
+    it('should not log info messages (no-op)', () => {
       logger.info('Info message');
-      expect(consoleLogSpy).toHaveBeenCalled();
+      expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
-    it('should log warn messages', () => {
+    it('should not log warn messages (no-op)', () => {
       logger.warn('Warn message');
-      expect(consoleWarnSpy).toHaveBeenCalled();
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it('should log error messages', () => {
+    it('should not log error messages (no-op)', () => {
       logger.error('Error message');
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -130,14 +114,14 @@ describe('ConsoleLogger', () => {
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
-    it('should log warn messages', () => {
+    it('should not log warn messages (no-op)', () => {
       logger.warn('Warn message');
-      expect(consoleWarnSpy).toHaveBeenCalled();
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it('should log error messages', () => {
+    it('should not log error messages (no-op)', () => {
       logger.error('Error message');
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -163,9 +147,9 @@ describe('ConsoleLogger', () => {
       expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
 
-    it('should log error messages', () => {
+    it('should not log error messages (no-op)', () => {
       logger.error('Error message');
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 
