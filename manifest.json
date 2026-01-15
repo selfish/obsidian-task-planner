@@ -2,9 +2,9 @@
   "id": "task-planner",
   "name": "Task Planner",
   "author": "Selfish",
-  "description": "Professional task management for Obsidian. Track tasks across your vault, organize your day with intelligent planning, and manage your workload with smart suggestions.",
+  "description": "Obsidian task management and planner with drag-and-drop task planning, Today focus, backlog, overdue, and weekly time horizons.",
   "authorUrl": "https://github.com/selfish",
   "version": "1.0.4",
   "minAppVersion": "1.0.0",
-  "isDesktopOnly": false
+  "isDesktopOnly": true
 }
