@@ -62,11 +62,11 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
 
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
-      settingsIconRef.current.innerHTML = "";
+      settingsIconRef.current.replaceChildren();
       setIcon(settingsIconRef.current, "settings");
     }
     if (refreshIconRef.current && app) {
-      refreshIconRef.current.innerHTML = "";
+      refreshIconRef.current.replaceChildren();
       setIcon(refreshIconRef.current, "refresh-cw");
     }
   }, [app]);
@@ -83,7 +83,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
             <span className="th-stat-separator">•</span>
             <span className="th-stat">{totalTasks || 0} active</span>
             <div className="th-progress-bar">
-              <div className="th-progress-fill" style={{ width: `${completionPercent}%` }}></div>
+              <div className="th-progress-fill" style={{ '--progress-width': `${completionPercent}%` } as React.CSSProperties}></div>
             </div>
           </div>
         )}
