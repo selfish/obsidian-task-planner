@@ -25,7 +25,7 @@ export class StatusOperations {
       const val = attributes.attributes[key];
       if (typeof val === "string") {
         // Complete date if it's an attribute value
-        const completion = Completion.completeDate(val as string);
+        const completion = Completion.completeDate(val);
         if (completion !== null) {
           attributes.attributes[key] = completion;
         }

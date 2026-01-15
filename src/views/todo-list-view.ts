@@ -37,7 +37,7 @@ export class TodoListView extends ItemView {
   }
 
   render(): void {
-    MountSidePanelComponent(this.containerEl as HTMLElement, {
+    MountSidePanelComponent(this.containerEl, {
       deps: {
         app: this.app,
         logger: this.deps.logger,

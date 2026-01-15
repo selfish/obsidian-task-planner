@@ -15,11 +15,10 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     containerEl.empty();
 
     // === BASIC HORIZONS ===
-    new Setting(containerEl).setName("Basic Horizons").setHeading();
+    new Setting(containerEl).setName("Basic horizons").setHeading();
 
-    const basicDesc = containerEl.createDiv({ cls: "setting-item-description" });
+    const basicDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     basicDesc.setText("Choose which special-purpose columns to display in your planning board.");
-    basicDesc.style.marginBottom = "var(--size-4-4)";
 
     new Setting(containerEl)
       .setName("Backlog")
@@ -28,7 +27,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.horizonVisibility.showBacklog).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showBacklog = value;
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
         })
       );
 
@@ -39,7 +38,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.horizonVisibility.showOverdue).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showOverdue = value;
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
         })
       );
 
@@ -50,16 +49,15 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.horizonVisibility.showLater).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showLater = value;
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
         })
       );
 
     // === NEAR-TERM PLANNING ===
-    new Setting(containerEl).setName("Near-Term Planning").setHeading();
+    new Setting(containerEl).setName("Near-term planning").setHeading();
 
-    const nearTermDesc = containerEl.createDiv({ cls: "setting-item-description" });
+    const nearTermDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     nearTermDesc.setText("Individual days give you detailed control over the current week. Choose which days to show as separate columns.");
-    nearTermDesc.style.marginBottom = "var(--size-4-4)";
 
     // Calendar-style weekday selector
     const weekdaySection = containerEl.createDiv({ cls: "th-weekday-selector" });
@@ -90,12 +88,10 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       }
       dayButton.setText(day.label);
       dayButton.setAttribute("aria-label", day.full);
-      dayButton.addEventListener("click", async () => {
+      dayButton.addEventListener("click", () => {
         const newValue = !isChecked;
         (this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = newValue;
-        await this.plugin.saveSettings();
-        await this.plugin.refreshPlanningViews();
-        this.display();
+        void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews()).then(() => this.display());
       });
     });
 
@@ -109,17 +105,16 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         dropDown.onChange(async (value: string) => {
           this.plugin.settings.firstWeekday = parseInt(value);
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
           this.display();
         });
       });
 
     // === FUTURE HORIZONS ===
-    new Setting(containerEl).setName("Future Horizons").setHeading();
+    new Setting(containerEl).setName("Future horizons").setHeading();
 
-    const futureDesc = containerEl.createDiv({ cls: "setting-item-description" });
+    const futureDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     futureDesc.setText("Weeks and months provide broader planning horizons. Configure how far ahead you want to plan.");
-    futureDesc.style.marginBottom = "var(--size-4-4)";
 
     new Setting(containerEl)
       .setName("Weeks")
@@ -134,7 +129,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.settings.horizonVisibility.weeksToShow = parseInt(value);
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
         });
       });
 
@@ -150,7 +145,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.settings.horizonVisibility.monthsToShow = parseInt(value);
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
         });
       });
 
@@ -161,7 +156,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.horizonVisibility.showQuarters).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showQuarters = value;
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
         })
       );
 
@@ -172,16 +167,15 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.horizonVisibility.showNextYear).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showNextYear = value;
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
         })
       );
 
     // === WORK LIMITS ===
-    new Setting(containerEl).setName("Work Limits").setHeading();
+    new Setting(containerEl).setName("Work limits").setHeading();
 
-    const limitsDesc = containerEl.createDiv({ cls: "setting-item-description" });
+    const limitsDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     limitsDesc.setText("Set limits to avoid overcommitting and maintain sustainable workload.");
-    limitsDesc.style.marginBottom = "var(--size-4-4)";
 
     new Setting(containerEl)
       .setName("Daily WIP limit")
@@ -195,11 +189,10 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       );
 
     // === CUSTOM HORIZONS ===
-    new Setting(containerEl).setName("Custom Horizons").setHeading();
+    new Setting(containerEl).setName("Custom horizons").setHeading();
 
-    const horizonDesc = containerEl.createDiv({ cls: "setting-item-description" });
+    const horizonDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     horizonDesc.setText("Create custom horizons filtered by tag or for specific dates");
-    horizonDesc.style.marginBottom = "var(--size-4-4)";
 
     let labelInput: HTMLInputElement;
     let tagInput: HTMLInputElement;
@@ -213,17 +206,17 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .addText((text) => {
         labelInput = text.inputEl;
         text.setPlaceholder("Label");
-        text.inputEl.style.width = "150px";
+        text.inputEl.addClass("th-input-label");
       })
       .addText((text) => {
         tagInput = text.inputEl;
         text.setPlaceholder("Tag (optional)");
-        text.inputEl.style.width = "120px";
+        text.inputEl.addClass("th-input-tag");
       })
       .addText((text) => {
         dateInput = text.inputEl;
         text.setPlaceholder("Date YYYY-MM-DD (optional)");
-        text.inputEl.style.width = "160px";
+        text.inputEl.addClass("th-input-date");
       })
       .addDropdown((dropdown) => {
         positionDropdown = dropdown.selectEl;
@@ -269,7 +262,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           });
 
           await this.plugin.saveSettings();
-          await this.plugin.refreshPlanningViews();
+          this.plugin.refreshPlanningViews();
 
           labelInput.value = "";
           tagInput.value = "";
@@ -299,25 +292,24 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           text.onChange(async (value) => {
             this.plugin.settings.customHorizons[index].label = value.trim();
             await this.plugin.saveSettings();
-            await this.plugin.refreshPlanningViews();
+            this.plugin.refreshPlanningViews();
           });
         })
         .addButton((button) =>
           button.setButtonText("Remove").onClick(async () => {
             this.plugin.settings.customHorizons.splice(index, 1);
             await this.plugin.saveSettings();
-            await this.plugin.refreshPlanningViews();
+            this.plugin.refreshPlanningViews();
             this.display();
           })
         );
     });
 
     // === TASK ATTRIBUTES ===
-    new Setting(containerEl).setName("Task Attributes").setHeading();
+    new Setting(containerEl).setName("Task attributes").setHeading();
 
-    const attributesDesc = containerEl.createDiv({ cls: "setting-item-description" });
+    const attributesDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     attributesDesc.setText("Configure how tasks are tagged and tracked in your markdown files.");
-    attributesDesc.style.marginBottom = "var(--size-4-4)";
 
     new Setting(containerEl)
       .setName("Due date attribute")
@@ -378,11 +370,10 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       });
 
     // === FILTERING & INDEXING ===
-    new Setting(containerEl).setName("Filtering & Indexing").setHeading();
+    new Setting(containerEl).setName("Filtering & indexing").setHeading();
 
-    const filteringDesc = containerEl.createDiv({ cls: "setting-item-description" });
+    const filteringDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     filteringDesc.setText("Control which folders and files are included when scanning for tasks.");
-    filteringDesc.style.marginBottom = "var(--size-4-4)";
 
     let folderSearchInput: SearchComponent | undefined;
     new Setting(containerEl)

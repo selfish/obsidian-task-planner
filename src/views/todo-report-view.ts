@@ -30,7 +30,7 @@ export class TodoReportView extends ItemView {
   }
 
   render(): void {
-    MountTodoReportComponent(this.containerEl as HTMLElement, {
+    MountTodoReportComponent(this.containerEl, {
       deps: {
         logger: this.deps.logger,
         todoIndex: this.deps.todoIndex,

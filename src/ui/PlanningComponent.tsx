@@ -37,21 +37,23 @@ export interface PlanningComponentProps {
 }
 
 export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningComponentProps) {
-  const savedSettings = React.useMemo(() => PlanningSettingsStore.getSettings(), []);
+  const settingsStore = React.useMemo(() => new PlanningSettingsStore(app), [app]);
+  const savedSettings = React.useMemo(() => settingsStore.getSettings(), [settingsStore]);
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
   const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
-  const setPlanningSettings = PlanningSettingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState);
+  const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
   const { searchParameters, hideEmpty, hideDone, wipLimit } = planningSettings;
   const fileOperations = new FileOperations(settings);
 
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, searchParameters.fuzzySearch);
-    return todos.filter(filter.matches);
+    return todos.filter((todo) => filter.matches(todo));
   }, [todos, searchParameters]);
 
   React.useEffect(() => {
-    const unsubscribe = deps.todoIndex.onUpdateEvent.listen(async (todos) => {
+    const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos) => {
       setTodos(todos);
+      return Promise.resolve();
     });
 
     return () => {
@@ -95,24 +97,26 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
   function moveToDate(date: Moment) {
     return (todoId: string) => {
       const todo = findTodo(todoId);
-      deps.logger.debug(`Moving ${todoId} to ${date}`);
+      const dateStr = date.format("YYYY-MM-DD");
+      deps.logger.debug(`Moving ${todoId} to ${dateStr}`);
       if (!todo) {
         deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
         return;
       }
-      fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, date.format("YYYY-MM-DD")).then();
+      void fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, dateStr);
     };
   }
 
   function batchMoveToDate(date: Moment) {
     return async (todoIds: string[]) => {
-      const todos = todoIds.map((id) => findTodo(id)).filter((todo) => todo !== undefined) as TodoItem<TFile>[];
-      if (todos.length === 0) {
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      if (foundTodos.length === 0) {
         deps.logger.warn(`No todos found for batch move`);
         return;
       }
-      deps.logger.debug(`Batch moving ${todos.length} todos to ${date}`);
-      await fileOperations.batchUpdateAttributeAsync(todos, settings.dueDateAttribute, date.format("YYYY-MM-DD"));
+      const dateStr = date.format("YYYY-MM-DD");
+      deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr}`);
+      await fileOperations.batchUpdateAttributeAsync(foundTodos, settings.dueDateAttribute, dateStr);
     };
   }
 
@@ -122,51 +126,53 @@ export function PlanningComponent({ deps, settings, app, onRefresh }: PlanningCo
       if (!todo) {
         return;
       }
-      fileOperations.removeAttributeAsync(todo, settings.dueDateAttribute).then();
+      void fileOperations.removeAttributeAsync(todo, settings.dueDateAttribute);
     };
   }
 
   function batchRemoveDate() {
     return async (todoIds: string[]) => {
-      const todos = todoIds.map((id) => findTodo(id)).filter((todo) => todo !== undefined) as TodoItem<TFile>[];
-      if (todos.length === 0) return;
-      deps.logger.debug(`Batch removing date from ${todos.length} todos`);
-      await fileOperations.batchRemoveAttributeAsync(todos, settings.dueDateAttribute);
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      if (foundTodos.length === 0) return;
+      deps.logger.debug(`Batch removing date from ${foundTodos.length} todos`);
+      await fileOperations.batchRemoveAttributeAsync(foundTodos, settings.dueDateAttribute);
     };
   }
 
   function moveToDateAndStatus(date: Moment, status: TodoStatus) {
     return (todoId: string) => {
       const todo = findTodo(todoId);
-      deps.logger.debug(`Moving ${todoId} to ${date}`);
+      const dateStr = date.format("YYYY-MM-DD");
+      deps.logger.debug(`Moving ${todoId} to ${dateStr}`);
       if (!todo) {
         deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
         return;
       }
       todo.status = status;
-      fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, date.format("YYYY-MM-DD")).then(() => {
-        fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
+      void fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, dateStr).then(() => {
+        void fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
       });
     };
   }
 
   function batchMoveToDateAndStatus(date: Moment, status: TodoStatus) {
     return async (todoIds: string[]) => {
-      const todos = todoIds.map((id) => findTodo(id)).filter((todo) => todo !== undefined) as TodoItem<TFile>[];
-      if (todos.length === 0) {
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      if (foundTodos.length === 0) {
         deps.logger.warn(`No todos found for batch move`);
         return;
       }
-      deps.logger.debug(`Batch moving ${todos.length} todos to ${date} with status ${status}`);
+      const dateStr = date.format("YYYY-MM-DD");
+      deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr} with status ${status}`);
 
       // Update status in memory
-      todos.forEach((todo) => (todo.status = status));
+      foundTodos.forEach((todo) => (todo.status = status));
 
       // Batch update date attribute
-      await fileOperations.batchUpdateAttributeAsync(todos, settings.dueDateAttribute, date.format("YYYY-MM-DD"));
+      await fileOperations.batchUpdateAttributeAsync(foundTodos, settings.dueDateAttribute, dateStr);
 
       // Batch update status
-      await fileOperations.batchUpdateTodoStatusAsync(todos, settings.completedDateAttribute);
+      await fileOperations.batchUpdateTodoStatusAsync(foundTodos, settings.completedDateAttribute);
     };
   }
 

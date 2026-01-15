@@ -52,7 +52,7 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
       item.setIcon(icon);
       item.onClick(() => {
         todo.status = status;
-        fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
+        void fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
       });
     });
   };
@@ -82,7 +82,7 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
     const wasCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
     const newStatus = wasCompleted ? TodoStatus.Todo : TodoStatus.Complete;
     const updatedTodo = { ...todo, status: newStatus };
-    fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
+    void fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
   };
 
   return <div ref={iconRef} className="checkbox" onClick={onclick} onAuxClick={onauxclick}></div>;

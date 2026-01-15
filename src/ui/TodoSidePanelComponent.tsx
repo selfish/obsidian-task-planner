@@ -24,8 +24,9 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
 
   React.useEffect(() => {
-    const unsubscribe = deps.todoIndex.onUpdateEvent.listen(async (todos: TodoItem<TFile>[]) => {
+    const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos: TodoItem<TFile>[]) => {
       setTodos(todos.filter((todo) => todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled));
+      return Promise.resolve();
     });
 
     return () => {

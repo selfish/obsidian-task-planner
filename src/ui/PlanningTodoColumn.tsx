@@ -108,10 +108,10 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
 
   return (
     <div className={columnClasses}>
-      <div className="header">
-        <span ref={iconRef} className="icon"></span>
-        <span className="title">{title}</span>
-      </div>
+				<div className="header">
+					<span ref={iconRef} className="icon"></span>
+					<span className="title">{title}</span>
+				</div>
       <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
         <TodoListComponent deps={deps} todos={todos} />
       </div>
