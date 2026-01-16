@@ -36,7 +36,6 @@ type StatusFilter = "all" | "completed" | "canceled";
 
 interface ReportSettings {
   searchPhrase: string;
-  fuzzySearch: boolean;
   statusFilter: StatusFilter;
   collapsedSections: Record<string, boolean>;
 }
@@ -196,7 +195,7 @@ function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, se
 }
 
 function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; app: App; onOpenPlanning?: () => void }) {
-  const { searchPhrase, fuzzySearch, statusFilter } = reportSettings;
+  const { searchPhrase, statusFilter } = reportSettings;
 
   const planningIconRef = React.useRef<HTMLButtonElement>(null);
   const dropdownChevronRef = React.useRef<HTMLSpanElement>(null);
@@ -216,13 +215,6 @@ function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPla
     setReportSettings({
       ...reportSettings,
       searchPhrase: ev.target.value,
-    });
-  }
-
-  function onFuzzyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
-    setReportSettings({
-      ...reportSettings,
-      fuzzySearch: ev.target.checked,
     });
   }
 
@@ -247,10 +239,6 @@ function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPla
       </div>
       <div className="controls">
         <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
-        <label className="checkbox-label">
-          <input type="checkbox" checked={fuzzySearch} onChange={onFuzzyClicked} />
-          <span>Fuzzy</span>
-        </label>
         <span className="status-filter-wrapper">
           <select className="status-filter" value={statusFilter} onChange={onStatusFilterChange}>
             <option value="all">All</option>
@@ -296,7 +284,6 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
   const [numberOfWeeks] = React.useState(4);
   const [reportSettings, setReportSettings] = React.useState<ReportSettings>({
     searchPhrase: "",
-    fuzzySearch: false,
     statusFilter: "all",
     collapsedSections: {},
   });
@@ -317,9 +304,9 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
   // Filter by search
   const filteredTodos = React.useMemo(() => {
     if (!reportSettings.searchPhrase) return statusFilteredTodos;
-    const filter = new TodoMatcher(reportSettings.searchPhrase, reportSettings.fuzzySearch);
+    const filter = new TodoMatcher(reportSettings.searchPhrase, deps.settings.fuzzySearch);
     return statusFilteredTodos.filter((todo) => filter.matches(todo));
-  }, [statusFilteredTodos, reportSettings.searchPhrase, reportSettings.fuzzySearch]);
+  }, [statusFilteredTodos, reportSettings.searchPhrase, deps.settings.fuzzySearch]);
 
   // Group into containers
   const containers = React.useMemo(() => assembleTodosByDate(filteredTodos, numberOfWeeks, deps.settings), [filteredTodos, numberOfWeeks, deps.settings]);

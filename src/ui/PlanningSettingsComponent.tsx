@@ -14,7 +14,7 @@ export interface PlanningSettingsComponentProps {
 
 export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh, onOpenReport }: PlanningSettingsComponentProps) {
   const { hideEmpty, hideDone, searchParameters } = planningSettings;
-  const { searchPhrase, fuzzySearch } = searchParameters;
+  const { searchPhrase } = searchParameters;
 
   function onHideEmptyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
     setPlanningSettings({
@@ -23,20 +23,10 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     });
   }
 
-  function onHideDoneClicked(ev: React.ChangeEvent<HTMLInputElement>) {
+  function onHideDoneClicked() {
     setPlanningSettings({
       ...planningSettings,
-      hideDone: ev.target.checked,
-    });
-  }
-
-  function onFuzzyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
-    setPlanningSettings({
-      ...planningSettings,
-      searchParameters: {
-        ...searchParameters,
-        fuzzySearch: ev.target.checked,
-      },
+      hideDone: !hideDone,
     });
   }
 
@@ -97,10 +87,6 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
       </div>
       <div className="controls">
         <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
-        <label className="checkbox-label">
-          <input type="checkbox" checked={fuzzySearch} onChange={onFuzzyClicked} />
-          <span>Fuzzy</span>
-        </label>
         <label className="checkbox-label">
           <input type="checkbox" checked={hideEmpty} onChange={onHideEmptyClicked} />
           <span>Hide empty</span>

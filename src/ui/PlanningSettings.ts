@@ -1,6 +1,5 @@
 export interface SearchParameters {
   searchPhrase: string;
-  fuzzySearch: boolean;
 }
 
 export interface WipLimit {
@@ -18,7 +17,6 @@ export interface PlanningSettings {
 export function getDefaultSettings(): PlanningSettings {
   return {
     searchParameters: {
-      fuzzySearch: false,
       searchPhrase: "",
     },
     hideEmpty: true,
