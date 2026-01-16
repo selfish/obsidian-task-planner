@@ -3,6 +3,73 @@
   margin-bottom: var(--size-4-4);
 }
 
+// LED-style weekday selector
+.th-weekday-selector {
+  margin: var(--size-4-4) 0 var(--size-4-6) 0;
+}
+
+.th-weekday-label {
+  font-size: var(--font-ui-small);
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: var(--size-4-2);
+}
+
+.th-weekday-grid {
+  display: flex;
+  gap: var(--size-4-2);
+  flex-wrap: wrap;
+}
+
+.th-weekday-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  padding: var(--size-4-1) var(--size-4-2);
+  border: none;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+
+  &-label {
+    font-size: var(--font-ui-smaller);
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  &-led {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--background-modifier-border);
+    transition: all 0.15s ease;
+  }
+
+  &--active {
+    color: var(--text-normal);
+
+    .th-weekday-btn-led {
+      background: var(--interactive-accent);
+      box-shadow: 0 0 6px var(--interactive-accent);
+    }
+  }
+}
+
 .th-input-label {
   width: 150px;
 }

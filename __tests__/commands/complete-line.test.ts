@@ -46,7 +46,7 @@ describe('CompleteLineCommand', () => {
     });
 
     it('should convert natural language date to ISO format', () => {
-      const editor = createMockEditor(['- [ ] Task @due(tomorrow)']);
+      const editor = createMockEditor(['- [ ] Task @tomorrow']);
 
       command.editorCallback(editor, {} as MarkdownView);
 

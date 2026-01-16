@@ -149,7 +149,7 @@ describe('StatusOperations', () => {
 
     describe('convertAttributes', () => {
       it('should convert natural language date to ISO format', () => {
-        const result = operations.convertAttributes('- [ ] Task @due(tomorrow)');
+        const result = operations.convertAttributes('- [ ] Task @tomorrow');
         expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
       });
 
