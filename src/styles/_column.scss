@@ -76,6 +76,15 @@
       }
     }
 
+    // Today horizon header styling (warm amber)
+    &:has(> .content.today-horizon) > .header {
+      color: var(--text-warning);
+
+      .icon {
+        color: var(--text-warning);
+      }
+    }
+
     > .content {
       flex: 1;
       min-height: 60px;
