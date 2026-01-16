@@ -163,6 +163,7 @@ export default [
       "esbuild.config.mjs",
       "version-bump.mjs",
       "jest.config.js",
+      "commitlint.config.js",
       "__tests__/",
     ],
   },
