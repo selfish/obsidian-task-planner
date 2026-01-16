@@ -199,11 +199,16 @@ function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPla
   const { searchPhrase, fuzzySearch, statusFilter } = reportSettings;
 
   const planningIconRef = React.useRef<HTMLButtonElement>(null);
+  const dropdownChevronRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     if (planningIconRef.current && app) {
       planningIconRef.current.replaceChildren();
       setIcon(planningIconRef.current, "calendar");
+    }
+    if (dropdownChevronRef.current) {
+      dropdownChevronRef.current.replaceChildren();
+      setIcon(dropdownChevronRef.current, "chevron-down");
     }
   }, [app]);
 
@@ -246,11 +251,14 @@ function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPla
           <input type="checkbox" checked={fuzzySearch} onChange={onFuzzyClicked} />
           <span>Fuzzy</span>
         </label>
-        <select className="status-filter" value={statusFilter} onChange={onStatusFilterChange}>
-          <option value="all">All</option>
-          <option value="completed">Completed</option>
-          <option value="canceled">Canceled</option>
-        </select>
+        <span className="status-filter-wrapper">
+          <select className="status-filter" value={statusFilter} onChange={onStatusFilterChange}>
+            <option value="all">All</option>
+            <option value="completed">Completed</option>
+            <option value="canceled">Canceled</option>
+          </select>
+          <span ref={dropdownChevronRef} className="status-filter-chevron" />
+        </span>
         {onOpenPlanning && <button ref={planningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" />}
       </div>
     </div>
