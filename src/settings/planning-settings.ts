@@ -21,7 +21,7 @@ export function getDefaultSettings(): PlanningSettings {
       fuzzySearch: false,
       searchPhrase: "",
     },
-    hideEmpty: true,
+    hideEmpty: false,
     hideDone: false,
     wipLimit: {
       dailyLimit: 5,
