@@ -1,3 +1,5 @@
+export type ViewMode = "default" | "today" | "future";
+
 export interface SearchParameters {
   searchPhrase: string;
 }
@@ -12,6 +14,7 @@ export interface PlanningSettings {
   hideEmpty: boolean;
   hideDone: boolean;
   wipLimit: WipLimit;
+  viewMode: ViewMode;
 }
 
 export function getDefaultSettings(): PlanningSettings {
@@ -25,5 +28,6 @@ export function getDefaultSettings(): PlanningSettings {
       dailyLimit: 5,
       isLimited: false,
     },
+    viewMode: "default",
   };
 }
