@@ -1,5 +1,5 @@
 import { FileTodoParser } from '../../src/core/parsers/file-todo-parser';
-import { TaskPlannerSettings, DEFAULT_SETTINGS } from '../../src/settings/types';
+import { DEFAULT_SETTINGS } from '../../src/settings/types';
 import { FileAdapter } from '../../src/types/file-adapter';
 import { TodoStatus } from '../../src/types/todo';
 
@@ -77,7 +77,7 @@ describe('FileTodoParser', () => {
     });
 
     it('should parse todos with attributes', async () => {
-      const content = '- [ ] Task @due(2025-01-15) @priority(high)';
+      const content = '- [ ] Task [due:: 2025-01-15] [priority:: high]';
       const file = createMockFileAdapter(content);
 
       const todos = await parser.parseMdFileAsync(file);
@@ -195,27 +195,4 @@ describe('FileTodoParser', () => {
     });
   });
 
-  describe('with dataview syntax', () => {
-    let dataviewParser: FileTodoParser<unknown>;
-
-    beforeEach(() => {
-      const settings: TaskPlannerSettings = {
-        ...DEFAULT_SETTINGS,
-        useDataviewSyntax: true,
-      };
-      dataviewParser = new FileTodoParser(settings);
-    });
-
-    it('should parse dataview attributes', async () => {
-      const content = '- [ ] Task [due:: 2025-01-15] [priority:: high]';
-      const file = createMockFileAdapter(content);
-
-      const todos = await dataviewParser.parseMdFileAsync(file);
-
-      expect(todos[0].attributes).toEqual({
-        due: '2025-01-15',
-        priority: 'high',
-      });
-    });
-  });
 });
