@@ -435,6 +435,17 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+
+    new Setting(containerEl)
+      .setName("Fuzzy search")
+      .setDesc("Enable fuzzy matching when searching for tasks (matches partial words and typos)")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.fuzzySearch).onChange(async (value) => {
+          this.plugin.settings.fuzzySearch = value;
+          await this.plugin.saveSettings();
+          this.plugin.refreshPlanningViews();
+        })
+      );
   }
 
   private showError(containerEl: HTMLElement, message: string): void {

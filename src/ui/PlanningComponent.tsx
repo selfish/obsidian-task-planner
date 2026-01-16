@@ -47,9 +47,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const fileOperations = new FileOperations(settings);
 
   const filteredTodos = React.useMemo(() => {
-    const filter = new TodoMatcher(searchParameters.searchPhrase, searchParameters.fuzzySearch);
+    const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
     return todos.filter((todo) => filter.matches(todo));
-  }, [todos, searchParameters]);
+  }, [todos, searchParameters.searchPhrase, settings.fuzzySearch]);
 
   React.useEffect(() => {
     const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos) => {
