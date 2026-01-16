@@ -100,11 +100,11 @@ describe('ToggleOngoingTodoCommand', () => {
     });
 
     it('should preserve attributes when toggling', () => {
-      const editor = createMockEditor(['- [ ] Task @priority(high)']);
+      const editor = createMockEditor(['- [ ] Task [priority:: high]']);
 
       command.editorCallback(editor, {} as MarkdownView);
 
-      expect(editor.setLine).toHaveBeenCalledWith(0, '- [>] Task @priority(high)');
+      expect(editor.setLine).toHaveBeenCalledWith(0, '- [>] Task [priority:: high]');
     });
   });
 });
