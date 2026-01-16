@@ -362,19 +362,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           })
       );
 
-    new Setting(containerEl)
-      .setName("Attribute syntax")
-      .setDesc("Choose how task attributes are written in your Markdown files")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("classic", "Classic: @due(2025-01-01)");
-        dropdown.addOption("dataview", "Dataview: [due:: 2025-01-01]");
-        dropdown.setValue(this.plugin.settings.useDataviewSyntax ? "dataview" : "classic");
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.useDataviewSyntax = value === "dataview";
-          await this.plugin.saveSettings();
-        });
-      });
-
     // === FILTERING & INDEXING ===
     new Setting(containerEl).setName("Filtering & indexing").setHeading();
 
