@@ -205,27 +205,6 @@ Worth investigating what other task plugins do.
 
 ---
 
-## Completed
-
-_(Move items here when done)_
-
-### [x] Today Focus / View Modes
-Added view mode toggles (sun = Today Focus, calendar-range = Future Focus):
-- Today Focus: hides future section, expands today to fill space
-- Future Focus: hides today section, adds "Today" horizon with amber styling
-- View mode is session-only (not persisted)
-
-### [x] Toggle Pills for Header Controls
-Converted "Hide empty" and "Hide done" checkboxes to icon buttons with LED indicators.
-
-### [x] Move Fuzzy Search to Main Settings
-Consolidated fuzzy toggle from individual views to plugin settings.
-
-### [x] Dropdown Chevron Using Obsidian Icons
-Fixed hardcoded SVG color by using `setIcon("chevron-down")`.
-
----
-
 ## Contributing
 
 Found a bug? Have a feature idea?
@@ -242,3 +221,4 @@ When working on an item, update this file to mark it `[~]` in progress.
 - **Commit early, commit often** — small, frequent commits
 - **Simple commit messages** — subject line only, no description body needed. Write like a human: `fix typo in header`, `add priority filter dropdown`
 - **Conventional prefixes** — use `feat:`, `fix:`, `docs:`, `style:`, `test:`, `refactor:`, `chore:` as needed
+- **Keep roadmap current** — delete completed items, update descriptions to reflect only what remains
