@@ -31,22 +31,37 @@ export class LineParser {
   }
 
   /**
-   * Provide a RegExp for matching Dataview attributes: `[key:: value]`
+   * Provide a RegExp for matching attributes. Supports both:
+   * - Dataview syntax: `[key:: value]`
+   * - Classic shortcut syntax for input: `@key(value)` or `@key`
    */
   private getAttributeRegex(): RegExp {
-    return /\[([^:\]]+)::([^\]]+)\]/g;
+    // Match both Dataview [key:: value] and classic @key(value) or @key
+    return /\[([^:\]]+)::([^\]]+)\]|@(\w+)(?:\(([^)]+)\))?/g;
   }
 
   /**
-   * Convert a matched Dataview string `[key:: value]` into `[attributeKey, attributeValue]`.
+   * Convert a matched attribute string into `[attributeKey, attributeValue]`.
+   * Handles both Dataview `[key:: value]` and classic `@key(value)` or `@key` formats.
    */
   private parseSingleAttribute(matchStr: string): [string, string | boolean] {
-    const regex = /\[([^:\]]+)::([^\]]+)\]/;
-    const submatch = regex.exec(matchStr);
-    if (!submatch) {
-      return ["", false];
+    // Try Dataview format first
+    const dataviewRegex = /\[([^:\]]+)::([^\]]+)\]/;
+    const dataviewMatch = dataviewRegex.exec(matchStr);
+    if (dataviewMatch) {
+      return [dataviewMatch[1].trim(), dataviewMatch[2].trim()];
     }
-    return [submatch[1].trim(), submatch[2].trim()];
+
+    // Try classic format
+    const classicRegex = /@(\w+)(?:\(([^)]+)\))?/;
+    const classicMatch = classicRegex.exec(matchStr);
+    if (classicMatch) {
+      const key = classicMatch[1].trim();
+      const val = classicMatch[2] ? classicMatch[2].trim() : true;
+      return [key, val];
+    }
+
+    return ["", false];
   }
 
   /**
