@@ -31,22 +31,6 @@ Replace the current `@tags(shopping,work)` attribute syntax with standard hashta
 
 ---
 
-### [ ] Simplify Attribute Syntax (Standardize on Dataview)
-**Effort:** Small | **Type:** Breaking change
-
-**Current state:**
-- Plugin supports both syntaxes:
-  - `@key(value)` - "Classic" syntax (our invention)
-  - `[key:: value]` - Dataview syntax (community standard)
-- Setting: `useDataviewSyntax` toggles between them
-
-**Decision:** The `@key()` syntax is non-standard. Dataview syntax `[key:: value]` is the Obsidian community standard.
-
-**Action:**
-1. Default to Dataview syntax
-2. Consider deprecating/removing `@key()` syntax entirely
-3. Migration path for existing users
-
 ---
 
 ## Medium Priority
@@ -207,6 +191,7 @@ Worth investigating what other task plugins do.
 
 ## Completed
 
+- **Simplify Attribute Syntax** — removed `@key(value)` syntax, now Dataview `[key:: value]` only
 - **Today Focus / View Modes** — sun/calendar-range toggles to focus on today or future
 - **Toggle Pills for Header Controls** — icon buttons with LED indicators
 - **Move Fuzzy Search to Main Settings** — consolidated from individual views
