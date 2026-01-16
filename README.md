@@ -28,25 +28,21 @@ A professional task management plugin for Obsidian that helps you track tasks ac
 - Pin important tasks to keep them visible
 - Subtask support with collapsible groups
 
-### Flexible Syntax
-Choose between two attribute styles:
+### Dataview-Compatible Syntax
+Task attributes use the Dataview inline field format:
 
-**Classic syntax:**
-```markdown
-- [ ] Buy groceries @due(2025-01-15) @priority(high)
-```
-
-**Dataview syntax:**
 ```markdown
 - [ ] Buy groceries [due:: 2025-01-15] [priority:: high]
 ```
 
+This syntax is compatible with the popular Dataview plugin and is the Obsidian community standard.
+
 ### Smart Date Completion
-Type shorthand dates and let Task Planner expand them:
-- `@today` expands to today's date
-- `@tomorrow` expands to tomorrow's date
-- `@monday` expands to next Monday's date
-- `01-15` expands to `2025-01-15`
+Type shorthand attributes and let Task Planner expand them to Dataview format:
+- `@today` → `[due:: 2025-01-17]`
+- `@tomorrow` → `[due:: 2025-01-18]`
+- `@high` → `[priority:: high]`
+- `@due(tomorrow)` → `[due:: 2025-01-18]`
 
 ## Installation
 
@@ -77,8 +73,8 @@ Add tasks anywhere in your markdown files using standard checkbox syntax:
 ### Adding Attributes
 Add due dates, priorities, and other metadata:
 ```markdown
-- [ ] Review quarterly report @due(2025-03-31) @priority(high)
-- [ ] Schedule team meeting @due(tomorrow) @selected
+- [ ] Review quarterly report [due:: 2025-03-31] [priority:: high]
+- [ ] Schedule team meeting [due:: 2025-01-20] [selected:: true]
 ```
 
 ### Commands
@@ -95,7 +91,6 @@ Configure Task Planner in Settings > Task Planner:
 - **Planning Board**: Configure visible time horizons (days, weeks, months, quarters)
 - **Custom Horizons**: Create tag-filtered or date-specific columns
 - **Task Attributes**: Customize attribute names (due, completed, selected)
-- **Syntax**: Choose between classic (@due) or Dataview ([due::]) syntax
 - **Filtering**: Ignore specific folders or archived content
 
 ## Development
