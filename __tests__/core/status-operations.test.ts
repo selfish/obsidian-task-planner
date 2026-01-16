@@ -122,7 +122,7 @@ describe('StatusOperations', () => {
       });
 
       it('should parse todo with attributes', () => {
-        const result = operations.toTodo('- [ ] Task @due(2025-01-15) @priority(high)', 1);
+        const result = operations.toTodo('- [ ] Task [due:: 2025-01-15] [priority:: high]', 1);
         expect(result.isTodo).toBe(true);
         expect(result.todo?.text).toBe('Task');
         expect(result.todo?.attributes).toEqual({
@@ -150,37 +150,37 @@ describe('StatusOperations', () => {
     describe('convertAttributes', () => {
       it('should convert natural language date to ISO format', () => {
         const result = operations.convertAttributes('- [ ] Task @due(tomorrow)');
-        expect(result).toMatch(/- \[ \] Task @due\(\d{4}-\d{2}-\d{2}\)/);
+        expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
       });
 
       it('should convert priority shortcuts', () => {
         const result = operations.convertAttributes('- [ ] Task @high');
-        expect(result).toBe('- [ ] Task @priority(high)');
+        expect(result).toBe('- [ ] Task [priority:: high]');
       });
 
-      it('should convert @critical to @priority(critical)', () => {
+      it('should convert @critical to [priority:: critical]', () => {
         const result = operations.convertAttributes('- [ ] Task @critical');
-        expect(result).toBe('- [ ] Task @priority(critical)');
+        expect(result).toBe('- [ ] Task [priority:: critical]');
       });
 
-      it('should convert @medium to @priority(medium)', () => {
+      it('should convert @medium to [priority:: medium]', () => {
         const result = operations.convertAttributes('- [ ] Task @medium');
-        expect(result).toBe('- [ ] Task @priority(medium)');
+        expect(result).toBe('- [ ] Task [priority:: medium]');
       });
 
-      it('should convert @low to @priority(low)', () => {
+      it('should convert @low to [priority:: low]', () => {
         const result = operations.convertAttributes('- [ ] Task @low');
-        expect(result).toBe('- [ ] Task @priority(low)');
+        expect(result).toBe('- [ ] Task [priority:: low]');
       });
 
-      it('should convert @lowest to @priority(lowest)', () => {
+      it('should convert @lowest to [priority:: lowest]', () => {
         const result = operations.convertAttributes('- [ ] Task @lowest');
-        expect(result).toBe('- [ ] Task @priority(lowest)');
+        expect(result).toBe('- [ ] Task [priority:: lowest]');
       });
 
       it('should preserve other attributes', () => {
         const result = operations.convertAttributes('- [ ] Task @custom');
-        expect(result).toBe('- [ ] Task @custom');
+        expect(result).toBe('- [ ] Task [custom:: true]');
       });
 
       it('should handle line without attributes', () => {
@@ -190,35 +190,21 @@ describe('StatusOperations', () => {
 
       it('should convert @today to due date', () => {
         const result = operations.convertAttributes('- [ ] Task @today');
-        expect(result).toMatch(/- \[ \] Task @due\(\d{4}-\d{2}-\d{2}\)/);
+        expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
       });
     });
   });
 
   describe('with custom settings', () => {
     const customSettings: TaskPlannerSettings = {
-      useDataviewSyntax: false,
       dueDateAttribute: 'scheduled',
     } as TaskPlannerSettings;
     const operations = new StatusOperations(customSettings);
 
     it('should use custom due date attribute name', () => {
       const result = operations.convertAttributes('- [ ] Task @today');
-      expect(result).toMatch(/- \[ \] Task @scheduled\(\d{4}-\d{2}-\d{2}\)/);
+      expect(result).toMatch(/- \[ \] Task \[scheduled:: \d{4}-\d{2}-\d{2}\]/);
     });
   });
 
-  describe('with dataview syntax', () => {
-    const dataviewSettings: TaskPlannerSettings = {
-      useDataviewSyntax: true,
-      dueDateAttribute: 'due',
-    } as TaskPlannerSettings;
-    const operations = new StatusOperations(dataviewSettings);
-
-    it('should parse dataview attributes in toTodo', () => {
-      const result = operations.toTodo('- [ ] Task [due:: 2025-01-15]', 1);
-      expect(result.isTodo).toBe(true);
-      expect(result.todo?.attributes).toEqual({ due: '2025-01-15' });
-    });
-  });
 });
