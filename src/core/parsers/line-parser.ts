@@ -31,18 +31,18 @@ export class LineParser {
   }
 
   /**
-   * Provide a RegExp for matching attributes. Supports both:
+   * Provide a RegExp for matching attributes. Supports:
    * - Dataview syntax: `[key:: value]`
-   * - Classic shortcut syntax for input: `@key(value)` or `@key`
+   * - Shortcut syntax: `@key` (boolean shortcuts like @today, @high)
    */
   private getAttributeRegex(): RegExp {
-    // Match both Dataview [key:: value] and classic @key(value) or @key
-    return /\[([^:\]]+)::([^\]]+)\]|@(\w+)(?:\(([^)]+)\))?/g;
+    // Match Dataview [key:: value] and simple @key shortcuts (no parentheses)
+    return /\[([^:\]]+)::([^\]]+)\]|@(\w+)(?![(\w])/g;
   }
 
   /**
    * Convert a matched attribute string into `[attributeKey, attributeValue]`.
-   * Handles both Dataview `[key:: value]` and classic `@key(value)` or `@key` formats.
+   * Handles Dataview `[key:: value]` and shortcut `@key` formats.
    */
   private parseSingleAttribute(matchStr: string): [string, string | boolean] {
     // Try Dataview format first
@@ -52,13 +52,11 @@ export class LineParser {
       return [dataviewMatch[1].trim(), dataviewMatch[2].trim()];
     }
 
-    // Try classic format
-    const classicRegex = /@(\w+)(?:\(([^)]+)\))?/;
-    const classicMatch = classicRegex.exec(matchStr);
-    if (classicMatch) {
-      const key = classicMatch[1].trim();
-      const val = classicMatch[2] ? classicMatch[2].trim() : true;
-      return [key, val];
+    // Try shortcut format (@key without parentheses)
+    const shortcutRegex = /@(\w+)/;
+    const shortcutMatch = shortcutRegex.exec(matchStr);
+    if (shortcutMatch) {
+      return [shortcutMatch[1].trim(), true];
     }
 
     return ["", false];
