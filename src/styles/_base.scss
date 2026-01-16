@@ -21,6 +21,13 @@
     gap: var(--space-lg);
     height: 100%;
     overflow: hidden;
+
+    // Today Focus mode - today section fills all available space
+    &.mode-today .today-section {
+      flex: 1;
+      max-height: none;
+      min-height: 0;
+    }
   }
 
   .today-section {
@@ -33,13 +40,6 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-
-    // In Today Focus mode, expand to fill available space
-    .mode-today & {
-      flex: 1;
-      max-height: none;
-      min-height: 0;
-    }
 
     .header {
       display: flex;

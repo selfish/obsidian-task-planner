@@ -83,19 +83,21 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
   }
 
   // Build column classes
-  const isToday = substyle?.includes("today");
+  // Note: "today-horizon" is NOT a today column (it's in the future section), so exclude it
+  const isToday = substyle?.includes("today") && !substyle?.includes("today-horizon");
   const columnClasses = ["column", isToday && "today", todos.length === 0 && !isToday && "empty"].filter(Boolean).join(" ");
 
   // Build content classes from substyle
   const contentModifiers: string[] = [];
   if (substyle) {
-    if (substyle.includes("today")) contentModifiers.push("today");
+    if (substyle.includes("today") && !substyle.includes("today-horizon")) contentModifiers.push("today");
     if (substyle.includes("cols-3") || substyle.includes("today-3-cols")) contentModifiers.push("cols-3");
     if (substyle.includes("cols-2") || substyle.includes("today-2-cols")) contentModifiers.push("cols-2");
     if (substyle.includes("overdue")) contentModifiers.push("overdue");
     if (substyle.includes("backlog")) contentModifiers.push("backlog");
     if (substyle.includes("done") || substyle.includes("today-done")) contentModifiers.push("done");
     if (substyle.includes("wip-exceeded")) contentModifiers.push("wip-exceeded");
+    if (substyle.includes("today-horizon")) contentModifiers.push("today-horizon");
   }
   if (isHovering) contentModifiers.push("hover");
 
