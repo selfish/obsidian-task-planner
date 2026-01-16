@@ -233,3 +233,12 @@ Found a bug? Have a feature idea?
 - Or submit a PR referencing this roadmap
 
 When working on an item, update this file to mark it `[~]` in progress.
+
+---
+
+## Development Workflow
+
+- **Branch per feature** — every change, even small ones, gets its own branch and PR
+- **Commit early, commit often** — small, frequent commits
+- **Simple commit messages** — subject line only, no description body needed. Write like a human: `fix typo in header`, `add priority filter dropdown`
+- **Conventional prefixes** — use `feat:`, `fix:`, `docs:`, `style:`, `test:`, `refactor:`, `chore:` as needed
