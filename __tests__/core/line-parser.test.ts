@@ -1,5 +1,4 @@
 import { LineParser } from '../../src/core/parsers/line-parser';
-import { TaskPlannerSettings } from '../../src/settings/types';
 
 describe('LineParser', () => {
   describe('parseLine', () => {
@@ -120,52 +119,8 @@ describe('LineParser', () => {
     });
   });
 
-  describe('parseAttributes (classic syntax)', () => {
-    const settings: TaskPlannerSettings = {
-      useDataviewSyntax: false,
-    } as TaskPlannerSettings;
-    const parser = new LineParser(settings);
-
-    it('should parse @due attribute with value', () => {
-      const result = parser.parseAttributes('Buy groceries @due(2025-01-15)');
-      expect(result.textWithoutAttributes).toBe('Buy groceries');
-      expect(result.attributes).toEqual({ due: '2025-01-15' });
-    });
-
-    it('should parse @priority attribute', () => {
-      const result = parser.parseAttributes('Task @priority(high)');
-      expect(result.textWithoutAttributes).toBe('Task');
-      expect(result.attributes).toEqual({ priority: 'high' });
-    });
-
-    it('should parse boolean attribute without value', () => {
-      const result = parser.parseAttributes('Task @selected');
-      expect(result.textWithoutAttributes).toBe('Task');
-      expect(result.attributes).toEqual({ selected: true });
-    });
-
-    it('should parse multiple attributes', () => {
-      const result = parser.parseAttributes('Task @due(2025-01-15) @priority(high) @selected');
-      expect(result.textWithoutAttributes).toBe('Task');
-      expect(result.attributes).toEqual({
-        due: '2025-01-15',
-        priority: 'high',
-        selected: true,
-      });
-    });
-
-    it('should handle text without attributes', () => {
-      const result = parser.parseAttributes('Plain task text');
-      expect(result.textWithoutAttributes).toBe('Plain task text');
-      expect(result.attributes).toEqual({});
-    });
-  });
-
-  describe('parseAttributes (dataview syntax)', () => {
-    const settings: TaskPlannerSettings = {
-      useDataviewSyntax: true,
-    } as TaskPlannerSettings;
-    const parser = new LineParser(settings);
+  describe('parseAttributes', () => {
+    const parser = new LineParser();
 
     it('should parse [due:: value] attribute', () => {
       const result = parser.parseAttributes('Buy groceries [due:: 2025-01-15]');
@@ -179,7 +134,7 @@ describe('LineParser', () => {
       expect(result.attributes).toEqual({ priority: 'high' });
     });
 
-    it('should parse multiple dataview attributes', () => {
+    it('should parse multiple attributes', () => {
       const result = parser.parseAttributes('Task [due:: 2025-01-15] [priority:: high]');
       expect(result.textWithoutAttributes).toBe('Task');
       expect(result.attributes).toEqual({
@@ -187,20 +142,23 @@ describe('LineParser', () => {
         priority: 'high',
       });
     });
+
+    it('should handle text without attributes', () => {
+      const result = parser.parseAttributes('Plain task text');
+      expect(result.textWithoutAttributes).toBe('Plain task text');
+      expect(result.attributes).toEqual({});
+    });
   });
 
-  describe('attributesToString (classic syntax)', () => {
-    const settings: TaskPlannerSettings = {
-      useDataviewSyntax: false,
-    } as TaskPlannerSettings;
-    const parser = new LineParser(settings);
+  describe('attributesToString', () => {
+    const parser = new LineParser();
 
-    it('should convert attributes back to classic syntax', () => {
+    it('should convert attributes to string', () => {
       const result = parser.attributesToString({
         textWithoutAttributes: 'Buy groceries',
         attributes: { due: '2025-01-15' },
       });
-      expect(result).toBe('Buy groceries @due(2025-01-15)');
+      expect(result).toBe('Buy groceries [due:: 2025-01-15]');
     });
 
     it('should handle boolean attributes', () => {
@@ -208,7 +166,7 @@ describe('LineParser', () => {
         textWithoutAttributes: 'Task',
         attributes: { selected: true },
       });
-      expect(result).toBe('Task @selected');
+      expect(result).toBe('Task [selected:: true]');
     });
 
     it('should handle multiple attributes', () => {
@@ -216,8 +174,8 @@ describe('LineParser', () => {
         textWithoutAttributes: 'Task',
         attributes: { due: '2025-01-15', priority: 'high' },
       });
-      expect(result).toContain('@due(2025-01-15)');
-      expect(result).toContain('@priority(high)');
+      expect(result).toContain('[due:: 2025-01-15]');
+      expect(result).toContain('[priority:: high]');
     });
 
     it('should handle no attributes', () => {
@@ -226,29 +184,6 @@ describe('LineParser', () => {
         attributes: {},
       });
       expect(result).toBe('Plain task');
-    });
-  });
-
-  describe('attributesToString (dataview syntax)', () => {
-    const settings: TaskPlannerSettings = {
-      useDataviewSyntax: true,
-    } as TaskPlannerSettings;
-    const parser = new LineParser(settings);
-
-    it('should convert attributes to dataview syntax', () => {
-      const result = parser.attributesToString({
-        textWithoutAttributes: 'Buy groceries',
-        attributes: { due: '2025-01-15' },
-      });
-      expect(result).toBe('Buy groceries [due:: 2025-01-15]');
-    });
-
-    it('should handle boolean attributes in dataview', () => {
-      const result = parser.attributesToString({
-        textWithoutAttributes: 'Task',
-        attributes: { selected: true },
-      });
-      expect(result).toBe('Task [selected:: true]');
     });
   });
 });
