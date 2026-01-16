@@ -1,7 +1,6 @@
 import { FileOperations } from '../../src/core/operations/file-operations';
 import { TodoItem, TodoStatus } from '../../src/types/todo';
 import { FileAdapter } from '../../src/types/file-adapter';
-import { TaskPlannerSettings } from '../../src/settings/types';
 
 const createMockFileAdapter = (content: string): FileAdapter<unknown> => {
   let currentContent = content;
@@ -44,23 +43,23 @@ describe('FileOperations', () => {
 
       expect(file.setContentAsync).toHaveBeenCalled();
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).toContain('- [ ] Task two @due(2025-01-15)');
+      expect(setContentCall).toContain('- [ ] Task two [due:: 2025-01-15]');
     });
 
     it('should update an existing attribute', async () => {
-      const fileContent = '- [ ] Task @due(2025-01-10)';
+      const fileContent = '- [ ] Task [due:: 2025-01-10]';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
       await operations.updateAttributeAsync(todo, 'due', '2025-01-20');
 
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).toContain('@due(2025-01-20)');
-      expect(setContentCall).not.toContain('@due(2025-01-10)');
+      expect(setContentCall).toContain('[due:: 2025-01-20]');
+      expect(setContentCall).not.toContain('[due:: 2025-01-10]');
     });
 
     it('should remove an attribute when value is undefined', async () => {
-      const fileContent = '- [ ] Task @due(2025-01-15)';
+      const fileContent = '- [ ] Task [due:: 2025-01-15]';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
@@ -71,7 +70,7 @@ describe('FileOperations', () => {
     });
 
     it('should remove an attribute when value is false', async () => {
-      const fileContent = '- [ ] Task @selected';
+      const fileContent = '- [ ] Task [selected:: true]';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
@@ -99,14 +98,14 @@ describe('FileOperations', () => {
 
   describe('removeAttributeAsync', () => {
     it('should remove a specific attribute', async () => {
-      const fileContent = '- [ ] Task @due(2025-01-15) @priority(high)';
+      const fileContent = '- [ ] Task [due:: 2025-01-15] [priority:: high]';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
       await operations.removeAttributeAsync(todo, 'due');
 
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).toBe('- [ ] Task @priority(high)');
+      expect(setContentCall).toBe('- [ ] Task [priority:: high]');
     });
   });
 
@@ -188,18 +187,18 @@ describe('FileOperations', () => {
 
       const calls = (file.setContentAsync as jest.Mock).mock.calls;
       // Second call adds the completed attribute
-      expect(calls[1][0]).toMatch(/@completed\(\d{4}-\d{2}-\d{2}\)/);
+      expect(calls[1][0]).toMatch(/\[completed:: \d{4}-\d{2}-\d{2}\]/);
     });
 
     it('should remove completed date when uncompleting', async () => {
-      const fileContent = '- [x] Task @completed(2025-01-10)';
+      const fileContent = '- [x] Task [completed:: 2025-01-10]';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file, TodoStatus.Todo);
 
       await operations.updateTodoStatus(todo, 'completed');
 
       const calls = (file.setContentAsync as jest.Mock).mock.calls;
-      expect(calls[1][0]).not.toContain('@completed');
+      expect(calls[1][0]).not.toContain('[completed::');
     });
 
     it('should handle unknown status with empty checkbox', async () => {
@@ -229,8 +228,8 @@ describe('FileOperations', () => {
       // Should only write to file once
       expect(file.setContentAsync).toHaveBeenCalledTimes(1);
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).toContain('- [ ] Task one @priority(high)');
-      expect(setContentCall).toContain('- [ ] Task two @priority(high)');
+      expect(setContentCall).toContain('- [ ] Task one [priority:: high]');
+      expect(setContentCall).toContain('- [ ] Task two [priority:: high]');
       expect(setContentCall).toContain('- [ ] Task three');
     });
 
@@ -256,7 +255,7 @@ describe('FileOperations', () => {
 
   describe('batchRemoveAttributeAsync', () => {
     it('should remove attribute from multiple todos', async () => {
-      const fileContent = '- [ ] Task one @selected\n- [ ] Task two @selected';
+      const fileContent = '- [ ] Task one [selected:: true]\n- [ ] Task two [selected:: true]';
       const file = createMockFileAdapter(fileContent);
       const todos = [
         createTodo('Task one', 0, file),
@@ -267,7 +266,7 @@ describe('FileOperations', () => {
 
       expect(file.setContentAsync).toHaveBeenCalledTimes(1);
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).not.toContain('@selected');
+      expect(setContentCall).not.toContain('[selected::');
     });
 
     it('should handle empty array', async () => {
@@ -388,18 +387,18 @@ describe('FileOperations', () => {
       await operations.batchUpdateTodoStatusAsync(todos, 'completed');
 
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).toMatch(/@completed\(\d{4}-\d{2}-\d{2}\)/);
+      expect(setContentCall).toMatch(/\[completed:: \d{4}-\d{2}-\d{2}\]/);
     });
 
     it('should remove completed date for non-completed status in batch', async () => {
-      const fileContent = '- [x] Task @completed(2025-01-10)';
+      const fileContent = '- [x] Task [completed:: 2025-01-10]';
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.Todo)];
 
       await operations.batchUpdateTodoStatusAsync(todos, 'completed');
 
       const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).not.toContain('@completed');
+      expect(setContentCall).not.toContain('[completed::');
     });
   });
 
@@ -416,25 +415,4 @@ describe('FileOperations', () => {
     });
   });
 
-  describe('with dataview syntax', () => {
-    let dataviewOperations: FileOperations;
-
-    beforeEach(() => {
-      const settings: TaskPlannerSettings = {
-        useDataviewSyntax: true,
-      } as TaskPlannerSettings;
-      dataviewOperations = new FileOperations(settings);
-    });
-
-    it('should add attributes in dataview format', async () => {
-      const fileContent = '- [ ] Task';
-      const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file);
-
-      await dataviewOperations.updateAttributeAsync(todo, 'due', '2025-01-15');
-
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
-      expect(setContentCall).toBe('- [ ] Task [due:: 2025-01-15]');
-    });
-  });
 });
