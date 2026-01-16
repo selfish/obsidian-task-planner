@@ -100,7 +100,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .setDesc("First day of your work week")
       .addDropdown((dropDown) => {
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        days.forEach((display, index) => dropDown.addOption((index + 1).toString(), display));
+        for (const [index, display] of days.entries()) {
+          dropDown.addOption((index + 1).toString(), display);
+        }
         dropDown.setValue((this.plugin.settings.firstWeekday || 1).toString());
         dropDown.onChange((value: string) => {
           this.plugin.settings.firstWeekday = parseInt(value);
@@ -389,7 +391,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         button.setIcon("plus");
         button.setTooltip("Add folder");
         button.onClick(() => {
-          if (!folderSearchInput) return;
+          if (folderSearchInput === undefined) return;
 
           const newFolder = folderSearchInput.getValue();
           if (!newFolder) return;
