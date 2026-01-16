@@ -1,11 +1,17 @@
-## What
+### Summary
+<!-- What changed + why (2–4 lines). -->
 
-<!-- Brief description of what this PR does -->
+### Changes
+- 
+-
+-
 
-## Why
+### Breaking change? (yes/no)
+<!-- If yes, explain impact + migration in 1–3 bullets. -->
+- Impact:
+- Migration:
 
-<!-- What problem does this solve? Link issues with "Closes #123" -->
-
-## Testing
-
-<!-- How did you verify this works? Screenshots welcome for UI changes -->
+### Test plan
+- [ ] Tests pass
+- [ ] Build/lint pass
+- [ ] Manual: <!-- key scenario(s) -->
