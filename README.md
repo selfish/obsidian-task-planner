@@ -42,7 +42,6 @@ Type shorthand attributes and Task Planner automatically converts them to Datavi
 - `@today` → `[due:: 2025-01-17]`
 - `@tomorrow` → `[due:: 2025-01-18]`
 - `@high` → `[priority:: high]`
-- `@due(tomorrow)` → `[due:: 2025-01-18]`
 
 This auto-conversion can be disabled in settings if you prefer manual control.
 
