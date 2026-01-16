@@ -13,25 +13,6 @@ This document tracks planned features, improvements, and open questions for the 
 
 ## High Priority
 
-### [~] Today Focus / View Modes
-**Effort:** Small | **Type:** UI only
-
-Add view mode toggles to quickly focus on different time horizons:
-
-| Mode | Behavior |
-|------|----------|
-| **Default** | Show all columns (current behavior) |
-| **Today Focus** | Expand Today column to fill space, hide future columns |
-| **Future Focus** | Hide Today column, show future columns with a "today horizon" for today's tasks |
-
-**Notes:**
-- View mode is NOT persisted (session only)
-- Today Focus hides future columns entirely
-- Future Focus needs a "today horizon" within future view so today's tasks have somewhere to appear
-- Both modes should show Todo + In Progress tasks
-
----
-
 ### [ ] Parse #hashtags from Task Text
 **Effort:** Medium | **Type:** Core parsing
 
@@ -69,6 +50,20 @@ Replace the current `@tags(shopping,work)` attribute syntax with standard hashta
 ---
 
 ## Medium Priority
+
+### [ ] Priority Filter
+**Effort:** Small | **Type:** UI
+
+Add ability to filter tasks by priority level in the header.
+
+**Options:**
+- Dropdown or toggle buttons for priority levels (!, !!, !!!)
+- Show all / high only / medium+ options
+- Could combine with existing filter controls
+
+**Depends on:** Priority is already parsed as an attribute
+
+---
 
 ### [ ] Task Counter Badge
 **Effort:** Small | **Type:** UI
@@ -203,6 +198,12 @@ Worth investigating what other task plugins do.
 ## Completed
 
 _(Move items here when done)_
+
+### [x] Today Focus / View Modes
+Added view mode toggles (sun = Today Focus, calendar-range = Future Focus):
+- Today Focus: hides future section, expands today to fill space
+- Future Focus: hides today section, adds "Today" horizon with amber styling
+- View mode is session-only (not persisted)
 
 ### [x] Toggle Pills for Header Controls
 Converted "Hide empty" and "Hide done" checkboxes to icon buttons with LED indicators.
