@@ -34,6 +34,13 @@
     flex-direction: column;
     overflow: hidden;
 
+    // In Today Focus mode, expand to fill available space
+    .mode-today & {
+      flex: 1;
+      max-height: none;
+      min-height: 0;
+    }
+
     .header {
       display: flex;
       align-items: center;
