@@ -104,6 +104,16 @@ Allow users to define their own attribute names for grouping/filtering.
 
 ---
 
+### [ ] Custom Horizon Colors
+**Effort:** Small | **Type:** UI
+
+Allow users to select a color for each custom horizon.
+
+**Current:** Custom horizons use default styling
+**Target:** Color picker in custom horizon settings, applies tint to column (like overdue=red, today-horizon=amber)
+
+---
+
 ## Low Priority / Future
 
 ### [ ] Status Toggle UI
