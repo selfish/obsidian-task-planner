@@ -396,6 +396,18 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       yield todoColumn("alert-triangle", "Overdue", getOverdueTodos(), true, null, null, "overdue");
     }
 
+    // In Future Focus mode, show a "Today" horizon for today's tasks
+    if (viewMode === "future") {
+      const tomorrow = today.clone().add(1, "day");
+      const todayTodos = filteredTodos.filter((todo) => {
+        if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) return false;
+        if (isInCustomTagHorizon(todo)) return false;
+        const dueDate = findTodoDate(todo, settings.dueDateAttribute);
+        return dueDate && dueDate.isSameOrAfter(today) && dueDate.isBefore(tomorrow);
+      });
+      yield todoColumn("sunrise", "Today", todayTodos, false, moveToDate(today), batchMoveToDate(today), "today-horizon");
+    }
+
     // Custom horizons with position "after" (after backlog, before time horizons)
     if (customHorizons) {
       for (const horizon of customHorizons.filter((b) => b.position === "after")) {
