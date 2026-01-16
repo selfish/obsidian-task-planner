@@ -11,7 +11,7 @@ export class OpenPlanningCommand implements Command {
   callback(): void {
     const leaf = this.workspace.getMostRecentLeaf();
     if (leaf) {
-      leaf.setViewState({ type: PlanningView.viewType });
+      void leaf.setViewState({ type: PlanningView.viewType });
     }
   }
 }

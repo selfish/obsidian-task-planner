@@ -11,7 +11,7 @@ export class OpenReportCommand implements Command {
   callback(): void {
     const leaf = this.workspace.getMostRecentLeaf();
     if (leaf) {
-      leaf.setViewState({ type: TodoReportView.viewType });
+      void leaf.setViewState({ type: TodoReportView.viewType });
     }
   }
 }

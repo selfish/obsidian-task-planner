@@ -35,8 +35,9 @@ export class PlanningView extends ItemView {
     return "calendar-glyph";
   }
 
-  async onOpen(): Promise<void> {
+  onOpen(): Promise<void> {
     this.render();
+    return Promise.resolve();
   }
 
   onShow(): void {

@@ -102,11 +102,12 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         days.forEach((display, index) => dropDown.addOption((index + 1).toString(), display));
         dropDown.setValue((this.plugin.settings.firstWeekday || 1).toString());
-        dropDown.onChange(async (value: string) => {
+        dropDown.onChange((value: string) => {
           this.plugin.settings.firstWeekday = parseInt(value);
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-          this.display();
+          void this.plugin.saveSettings().then(() => {
+            this.plugin.refreshPlanningViews();
+            this.display();
+          });
         });
       });
 
@@ -387,23 +388,26 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .addButton((button) => {
         button.setIcon("plus");
         button.setTooltip("Add folder");
-        button.onClick(async () => {
+        button.onClick(() => {
           if (!folderSearchInput) return;
 
           const newFolder = folderSearchInput.getValue();
           if (!newFolder) return;
 
-          if (!(await this.app.vault.adapter.exists(newFolder, true))) {
-            this.showError(containerEl, `Folder doesn't exist: ${newFolder}`);
-            return;
-          }
+          void this.app.vault.adapter.exists(newFolder, true).then((exists) => {
+            if (!exists) {
+              this.showError(containerEl, `Folder doesn't exist: ${newFolder}`);
+              return;
+            }
 
-          if (!this.plugin.settings.ignoredFolders.includes(newFolder)) {
-            this.plugin.settings.ignoredFolders.push(newFolder);
-            await this.plugin.saveSettings();
-            folderSearchInput.setValue("");
-            this.display();
-          }
+            if (!this.plugin.settings.ignoredFolders.includes(newFolder)) {
+              this.plugin.settings.ignoredFolders.push(newFolder);
+              void this.plugin.saveSettings().then(() => {
+                folderSearchInput?.setValue("");
+                this.display();
+              });
+            }
+          });
         });
       });
 
