@@ -51,7 +51,7 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
     setIsHovering(false);
   }
 
-  async function onDrop(ev: React.DragEvent): Promise<void> {
+  function onDrop(ev: React.DragEvent): void {
     ev.preventDefault();
     ev.stopPropagation();
     setIsHovering(false);
@@ -61,18 +61,13 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
       const todoIds = groupIds.split(",");
 
       if (onBatchTodoDropped) {
-        await onBatchTodoDropped(todoIds);
+        void onBatchTodoDropped(todoIds);
       } else if (onTodoDropped) {
-        const promises = todoIds.map(
-          (todoId, index) =>
-            new Promise((resolve) => {
-              setTimeout(() => {
-                onTodoDropped(todoId);
-                resolve(undefined);
-              }, index * 30);
-            })
-        );
-        await Promise.all(promises);
+        todoIds.forEach((todoId, index) => {
+          setTimeout(() => {
+            onTodoDropped(todoId);
+          }, index * 30);
+        });
       }
       return;
     }

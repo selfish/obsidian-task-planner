@@ -26,8 +26,9 @@ export class TodoReportView extends ItemView {
     return "list-checks";
   }
 
-  async onOpen(): Promise<void> {
+  onOpen(): Promise<void> {
     this.render();
+    return Promise.resolve();
   }
 
   onClose(): Promise<void> {

@@ -86,7 +86,7 @@ export default class TaskPlannerPlugin extends Plugin {
         return;
       }
 
-      this.app.workspace.getRightLeaf(false)?.setViewState({
+      void this.app.workspace.getRightLeaf(false)?.setViewState({
         type: TodoListView.viewType,
       });
     });
