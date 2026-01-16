@@ -43,7 +43,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
   const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
-  const { searchParameters, hideEmpty, hideDone, wipLimit } = planningSettings;
+  const { searchParameters, hideEmpty, hideDone, wipLimit, viewMode } = planningSettings;
   const fileOperations = new FileOperations(settings);
 
   const filteredTodos = React.useMemo(() => {
@@ -619,19 +619,25 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }, []);
 
+  const boardClass = viewMode !== "default" ? `board mode-${viewMode}` : "board";
+
   return (
-    <div className="board">
+    <div className={boardClass}>
       <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} onOpenReport={onOpenReport} />
-      <div className="today-section">
-        <div className="header">
-          <span className="icon">☀️</span>
-          <span>Today</span>
+      {viewMode !== "future" && (
+        <div className="today-section">
+          <div className="header">
+            <span className="icon">☀️</span>
+            <span>Today</span>
+          </div>
+          <div className="columns">{Array.from(getTodayColumns())}</div>
         </div>
-        <div className="columns">{Array.from(getTodayColumns())}</div>
-      </div>
-      <div className="future" ref={futureSectionRef}>
-        {Array.from(getColumns())}
-      </div>
+      )}
+      {viewMode !== "today" && (
+        <div className="future" ref={futureSectionRef}>
+          {Array.from(getColumns())}
+        </div>
+      )}
     </div>
   );
 }
