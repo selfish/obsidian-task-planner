@@ -91,7 +91,10 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       dayButton.addEventListener("click", () => {
         const newValue = !isChecked;
         (this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = newValue;
-        void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews()).then(() => this.display());
+        void this.plugin
+          .saveSettings()
+          .then(() => this.plugin.refreshPlanningViews())
+          .then(() => this.display());
       });
     });
 

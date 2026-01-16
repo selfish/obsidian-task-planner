@@ -195,19 +195,7 @@ function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, se
   return groupTodos(todos, containers, settings);
 }
 
-function ReportHeader({
-  reportSettings,
-  setReportSettings,
-  stats,
-  app,
-  onOpenPlanning,
-}: {
-  reportSettings: ReportSettings;
-  setReportSettings: (settings: ReportSettings) => void;
-  stats: { total: number; completed: number; canceled: number };
-  app: App;
-  onOpenPlanning?: () => void;
-}) {
+function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; app: App; onOpenPlanning?: () => void }) {
   const { searchPhrase, fuzzySearch, statusFilter } = reportSettings;
 
   const planningIconRef = React.useRef<HTMLButtonElement>(null);
@@ -269,17 +257,7 @@ function ReportHeader({
   );
 }
 
-function ReportSection({
-  container,
-  deps,
-  isCollapsed,
-  onToggle,
-}: {
-  container: Container;
-  deps: TodoReportComponentDeps;
-  isCollapsed: boolean;
-  onToggle: () => void;
-}) {
+function ReportSection({ container, deps, isCollapsed, onToggle }: { container: Container; deps: TodoReportComponentDeps; isCollapsed: boolean; onToggle: () => void }) {
   const chevronRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
@@ -393,18 +371,10 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
       <div className="report-content">
         {containers.length === 0 ? (
           <div className="empty-state">
-            <span>
-              {reportSettings.statusFilter === "all"
-                ? "No completed or canceled tasks found"
-                : reportSettings.statusFilter === "completed"
-                  ? "No completed tasks found"
-                  : "No canceled tasks found"}
-            </span>
+            <span>{reportSettings.statusFilter === "all" ? "No completed or canceled tasks found" : reportSettings.statusFilter === "completed" ? "No completed tasks found" : "No canceled tasks found"}</span>
           </div>
         ) : (
-          containers.map((container) => (
-            <ReportSection key={container.id} container={container} deps={deps} isCollapsed={!!reportSettings.collapsedSections[container.id]} onToggle={() => toggleSection(container.id)} />
-          ))
+          containers.map((container) => <ReportSection key={container.id} container={container} deps={deps} isCollapsed={!!reportSettings.collapsedSections[container.id]} onToggle={() => toggleSection(container.id)} />)
         )}
       </div>
     </div>
