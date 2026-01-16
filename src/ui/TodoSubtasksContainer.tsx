@@ -54,7 +54,9 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
     <div className="subtasks-container">
       <button className="subtasks-toggle" onClick={onClickFoldButton}>
         <span ref={iconRef} className="icon"></span>
-        <span className="count">{subtasks.length} subtask{subtasks.length !== 1 ? "s" : ""}</span>
+        <span className="count">
+          {subtasks.length} subtask{subtasks.length !== 1 ? "s" : ""}
+        </span>
       </button>
       {!isFolded && (
         <div className="subtasks">
