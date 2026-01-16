@@ -39,7 +39,8 @@
         background: repeating-linear-gradient(
           135deg,
           var(--background-primary) 0 16px,
-          var(--background-primary-alt) 16px 32px
+          color-mix(in srgb, var(--background-primary-alt) 25%, var(--background-primary))
+          16px 32px
         );
       }
     }
