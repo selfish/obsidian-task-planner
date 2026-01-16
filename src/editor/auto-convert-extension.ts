@@ -25,7 +25,9 @@ export function createAutoConvertExtension(getSettings: () => TaskPlannerSetting
 
         // Only process when cursor moves to a different line
         if (currentLine !== this.lastLine && this.lastLine >= 0) {
-          this.convertLine(this.lastLine);
+          const lineToConvert = this.lastLine;
+          // Defer the update to avoid "update during update" error
+          setTimeout(() => this.convertLine(lineToConvert), 0);
         }
 
         this.lastLine = currentLine;
