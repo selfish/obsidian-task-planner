@@ -42,7 +42,6 @@ export interface TaskPlannerSettings {
   dueDateAttribute: string;
   completedDateAttribute: string;
   selectedAttribute: string;
-  useDataviewSyntax: boolean;
   fuzzySearch: boolean;
   firstWeekday: number;
   customHorizons: CustomHorizon[];
@@ -57,7 +56,6 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
   dueDateAttribute: "due",
   completedDateAttribute: "completed",
   selectedAttribute: "selected",
-  useDataviewSyntax: false,
   fuzzySearch: false,
   firstWeekday: 1,
   customHorizons: [],
