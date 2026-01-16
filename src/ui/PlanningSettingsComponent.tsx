@@ -13,7 +13,7 @@ export interface PlanningSettingsComponentProps {
 }
 
 export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh, onOpenReport }: PlanningSettingsComponentProps) {
-  const { hideEmpty, hideDone, searchParameters } = planningSettings;
+  const { hideEmpty, hideDone, searchParameters, viewMode } = planningSettings;
   const { searchPhrase } = searchParameters;
 
   function toggleHideEmpty() {
@@ -27,6 +27,20 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     setPlanningSettings({
       ...planningSettings,
       hideDone: !hideDone,
+    });
+  }
+
+  function toggleTodayFocus() {
+    setPlanningSettings({
+      ...planningSettings,
+      viewMode: viewMode === "today" ? "default" : "today",
+    });
+  }
+
+  function toggleFutureFocus() {
+    setPlanningSettings({
+      ...planningSettings,
+      viewMode: viewMode === "future" ? "default" : "future",
     });
   }
 
@@ -54,6 +68,8 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const reportIconRef = React.useRef<HTMLButtonElement>(null);
   const hideEmptyIconRef = React.useRef<HTMLSpanElement>(null);
   const hideDoneIconRef = React.useRef<HTMLSpanElement>(null);
+  const todayFocusIconRef = React.useRef<HTMLSpanElement>(null);
+  const futureFocusIconRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
@@ -75,6 +91,14 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     if (hideDoneIconRef.current) {
       hideDoneIconRef.current.replaceChildren();
       setIcon(hideDoneIconRef.current, "circle-check-big");
+    }
+    if (todayFocusIconRef.current) {
+      todayFocusIconRef.current.replaceChildren();
+      setIcon(todayFocusIconRef.current, "sun");
+    }
+    if (futureFocusIconRef.current) {
+      futureFocusIconRef.current.replaceChildren();
+      setIcon(futureFocusIconRef.current, "calendar-range");
     }
   }, [app]);
 
@@ -104,6 +128,14 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
         </button>
         <button className={`toggle-btn ${hideDone ? "active" : ""}`} onClick={toggleHideDone} aria-label="Hide completed tasks">
           <span ref={hideDoneIconRef} className="icon" />
+          <span className="led" />
+        </button>
+        <button className={`toggle-btn ${viewMode === "today" ? "active" : ""}`} onClick={toggleTodayFocus} aria-label="Today focus">
+          <span ref={todayFocusIconRef} className="icon" />
+          <span className="led" />
+        </button>
+        <button className={`toggle-btn ${viewMode === "future" ? "active" : ""}`} onClick={toggleFutureFocus} aria-label="Future focus">
+          <span ref={futureFocusIconRef} className="icon" />
           <span className="led" />
         </button>
         <span className={"spacer"}></span>
