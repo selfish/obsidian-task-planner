@@ -362,6 +362,16 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           })
       );
 
+    new Setting(containerEl)
+      .setName("Auto-convert attributes")
+      .setDesc("Automatically convert shorthand attributes (like @high, @today) to dataview format when leaving a line")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.autoConvertAttributes).onChange(async (value) => {
+          this.plugin.settings.autoConvertAttributes = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
     // === FILTERING & INDEXING ===
     new Setting(containerEl).setName("Filtering & indexing").setHeading();
 

@@ -31,6 +31,7 @@ import { OpenPlanningCommand } from "./commands/open-planning";
 import { TodoListView } from "./views/todo-list-view";
 import { TodoReportView } from "./views/todo-report-view";
 import { OpenReportCommand } from "./commands/open-report";
+import { createAutoConvertExtension } from "./editor/auto-convert-extension";
 
 export default class TaskPlannerPlugin extends Plugin {
   logger: Logger = new ConsoleLogger(LogLevel.ERROR);
@@ -78,6 +79,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
     this.registerViews();
     this.registerEvents();
+    this.registerEditorExtension(createAutoConvertExtension(() => this.settings));
 
     this.app.workspace.onLayoutReady(() => {
       this.loadFiles();

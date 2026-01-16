@@ -37,12 +37,14 @@ Task attributes use the Dataview inline field format:
 
 This syntax is compatible with the popular Dataview plugin and is the Obsidian community standard.
 
-### Smart Date Completion
-Type shorthand attributes and let Task Planner expand them to Dataview format:
+### Smart Attribute Conversion
+Type shorthand attributes and Task Planner automatically converts them to Dataview format when you move to the next line:
 - `@today` → `[due:: 2025-01-17]`
 - `@tomorrow` → `[due:: 2025-01-18]`
 - `@high` → `[priority:: high]`
 - `@due(tomorrow)` → `[due:: 2025-01-18]`
+
+This auto-conversion can be disabled in settings if you prefer manual control.
 
 ## Installation
 
