@@ -205,6 +205,15 @@ Worth investigating what other task plugins do.
 
 ---
 
+## Completed
+
+- **Today Focus / View Modes** — sun/calendar-range toggles to focus on today or future
+- **Toggle Pills for Header Controls** — icon buttons with LED indicators
+- **Move Fuzzy Search to Main Settings** — consolidated from individual views
+- **Dropdown Chevron Using Obsidian Icons** — fixed hardcoded SVG color
+
+---
+
 ## Contributing
 
 Found a bug? Have a feature idea?
@@ -221,4 +230,4 @@ When working on an item, update this file to mark it `[~]` in progress.
 - **Commit early, commit often** — small, frequent commits
 - **Simple commit messages** — subject line only, no description body needed. Write like a human: `fix typo in header`, `add priority filter dropdown`
 - **Conventional prefixes** — use `feat:`, `fix:`, `docs:`, `style:`, `test:`, `refactor:`, `chore:` as needed
-- **Keep roadmap current** — delete completed items, update descriptions to reflect only what remains
+- **Keep roadmap current** — move completed items to "Completed" section, update descriptions to reflect current state
