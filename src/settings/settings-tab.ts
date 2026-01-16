@@ -59,12 +59,13 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     const nearTermDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     nearTermDesc.setText("Individual days give you detailed control over the current week. Choose which days to show as separate columns.");
 
-    // Calendar-style weekday selector
-    const weekdaySection = containerEl.createDiv({ cls: "th-weekday-selector" });
-    const weekdayLabel = weekdaySection.createDiv({ cls: "th-weekday-label" });
+    // Calendar-style weekday selector with LED-style buttons
+    const weekdayWrapper = containerEl.createDiv({ cls: "task-planner" });
+    const weekdaySection = weekdayWrapper.createDiv({ cls: "weekday-selector" });
+    const weekdayLabel = weekdaySection.createDiv({ cls: "label" });
     weekdayLabel.setText("Visible weekdays");
 
-    const weekdayGrid = weekdaySection.createDiv({ cls: "th-weekday-grid" });
+    const weekdayGrid = weekdaySection.createDiv({ cls: "grid" });
 
     const allWeekdays = [
       { key: "showMonday", label: "Mon", full: "Monday", dayNum: 1 },
@@ -81,10 +82,10 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     const weekdays = [...allWeekdays.filter((d) => d.dayNum >= firstWeekday), ...allWeekdays.filter((d) => d.dayNum < firstWeekday)];
 
     weekdays.forEach((day) => {
-      const dayButton = weekdayGrid.createDiv({ cls: "th-weekday-button" });
+      const dayButton = weekdayGrid.createDiv({ cls: "day" });
       const isChecked = this.plugin.settings.horizonVisibility[day.key as keyof typeof this.plugin.settings.horizonVisibility] as boolean;
       if (isChecked) {
-        dayButton.addClass("th-weekday-button--active");
+        dayButton.addClass("active");
       }
       dayButton.setText(day.label);
       dayButton.setAttribute("aria-label", day.full);
