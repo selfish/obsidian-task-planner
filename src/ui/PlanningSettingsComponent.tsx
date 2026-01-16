@@ -16,14 +16,14 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const { hideEmpty, hideDone, searchParameters } = planningSettings;
   const { searchPhrase } = searchParameters;
 
-  function onHideEmptyClicked(ev: React.ChangeEvent<HTMLInputElement>) {
+  function toggleHideEmpty() {
     setPlanningSettings({
       ...planningSettings,
-      hideEmpty: ev.target.checked,
+      hideEmpty: !hideEmpty,
     });
   }
 
-  function onHideDoneClicked() {
+  function toggleHideDone() {
     setPlanningSettings({
       ...planningSettings,
       hideDone: !hideDone,
@@ -52,6 +52,8 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const settingsIconRef = React.useRef<HTMLButtonElement>(null);
   const refreshIconRef = React.useRef<HTMLButtonElement>(null);
   const reportIconRef = React.useRef<HTMLButtonElement>(null);
+  const hideEmptyIconRef = React.useRef<HTMLSpanElement>(null);
+  const hideDoneIconRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
@@ -65,6 +67,14 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     if (reportIconRef.current && app) {
       reportIconRef.current.replaceChildren();
       setIcon(reportIconRef.current, "list-checks");
+    }
+    if (hideEmptyIconRef.current) {
+      hideEmptyIconRef.current.replaceChildren();
+      setIcon(hideEmptyIconRef.current, "columns-3");
+    }
+    if (hideDoneIconRef.current) {
+      hideDoneIconRef.current.replaceChildren();
+      setIcon(hideDoneIconRef.current, "circle-check-big");
     }
   }, [app]);
 
@@ -87,14 +97,16 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
       </div>
       <div className="controls">
         <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
-        <label className="checkbox-label">
-          <input type="checkbox" checked={hideEmpty} onChange={onHideEmptyClicked} />
-          <span>Hide empty</span>
-        </label>
-        <label className="checkbox-label">
-          <input type="checkbox" checked={hideDone} onChange={onHideDoneClicked} />
-          <span>Hide done</span>
-        </label>
+        <span className={"spacer"}></span>
+        <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty columns">
+          <span ref={hideEmptyIconRef} className="icon" />
+          <span className="led" />
+        </button>
+        <button className={`toggle-btn ${hideDone ? "active" : ""}`} onClick={toggleHideDone} aria-label="Hide completed tasks">
+          <span ref={hideDoneIconRef} className="icon" />
+          <span className="led" />
+        </button>
+        <span className={"spacer"}></span>
         {onOpenReport && <button ref={reportIconRef} className="settings-btn" onClick={onOpenReport} aria-label="Open report" />}
         {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh planning board" />}
         <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Open plugin settings" />
