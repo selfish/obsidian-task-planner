@@ -29,9 +29,12 @@
       min-height: 0;
     }
 
-    // Future Focus mode - allow 3 columns per row instead of 2
-    &.mode-future .column {
-      min-height: calc(100% / 3 - 6px);
+    // Future Focus mode - use grid for flexible column widths
+    &.mode-future .future {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(var(--column-min), 1fr));
+      grid-auto-rows: calc(100% / 3 - 6px);
+      align-items: start;
     }
   }
 
