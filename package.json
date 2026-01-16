@@ -30,6 +30,7 @@
   "author": "selfish",
   "license": "GPL-2.0",
   "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "4.6.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.3.1",
     "@types/jest": "^30.0.0",

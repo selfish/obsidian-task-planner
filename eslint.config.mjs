@@ -8,6 +8,7 @@ import globals from "globals";
 import obsidianmd from "eslint-plugin-obsidianmd";
 import sdl from "@microsoft/eslint-plugin-sdl";
 import importPlugin from "eslint-plugin-import";
+import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 
 export default [
   js.configs.recommended,
@@ -43,6 +44,7 @@ export default [
       obsidianmd,
       "@microsoft/sdl": sdl,
       import: importPlugin,
+      "@eslint-community/eslint-comments": eslintComments,
     },
     settings: {
       react: {
@@ -61,6 +63,13 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/require-await": "error",
+      "@typescript-eslint/no-deprecated": "error",
+      "@typescript-eslint/no-unnecessary-type-assertion": "error",
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true, allowBoolean: true }],
+      "@typescript-eslint/unbound-method": ["error", { ignoreStatic: true }],
       "no-prototype-builtins": "off",
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
@@ -104,6 +113,15 @@ export default [
 
       // Import rules
       "import/no-extraneous-dependencies": "error",
+
+      // ESLint directive comment rules
+      "@eslint-community/eslint-comments/require-description": "error",
+      "@eslint-community/eslint-comments/disable-enable-pair": "error",
+      "@eslint-community/eslint-comments/no-restricted-disable": [
+        "error",
+        "no-console",
+        "@typescript-eslint/no-explicit-any",
+      ],
 
       // Obsidian-specific restrictions
       "no-restricted-globals": [
