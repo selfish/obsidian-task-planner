@@ -31,7 +31,7 @@
 
     // Future Focus mode - allow 3 columns per row instead of 2
     &.mode-future .column {
-      min-height: calc(33.3333% - 6px);
+      min-height: calc(100% / 3 - 6px);
     }
   }
 
