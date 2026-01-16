@@ -104,6 +104,7 @@
     justify-content: space-between;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    align-content: flex-start;
 
     &::-webkit-scrollbar {
       display: none;
