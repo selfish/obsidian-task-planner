@@ -122,7 +122,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
       <div className="controls">
         <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
         <span className={"spacer"}></span>
-        <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty columns">
+        <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty horizons">
           <span ref={hideEmptyIconRef} className="icon" />
           <span className="led" />
         </button>
@@ -130,6 +130,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
           <span ref={hideDoneIconRef} className="icon" />
           <span className="led" />
         </button>
+        <span className={"spacer"}></span>
         <button className={`toggle-btn ${viewMode === "today" ? "active" : ""}`} onClick={toggleTodayFocus} aria-label="Today focus">
           <span ref={todayFocusIconRef} className="icon" />
           <span className="led" />
