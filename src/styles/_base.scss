@@ -29,12 +29,9 @@
       min-height: 0;
     }
 
-    // Future Focus mode - use grid for flexible column widths
+    // Future Focus mode - allow 3 rows instead of 2
     &.mode-future .future {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(var(--column-min), 1fr));
       grid-auto-rows: calc(100% / 3 - 6px);
-      align-items: start;
     }
   }
 
@@ -95,16 +92,17 @@
   }
 
   .future {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--column-min), 1fr));
+    grid-auto-rows: calc(50% - 4px);
+    grid-auto-flow: column;
+    align-items: start;
     gap: var(--column-gap);
     overflow-x: auto;
     overflow-y: visible;
     padding-bottom: var(--space-md);
     flex: 1;
     min-height: 0;
-    flex-wrap: wrap;
-    flex-direction: column;
-    justify-content: space-between;
     scrollbar-width: none;
     -ms-overflow-style: none;
 
