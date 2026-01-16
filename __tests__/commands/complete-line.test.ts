@@ -42,7 +42,7 @@ describe('CompleteLineCommand', () => {
 
       command.editorCallback(editor, {} as MarkdownView);
 
-      expect(editor.setLine).toHaveBeenCalledWith(0, '- [ ] Task @priority(high)');
+      expect(editor.setLine).toHaveBeenCalledWith(0, '- [ ] Task [priority:: high]');
     });
 
     it('should convert natural language date to ISO format', () => {
@@ -52,7 +52,7 @@ describe('CompleteLineCommand', () => {
 
       const setLineCall = (editor.setLine as jest.Mock).mock.calls[0];
       expect(setLineCall[0]).toBe(0);
-      expect(setLineCall[1]).toMatch(/- \[ \] Task @due\(\d{4}-\d{2}-\d{2}\)/);
+      expect(setLineCall[1]).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
     });
 
     it('should convert @today to due date', () => {
@@ -61,7 +61,7 @@ describe('CompleteLineCommand', () => {
       command.editorCallback(editor, {} as MarkdownView);
 
       const setLineCall = (editor.setLine as jest.Mock).mock.calls[0];
-      expect(setLineCall[1]).toMatch(/- \[ \] Task @due\(\d{4}-\d{2}-\d{2}\)/);
+      expect(setLineCall[1]).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
     });
 
     it('should preserve lines without attributes', () => {
@@ -83,7 +83,7 @@ describe('CompleteLineCommand', () => {
       command.editorCallback(editor, {} as MarkdownView);
 
       expect(editor.getLine).toHaveBeenCalledWith(1);
-      expect(editor.setLine).toHaveBeenCalledWith(1, '- [ ] Second task @priority(high)');
+      expect(editor.setLine).toHaveBeenCalledWith(1, '- [ ] Second task [priority:: high]');
     });
   });
 });

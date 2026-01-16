@@ -92,11 +92,11 @@ describe('ToggleTodoCommand', () => {
     });
 
     it('should preserve attributes when toggling', () => {
-      const editor = createMockEditor(['- [ ] Task @due(2025-01-15)']);
+      const editor = createMockEditor(['- [ ] Task [due:: 2025-01-15]']);
 
       command.editorCallback(editor, {} as MarkdownView);
 
-      expect(editor.setLine).toHaveBeenCalledWith(0, '- [x] Task @due(2025-01-15)');
+      expect(editor.setLine).toHaveBeenCalledWith(0, '- [x] Task [due:: 2025-01-15]');
     });
   });
 });
