@@ -75,8 +75,14 @@ export class LineParser {
   }
 
   /**
+   * Priority shortcut keys that should be converted to [priority:: value]
+   */
+  private static readonly PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
+
+  /**
    * Parse the attributes from a given line, removing those attribute tokens
    * from the text and returning a map of { key -> value } plus the stripped text.
+   * Priority shortcuts like @high are automatically converted to priority attributes.
    */
   parseAttributes(text: string): AttributesStructure {
     const regexp = this.getAttributeRegex();
@@ -91,7 +97,12 @@ export class LineParser {
       const [attrKey, attrValue] = this.parseSingleAttribute(match);
       if (!attrKey) return; // skip if something invalid
 
-      res[attrKey] = attrValue;
+      // Convert priority shortcuts: @high -> priority: "high"
+      if (LineParser.PRIORITY_SHORTCUTS.includes(attrKey) && attrValue === true) {
+        res["priority"] = attrKey;
+      } else {
+        res[attrKey] = attrValue;
+      }
       // Remove that chunk from the text
       textWithoutAttributes = textWithoutAttributes.replace(match, "");
     });
