@@ -26,19 +26,22 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/main.ts',
-    // Exclude UI components (require React testing setup or Obsidian API)
-    '!src/ui/**/*.{ts,tsx}',
-    // Exclude Obsidian-dependent files
+    // Exclude Obsidian view wrappers (thin wrappers around React components)
     '!src/views/**/*.ts',
+    // Exclude Obsidian settings UI (uses Obsidian Setting API extensively)
     '!src/settings/settings-tab.ts',
     '!src/settings/settings-store.ts',
-    '!src/settings/planning-settings.ts',
+    // Exclude Obsidian file adapter (Obsidian Vault API)
     '!src/lib/file-adapter.ts',
-    // Exclude Obsidian-dependent commands
+    // Exclude Obsidian command handlers (thin wrappers)
     '!src/commands/open-planning.ts',
     '!src/commands/open-report.ts',
-    // Exclude duplicate files
-    '!src/events/TaskPlannerEvent.ts',
+    // Exclude React components (tested via logic tests, not rendering)
+    // Pure logic files like PlanningSettings.ts are still included
+    '!src/ui/**/*.tsx',
+    '!src/ui/FolderSuggest.ts',
+    '!src/ui/TextInputSuggest.ts',
+    '!src/ui/PlanningSettingsStore.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
