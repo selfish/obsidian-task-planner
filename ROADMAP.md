@@ -13,23 +13,7 @@ This document tracks planned features, improvements, and open questions for the 
 
 ## High Priority
 
-### [ ] Parse #hashtags from Task Text
-**Effort:** Medium | **Type:** Core parsing
-
-Replace the current `@tags(shopping,work)` attribute syntax with standard hashtag parsing.
-
-**Current:** Users must write `@tags(shopping,work)` explicitly
-**Target:** Parse `#hashtag` directly from task text like `- [ ] Buy milk #shopping #household`
-
-**Benefits:**
-- Matches how most Obsidian users already write tasks
-- Enables tag filtering in header
-- Unlocks saved views feature
-- Standard Obsidian convention
-
-**Action:** Drop `@tags()` attribute support entirely.
-
----
+(No high priority items at this time)
 
 ---
 
@@ -191,6 +175,7 @@ Worth investigating what other task plugins do.
 
 ## Completed
 
+- **Parse #hashtags from Task Text** — hashtags like `#shopping` are now parsed directly from task text and used for custom horizon filtering
 - **Simplify Attribute Syntax** — removed `@key(value)` syntax, now Dataview `[key:: value]` only
 - **Today Focus / View Modes** — sun/calendar-range toggles to focus on today or future
 - **Toggle Pills for Header Controls** — icon buttons with LED indicators

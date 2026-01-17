@@ -78,6 +78,13 @@ Add due dates, priorities, and other metadata:
 - [ ] Schedule team meeting [due:: 2025-01-20] [selected:: true]
 ```
 
+### Using Hashtags
+Use standard hashtags to categorize tasks. Custom horizons can filter by these tags:
+```markdown
+- [ ] Buy groceries #shopping #household
+- [ ] Review PR #work #urgent
+```
+
 ### Commands
 - **Open planning**: Opens the planning board view
 - **Open todo report**: Opens the completed tasks report
