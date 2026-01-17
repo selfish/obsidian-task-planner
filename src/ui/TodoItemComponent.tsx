@@ -190,6 +190,21 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
         void fileOperations.updateAttributeAsync(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
       });
     });
+
+    // Tag management
+    if (todo.tags && todo.tags.length > 0) {
+      menu.addSeparator();
+      for (const tag of todo.tags) {
+        menu.addItem((item) => {
+          item.setTitle(`Remove #${tag}`);
+          item.setIcon("x");
+          item.onClick(() => {
+            void fileOperations.removeTagAsync(todo, tag);
+          });
+        });
+      }
+    }
+
     menu.showAtMouseEvent(evt.nativeEvent);
   }
 
