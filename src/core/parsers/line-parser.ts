@@ -78,6 +78,25 @@ export class LineParser {
   private static readonly PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
 
   /**
+   * Regex for matching hashtags. Must start with a letter, can contain letters, numbers, hyphens, underscores.
+   */
+  private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
+
+  /**
+   * Parse hashtags from text. Returns unique tags without the # prefix.
+   */
+  private parseHashtags(text: string): string[] {
+    const matches = text.matchAll(LineParser.HASHTAG_REGEX);
+    const tags: string[] = [];
+    for (const match of matches) {
+      if (!tags.includes(match[1])) {
+        tags.push(match[1]);
+      }
+    }
+    return tags;
+  }
+
+  /**
    * Parse the attributes from a given line, removing those attribute tokens
    * from the text and returning a map of { key -> value } plus the stripped text.
    * Priority shortcuts like @high are automatically converted to priority attributes.
@@ -87,7 +106,8 @@ export class LineParser {
     const matches = text.match(regexp);
 
     const res: Record<string, string | boolean> = {};
-    if (!matches) return { textWithoutAttributes: text, attributes: res };
+    const tags = this.parseHashtags(text);
+    if (!matches) return { textWithoutAttributes: text, attributes: res, tags };
 
     let textWithoutAttributes = text;
 
@@ -105,7 +125,7 @@ export class LineParser {
       textWithoutAttributes = textWithoutAttributes.replace(match, "");
     });
 
-    return { textWithoutAttributes: textWithoutAttributes.trim(), attributes: res };
+    return { textWithoutAttributes: textWithoutAttributes.trim(), attributes: res, tags };
   }
 
   /**
