@@ -148,6 +148,63 @@ describe('LineParser', () => {
       expect(result.textWithoutAttributes).toBe('Plain task text');
       expect(result.attributes).toEqual({});
     });
+
+    it('should parse @key shortcut as boolean attribute', () => {
+      const result = parser.parseAttributes('Task @today');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ today: true });
+    });
+
+    it('should convert @high priority shortcut', () => {
+      const result = parser.parseAttributes('Task @high');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ priority: 'high' });
+    });
+
+    it('should convert @critical priority shortcut', () => {
+      const result = parser.parseAttributes('Task @critical');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ priority: 'critical' });
+    });
+
+    it('should convert @medium priority shortcut', () => {
+      const result = parser.parseAttributes('Task @medium');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ priority: 'medium' });
+    });
+
+    it('should convert @low priority shortcut', () => {
+      const result = parser.parseAttributes('Task @low');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ priority: 'low' });
+    });
+
+    it('should convert @lowest priority shortcut', () => {
+      const result = parser.parseAttributes('Task @lowest');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ priority: 'lowest' });
+    });
+
+    it('should handle mixed Dataview and shortcut syntax', () => {
+      const result = parser.parseAttributes('Task [due:: 2025-01-20] @high');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({
+        due: '2025-01-20',
+        priority: 'high',
+      });
+    });
+
+    it('should not match @key inside parentheses', () => {
+      const result = parser.parseAttributes('Task with @mention(test)');
+      expect(result.textWithoutAttributes).toBe('Task with @mention(test)');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should parse @key at end of text', () => {
+      const result = parser.parseAttributes('Important task @urgent');
+      expect(result.textWithoutAttributes).toBe('Important task');
+      expect(result.attributes).toEqual({ urgent: true });
+    });
   });
 
   describe('attributesToString', () => {
