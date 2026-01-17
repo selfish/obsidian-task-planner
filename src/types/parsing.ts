@@ -19,4 +19,5 @@ export interface TodoParsingResult<T> {
 export interface AttributesStructure {
   textWithoutAttributes: string;
   attributes: Record<string, string | boolean>;
+  tags: string[];
 }
