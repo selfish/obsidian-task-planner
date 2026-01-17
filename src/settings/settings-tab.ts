@@ -200,7 +200,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     new Setting(containerEl).setName("Custom horizons").setHeading();
 
     const horizonDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    horizonDesc.setText("Create custom horizons filtered by tag or for specific dates");
+    horizonDesc.setText("Create custom date horizons. Optionally stamp a tag when tasks are dropped here.");
 
     let labelInput: HTMLInputElement;
     let tagInput: HTMLInputElement;
@@ -217,14 +217,14 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         text.inputEl.addClass("th-input-label");
       })
       .addText((text) => {
+        dateInput = text.inputEl;
+        text.setPlaceholder("Date yyyy-mm-dd");
+        text.inputEl.addClass("th-input-date");
+      })
+      .addText((text) => {
         tagInput = text.inputEl;
         text.setPlaceholder("Tag (optional)");
         text.inputEl.addClass("th-input-tag");
-      })
-      .addText((text) => {
-        dateInput = text.inputEl;
-        text.setPlaceholder("Date yyyy-mm-dd (optional)");
-        text.inputEl.addClass("th-input-date");
       })
       .addDropdown((dropdown) => {
         positionDropdown = dropdown.selectEl;
@@ -247,25 +247,20 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
             return;
           }
 
-          if (!tag && !date) {
-            this.showError(containerEl, "Either tag or date must be provided");
+          if (!date) {
+            this.showError(containerEl, "Date is required");
             return;
           }
 
-          if (tag && date) {
-            this.showError(containerEl, "Cannot have both tag and date - choose one");
-            return;
-          }
-
-          if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
             this.showError(containerEl, "Invalid date format (use YYYY-MM-DD)");
             return;
           }
 
           this.plugin.settings.customHorizons.push({
             label,
+            date,
             tag: tag || undefined,
-            date: date || undefined,
             position,
           });
 
@@ -282,7 +277,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       });
 
     this.plugin.settings.customHorizons.forEach((horizon, index) => {
-      const horizonType = horizon.tag ? `Tag: ${horizon.tag}` : `Date: ${horizon.date}`;
+      const tagInfo = horizon.tag ? ` → #${horizon.tag}` : "";
       let positionLabel: string;
       if (horizon.position === "before") {
         positionLabel = "Before backlog";
@@ -293,7 +288,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       }
 
       new Setting(containerEl)
-        .setDesc(`${horizonType} - ${positionLabel}`)
+        .setDesc(`${horizon.date}${tagInfo} - ${positionLabel}`)
         .addText((text) => {
           text.setPlaceholder("Label");
           text.setValue(horizon.label);

@@ -1,7 +1,7 @@
 export interface CustomHorizon {
   label: string;
-  tag?: string; // Tag to filter by (mutually exclusive with date)
-  date?: string; // ISO date (YYYY-MM-DD) (mutually exclusive with tag)
+  date: string; // ISO date (YYYY-MM-DD) - required
+  tag?: string; // Tag to apply when dropping tasks to this horizon
   position: "before" | "after" | "end"; // before = before backlog, after = after backlog, end = after time horizons
 }
 
