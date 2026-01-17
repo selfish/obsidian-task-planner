@@ -36,6 +36,8 @@ module.exports = {
     // Exclude Obsidian command handlers (thin wrappers)
     '!src/commands/open-planning.ts',
     '!src/commands/open-report.ts',
+    // Exclude CodeMirror editor extension (requires full editor mocking)
+    '!src/editor/auto-convert-extension.ts',
     // Exclude React components (tested via logic tests, not rendering)
     // Pure logic files like PlanningSettings.ts are still included
     '!src/ui/**/*.tsx',
