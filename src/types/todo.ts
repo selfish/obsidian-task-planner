@@ -16,6 +16,7 @@ export interface TodoItem<TFile> {
   folderType?: string;
   project?: string;
   attributes?: Record<string, string | boolean>;
+  tags?: string[];
   line?: number;
   subtasks?: TodoItem<TFile>[];
 }
