@@ -76,6 +76,35 @@ function cleanWikiLinks(text: string): string {
   });
 }
 
+function renderTextWithTags(text: string): React.ReactNode[] {
+  const cleanedText = cleanWikiLinks(text);
+  const parts: React.ReactNode[] = [];
+  const regex = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(cleanedText)) !== null) {
+    // Add text before the tag
+    if (match.index > lastIndex) {
+      parts.push(cleanedText.slice(lastIndex, match.index));
+    }
+    // Add the styled tag
+    parts.push(
+      <span key={match.index} className="tag">
+        #{match[1]}
+      </span>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last tag
+  if (lastIndex < cleanedText.length) {
+    parts.push(cleanedText.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [cleanedText];
+}
+
 function cleanFileName(fileName: string): string {
   const name = fileName.replace(/\.md$/, "");
   const cleaned = name.replace(/^[\d- ]+/, "").trim();
@@ -180,7 +209,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
       <div className="content">
         <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
         <div className="body">
-          <div className={textClasses}>{cleanWikiLinks(todo.text)}</div>
+          <div className={textClasses}>{renderTextWithTags(todo.text)}</div>
           {!hideFileRef && <div className="file-ref">{getDisplayName(todo.file.file, app)}</div>}
           {(priority || isSelected) && (
             <div className="meta">
