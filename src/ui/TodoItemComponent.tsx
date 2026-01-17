@@ -89,7 +89,7 @@ function InlineTag({ tag }: { tag: string }): React.ReactElement {
   return (
     <span className="tag">
       <span ref={iconRef} className="icon"></span>
-      {tag}
+      <span className="tag-text">{tag}</span>
     </span>
   );
 }
