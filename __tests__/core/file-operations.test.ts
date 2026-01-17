@@ -415,4 +415,235 @@ describe('FileOperations', () => {
     });
   });
 
+  describe('appendTagAsync', () => {
+    it('should append a tag to a todo', async () => {
+      const fileContent = '- [ ] Task one';
+      const file = createMockFileAdapter(fileContent);
+      const todo = createTodo('Task one', 0, file);
+
+      await operations.appendTagAsync(todo, 'work');
+
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one #work');
+    });
+
+    it('should append a tag while preserving existing attributes', async () => {
+      const fileContent = '- [ ] Task one [due:: 2025-01-15]';
+      const file = createMockFileAdapter(fileContent);
+      const todo = createTodo('Task one', 0, file);
+
+      await operations.appendTagAsync(todo, 'urgent');
+
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one #urgent [due:: 2025-01-15]');
+    });
+
+    it('should skip if todo already has the tag', async () => {
+      const fileContent = '- [ ] Task one #work';
+      const file = createMockFileAdapter(fileContent);
+      const todo: TodoItem<unknown> = {
+        status: TodoStatus.Todo,
+        text: 'Task one #work',
+        file,
+        line: 0,
+        tags: ['work'],
+      };
+
+      await operations.appendTagAsync(todo, 'work');
+
+      expect(file.setContentAsync).not.toHaveBeenCalled();
+    });
+
+    it('should handle todo without line number', async () => {
+      const file = createMockFileAdapter('- [ ] Task');
+      const todo: TodoItem<unknown> = {
+        status: TodoStatus.Todo,
+        text: 'Task',
+        file,
+        line: undefined,
+      };
+
+      await operations.appendTagAsync(todo, 'test');
+
+      expect(file.setContentAsync).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removeTagAsync', () => {
+    it('should remove a tag from a todo', async () => {
+      const fileContent = '- [ ] Task one #work';
+      const file = createMockFileAdapter(fileContent);
+      const todo: TodoItem<unknown> = {
+        status: TodoStatus.Todo,
+        text: 'Task one #work',
+        file,
+        line: 0,
+        tags: ['work'],
+      };
+
+      await operations.removeTagAsync(todo, 'work');
+
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one');
+    });
+
+    it('should remove only the specified tag when multiple tags exist', async () => {
+      const fileContent = '- [ ] Task one #work #urgent';
+      const file = createMockFileAdapter(fileContent);
+      const todo: TodoItem<unknown> = {
+        status: TodoStatus.Todo,
+        text: 'Task one #work #urgent',
+        file,
+        line: 0,
+        tags: ['work', 'urgent'],
+      };
+
+      await operations.removeTagAsync(todo, 'work');
+
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one #urgent');
+    });
+
+    it('should preserve attributes when removing a tag', async () => {
+      const fileContent = '- [ ] Task one #work [due:: 2025-01-15]';
+      const file = createMockFileAdapter(fileContent);
+      const todo: TodoItem<unknown> = {
+        status: TodoStatus.Todo,
+        text: 'Task one #work',
+        file,
+        line: 0,
+        tags: ['work'],
+      };
+
+      await operations.removeTagAsync(todo, 'work');
+
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one [due:: 2025-01-15]');
+    });
+
+    it('should skip if todo does not have the tag', async () => {
+      const fileContent = '- [ ] Task one';
+      const file = createMockFileAdapter(fileContent);
+      const todo: TodoItem<unknown> = {
+        status: TodoStatus.Todo,
+        text: 'Task one',
+        file,
+        line: 0,
+        tags: [],
+      };
+
+      await operations.removeTagAsync(todo, 'work');
+
+      expect(file.setContentAsync).not.toHaveBeenCalled();
+    });
+
+    it('should skip if todo has undefined tags', async () => {
+      const fileContent = '- [ ] Task one';
+      const file = createMockFileAdapter(fileContent);
+      const todo = createTodo('Task one', 0, file);
+
+      await operations.removeTagAsync(todo, 'work');
+
+      expect(file.setContentAsync).not.toHaveBeenCalled();
+    });
+
+    it('should handle todo without line number', async () => {
+      const file = createMockFileAdapter('- [ ] Task #work');
+      const todo: TodoItem<unknown> = {
+        status: TodoStatus.Todo,
+        text: 'Task #work',
+        file,
+        line: undefined,
+        tags: ['work'],
+      };
+
+      await operations.removeTagAsync(todo, 'work');
+
+      expect(file.setContentAsync).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('batchAppendTagAsync', () => {
+    it('should append tag to multiple todos in the same file', async () => {
+      const fileContent = '- [ ] Task one\n- [ ] Task two\n- [ ] Task three';
+      const file = createMockFileAdapter(fileContent);
+      const todos = [
+        createTodo('Task one', 0, file),
+        createTodo('Task two', 1, file),
+      ];
+
+      await operations.batchAppendTagAsync(todos, 'project');
+
+      expect(file.setContentAsync).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toContain('- [ ] Task one #project');
+      expect(setContentCall).toContain('- [ ] Task two #project');
+      expect(setContentCall).toContain('- [ ] Task three');
+    });
+
+    it('should skip todos that already have the tag', async () => {
+      const fileContent = '- [ ] Task one #project\n- [ ] Task two';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TodoItem<unknown>[] = [
+        { status: TodoStatus.Todo, text: 'Task one #project', file, line: 0, tags: ['project'] },
+        { status: TodoStatus.Todo, text: 'Task two', file, line: 1, tags: [] },
+      ];
+
+      await operations.batchAppendTagAsync(todos, 'project');
+
+      expect(file.setContentAsync).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      // First task should not get double tag
+      expect(setContentCall).toBe('- [ ] Task one #project\n- [ ] Task two #project');
+    });
+
+    it('should handle empty array', async () => {
+      await operations.batchAppendTagAsync([], 'project');
+      // No errors should be thrown
+    });
+
+    it('should skip if all todos already have the tag', async () => {
+      const fileContent = '- [ ] Task one #project\n- [ ] Task two #project';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TodoItem<unknown>[] = [
+        { status: TodoStatus.Todo, text: 'Task one #project', file, line: 0, tags: ['project'] },
+        { status: TodoStatus.Todo, text: 'Task two #project', file, line: 1, tags: ['project'] },
+      ];
+
+      await operations.batchAppendTagAsync(todos, 'project');
+
+      expect(file.setContentAsync).not.toHaveBeenCalled();
+    });
+
+    it('should update todos in multiple files', async () => {
+      const file1 = createMockFileAdapter('- [ ] Task one');
+      const file2 = createMockFileAdapter('- [ ] Task two');
+      const todos = [
+        createTodo('Task one', 0, file1),
+        createTodo('Task two', 0, file2),
+      ];
+
+      await operations.batchAppendTagAsync(todos, 'shared');
+
+      expect(file1.setContentAsync).toHaveBeenCalledTimes(1);
+      expect(file2.setContentAsync).toHaveBeenCalledTimes(1);
+      expect((file1.setContentAsync as jest.Mock).mock.calls[0][0]).toContain('#shared');
+      expect((file2.setContentAsync as jest.Mock).mock.calls[0][0]).toContain('#shared');
+    });
+
+    it('should skip todos with missing line numbers', async () => {
+      const fileContent = '- [ ] Task one\n- [ ] Task two';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TodoItem<unknown>[] = [
+        createTodo('Task one', 0, file),
+        { status: TodoStatus.Todo, text: 'Task missing line', file, line: undefined },
+      ];
+
+      await operations.batchAppendTagAsync(todos, 'project');
+
+      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toContain('- [ ] Task one #project');
+    });
+  });
+
 });
