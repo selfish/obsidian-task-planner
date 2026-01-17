@@ -205,6 +205,49 @@ describe('LineParser', () => {
       expect(result.textWithoutAttributes).toBe('Important task');
       expect(result.attributes).toEqual({ urgent: true });
     });
+
+    it('should parse single hashtag', () => {
+      const result = parser.parseAttributes('Buy milk #shopping');
+      expect(result.textWithoutAttributes).toBe('Buy milk #shopping');
+      expect(result.tags).toEqual(['shopping']);
+    });
+
+    it('should parse multiple hashtags', () => {
+      const result = parser.parseAttributes('Task #work #urgent');
+      expect(result.tags).toEqual(['work', 'urgent']);
+    });
+
+    it('should NOT match pure number hashtags', () => {
+      const result = parser.parseAttributes('Issue #123');
+      expect(result.tags).toEqual([]);
+    });
+
+    it('should handle hyphens and underscores in hashtags', () => {
+      const result = parser.parseAttributes('Task #my-project #work_item');
+      expect(result.tags).toEqual(['my-project', 'work_item']);
+    });
+
+    it('should deduplicate hashtags', () => {
+      const result = parser.parseAttributes('Task #shopping more #shopping');
+      expect(result.tags).toEqual(['shopping']);
+    });
+
+    it('should work with Dataview attributes', () => {
+      const result = parser.parseAttributes('Task #urgent [due:: 2025-01-15]');
+      expect(result.textWithoutAttributes).toBe('Task #urgent');
+      expect(result.attributes).toEqual({ due: '2025-01-15' });
+      expect(result.tags).toEqual(['urgent']);
+    });
+
+    it('should return empty array for no hashtags', () => {
+      const result = parser.parseAttributes('Plain task');
+      expect(result.tags).toEqual([]);
+    });
+
+    it('should parse hashtags with numbers after first letter', () => {
+      const result = parser.parseAttributes('Task #project2024');
+      expect(result.tags).toEqual(['project2024']);
+    });
   });
 
   describe('attributesToString', () => {
@@ -214,6 +257,7 @@ describe('LineParser', () => {
       const result = parser.attributesToString({
         textWithoutAttributes: 'Buy groceries',
         attributes: { due: '2025-01-15' },
+        tags: [],
       });
       expect(result).toBe('Buy groceries [due:: 2025-01-15]');
     });
@@ -222,6 +266,7 @@ describe('LineParser', () => {
       const result = parser.attributesToString({
         textWithoutAttributes: 'Task',
         attributes: { selected: true },
+        tags: [],
       });
       expect(result).toBe('Task [selected:: true]');
     });
@@ -230,6 +275,7 @@ describe('LineParser', () => {
       const result = parser.attributesToString({
         textWithoutAttributes: 'Task',
         attributes: { due: '2025-01-15', priority: 'high' },
+        tags: [],
       });
       expect(result).toContain('[due:: 2025-01-15]');
       expect(result).toContain('[priority:: high]');
@@ -239,6 +285,7 @@ describe('LineParser', () => {
       const result = parser.attributesToString({
         textWithoutAttributes: 'Plain task',
         attributes: {},
+        tags: [],
       });
       expect(result).toBe('Plain task');
     });
