@@ -234,35 +234,15 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function getCustomHorizonTodos(tag: string): TodoItem<TFile>[] {
-    return filteredTodos.filter((todo) => {
-      if (!todo.attributes) return false;
-      const tags = todo.attributes["tags"];
-      if (typeof tags === "string") {
-        return tags
-          .split(",")
-          .map((t) => t.trim())
-          .includes(tag);
-      }
-      return false;
-    });
+    return filteredTodos.filter((todo) => todo.tags?.includes(tag) ?? false);
   }
 
   function isInCustomTagHorizon(todo: TodoItem<TFile>): boolean {
     if (!settings.customHorizons) return false;
-
-    // Get all custom tag horizons
     const customTagHorizons = settings.customHorizons.filter((b) => b.tag);
-
     if (customTagHorizons.length === 0) return false;
-    if (!todo.attributes) return false;
-
-    const todoTags = todo.attributes["tags"];
-    if (typeof todoTags !== "string") return false;
-
-    const todoTagList = todoTags.split(",").map((t) => t.trim());
-
-    // Check if todo has any of the custom horizon tags
-    return customTagHorizons.some((horizon) => horizon.tag && todoTagList.includes(horizon.tag));
+    if (!todo.tags || todo.tags.length === 0) return false;
+    return customTagHorizons.some((h) => h.tag && todo.tags?.includes(h.tag));
   }
 
   function getOverdueTodos(): TodoItem<TFile>[] {
