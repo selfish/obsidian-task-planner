@@ -67,16 +67,23 @@
       }
 
       .tag {
-        display: inline-flex;
+        display: inline-grid;
+        grid-auto-flow: column;
         align-items: center;
         gap: 2px;
-        padding: 2px 6px 2px 4px;
+        padding: 1px 6px 1px 3px;
         font-size: var(--font-xs);
         font-weight: 500;
         border-radius: var(--tag-radius);
         white-space: nowrap;
         background: var(--tag-background);
         color: var(--tag-color);
+        line-height: 1;
+        translate: 0 2px;
+
+        .tag-text{
+          padding-bottom: 2px;
+        }
 
         .icon {
           display: flex;
