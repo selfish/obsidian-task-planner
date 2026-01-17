@@ -41,6 +41,32 @@ export class FileOperations {
     await this.updateContentInFileAsync(todo, updateLine);
   }
 
+  async appendTagAsync<T>(todo: TodoItem<T>, tag: string) {
+    // Skip if task already has this tag
+    if (todo.tags?.includes(tag)) return;
+
+    const updateLine = (line: LineStructure) => {
+      const attributes = this.lineParser.parseAttributes(line.line);
+      // Append tag to the text (before attributes are re-added)
+      attributes.textWithoutAttributes = `${attributes.textWithoutAttributes} #${tag}`;
+      line.line = this.lineParser.attributesToString(attributes);
+    };
+    await this.updateContentInFileAsync(todo, updateLine);
+  }
+
+  async removeTagAsync<T>(todo: TodoItem<T>, tag: string) {
+    // Skip if task doesn't have this tag
+    if (!todo.tags?.includes(tag)) return;
+
+    const updateLine = (line: LineStructure) => {
+      const attributes = this.lineParser.parseAttributes(line.line);
+      // Remove the hashtag from text
+      attributes.textWithoutAttributes = attributes.textWithoutAttributes.replace(new RegExp(`\\s*#${tag}\\b`, "g"), "").trim();
+      line.line = this.lineParser.attributesToString(attributes);
+    };
+    await this.updateContentInFileAsync(todo, updateLine);
+  }
+
   private async updateCheckboxAsync<T>(todo: TodoItem<T>, newCheckbox: string) {
     const updateLine = (line: LineStructure) => {
       line.checkbox = newCheckbox;
@@ -143,6 +169,33 @@ export class FileOperations {
       await this.batchUpdateFileAsync(fileTodos, (line) => {
         const attributes = this.lineParser.parseAttributes(line.line);
         delete attributes.attributes[attributeName];
+        line.line = this.lineParser.attributesToString(attributes);
+      });
+    }
+  }
+
+  async batchAppendTagAsync<T>(todos: TodoItem<T>[], tag: string) {
+    // Filter to only todos that don't already have this tag
+    const todosNeedingTag = todos.filter((t) => !t.tags?.includes(tag));
+    if (todosNeedingTag.length === 0) return;
+
+    // Group todos by file
+    const todosByFile = new Map<FileAdapter<T>, TodoItem<T>[]>();
+    for (const todo of todosNeedingTag) {
+      const file = todo.file;
+      let fileTodos = todosByFile.get(file);
+      if (!fileTodos) {
+        fileTodos = [];
+        todosByFile.set(file, fileTodos);
+      }
+      fileTodos.push(todo);
+    }
+
+    // Update each file once with all changes
+    for (const [, fileTodos] of todosByFile) {
+      await this.batchUpdateFileAsync(fileTodos, (line) => {
+        const attributes = this.lineParser.parseAttributes(line.line);
+        attributes.textWithoutAttributes = `${attributes.textWithoutAttributes} #${tag}`;
         line.line = this.lineParser.attributesToString(attributes);
       });
     }

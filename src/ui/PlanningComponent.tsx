@@ -83,12 +83,12 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const isInRangeOrSelected = dueDateIsInRange || (includeSelected && isSelected);
       return isInRangeOrSelected;
     }
-    const todosInRange = filteredTodos.filter((todo) => todo.attributes && todoInRange(todo) && !isInCustomTagHorizon(todo));
+    const todosInRange = filteredTodos.filter((todo) => todo.attributes && todoInRange(todo));
     return todosInRange;
   }
 
   function getTodosWithNoDate(): TodoItem<TFile>[] {
-    return filteredTodos.filter((todo) => !findTodoDate(todo, settings.dueDateAttribute) && todo.attributes && !todo.attributes[settings.selectedAttribute] && todo.status !== TodoStatus.Canceled && todo.status !== TodoStatus.Complete && !isInCustomTagHorizon(todo));
+    return filteredTodos.filter((todo) => !findTodoDate(todo, settings.dueDateAttribute) && todo.attributes && !todo.attributes[settings.selectedAttribute] && todo.status !== TodoStatus.Canceled && todo.status !== TodoStatus.Complete);
   }
 
   function findTodo(todoId: string): TodoItem<TFile> | undefined {
@@ -118,6 +118,35 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const dateStr = date.format("YYYY-MM-DD");
       deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr}`);
       await fileOperations.batchUpdateAttributeAsync(foundTodos, settings.dueDateAttribute, dateStr);
+    };
+  }
+
+  function moveToDateAndTag(date: Moment, tag: string) {
+    return (todoId: string) => {
+      const todo = findTodo(todoId);
+      const dateStr = date.format("YYYY-MM-DD");
+      deps.logger.debug(`Moving ${todoId} to ${dateStr} with tag #${tag}`);
+      if (!todo) {
+        deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
+        return;
+      }
+      void fileOperations.updateAttributeAsync(todo, settings.dueDateAttribute, dateStr).then(() => {
+        void fileOperations.appendTagAsync(todo, tag);
+      });
+    };
+  }
+
+  function batchMoveToDateAndTag(date: Moment, tag: string) {
+    return async (todoIds: string[]) => {
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      if (foundTodos.length === 0) {
+        deps.logger.warn(`No todos found for batch move`);
+        return;
+      }
+      const dateStr = date.format("YYYY-MM-DD");
+      deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr} with tag #${tag}`);
+      await fileOperations.batchUpdateAttributeAsync(foundTodos, settings.dueDateAttribute, dateStr);
+      await fileOperations.batchAppendTagAsync(foundTodos, tag);
     };
   }
 
@@ -233,25 +262,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return "";
   }
 
-  function getCustomHorizonTodos(tag: string): TodoItem<TFile>[] {
-    return filteredTodos.filter((todo) => todo.tags?.includes(tag) ?? false);
-  }
-
-  function isInCustomTagHorizon(todo: TodoItem<TFile>): boolean {
-    if (!settings.customHorizons) return false;
-    const customTagHorizons = settings.customHorizons.filter((b) => b.tag);
-    if (customTagHorizons.length === 0) return false;
-    if (!todo.tags || todo.tags.length === 0) return false;
-    return customTagHorizons.some((h) => h.tag && todo.tags?.includes(h.tag));
-  }
-
   function getOverdueTodos(): TodoItem<TFile>[] {
     const today = moment().startOf("day");
     return filteredTodos.filter((todo) => {
       if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
-        return false;
-      }
-      if (isInCustomTagHorizon(todo)) {
         return false;
       }
       const dueDate = findTodoDate(todo, settings.dueDateAttribute);
@@ -357,12 +371,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     // Custom horizons with position "before" (before backlog)
     if (customHorizons) {
       for (const horizon of customHorizons.filter((b) => b.position === "before")) {
-        if (horizon.tag) {
-          yield todoColumn("tag", horizon.label, getCustomHorizonTodos(horizon.tag), hideEmpty, null, null);
-        } else if (horizon.date) {
-          const horizonDate = moment(horizon.date);
-          yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, moveToDate(horizonDate), batchMoveToDate(horizonDate));
-        }
+        const horizonDate = moment(horizon.date);
+        const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
+        const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop);
       }
     }
 
@@ -381,7 +393,6 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const tomorrow = today.clone().add(1, "day");
       const todayTodos = filteredTodos.filter((todo) => {
         if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) return false;
-        if (isInCustomTagHorizon(todo)) return false;
         const dueDate = findTodoDate(todo, settings.dueDateAttribute);
         return dueDate && dueDate.isSameOrAfter(today) && dueDate.isBefore(tomorrow);
       });
@@ -391,12 +402,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     // Custom horizons with position "after" (after backlog, before time horizons)
     if (customHorizons) {
       for (const horizon of customHorizons.filter((b) => b.position === "after")) {
-        if (horizon.tag) {
-          yield todoColumn("tag", horizon.label, getCustomHorizonTodos(horizon.tag), hideEmpty, null, null);
-        } else if (horizon.date) {
-          const horizonDate = moment(horizon.date);
-          yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, moveToDate(horizonDate), batchMoveToDate(horizonDate));
-        }
+        const horizonDate = moment(horizon.date);
+        const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
+        const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop);
       }
     }
 
@@ -525,12 +534,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     // Custom horizons with position "end" (after time horizons)
     if (customHorizons) {
       for (const horizon of customHorizons.filter((b) => b.position === "end")) {
-        if (horizon.tag) {
-          yield todoColumn("tag", horizon.label, getCustomHorizonTodos(horizon.tag), hideEmpty, null, null);
-        } else if (horizon.date) {
-          const horizonDate = moment(horizon.date);
-          yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, moveToDate(horizonDate), batchMoveToDate(horizonDate));
-        }
+        const horizonDate = moment(horizon.date);
+        const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
+        const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop);
       }
     }
   }
