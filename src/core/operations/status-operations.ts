@@ -91,6 +91,7 @@ export class StatusOperations {
       status: this.markToStatus(parsedLine.checkbox[1]),
       text: attributesMatching.textWithoutAttributes,
       attributes: attributesMatching.attributes,
+      tags: attributesMatching.tags,
       file: undefined as unknown,
     } as TodoItem<T>;
     const res: TodoParsingResult<T> = {
