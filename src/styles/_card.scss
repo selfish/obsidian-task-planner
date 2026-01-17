@@ -67,14 +67,13 @@
       }
 
       .tag {
-        // Match .badge styles exactly
         display: inline-flex;
         align-items: center;
-        gap: 2px;
-        padding: 2px 6px 2px 4px;
-        font-size: var(--font-xs);
+        gap: 1px;
+        padding: 0 4px 0 2px;
+        font-size: inherit;
         font-weight: 500;
-        border-radius: var(--radius-sm);
+        border-radius: var(--tag-radius);
         white-space: nowrap;
         background: var(--tag-background);
         color: var(--tag-color);
@@ -82,10 +81,9 @@
         .icon {
           display: flex;
           align-items: center;
-          justify-content: center;
           width: 10px;
           height: 10px;
-          opacity: 0.7;
+          opacity: 0.6;
 
           svg.svg-icon {
             width: 10px;
