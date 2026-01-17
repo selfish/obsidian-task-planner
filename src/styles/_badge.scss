@@ -19,17 +19,27 @@
       }
     }
 
-    // Priority badges
+    // Priority badges - tinted background with colored text
     &.priority {
-      color: white;
-
-      &.critical { background: var(--priority-critical); }
-      &.high { background: var(--priority-high); }
-      &.medium { background: var(--priority-medium); }
-      &.low { background: var(--priority-low); }
+      &.critical {
+        background: color-mix(in srgb, var(--priority-critical) 15%, transparent);
+        color: var(--priority-critical);
+      }
+      &.high {
+        background: color-mix(in srgb, var(--priority-high) 15%, transparent);
+        color: var(--priority-high);
+      }
+      &.medium {
+        background: color-mix(in srgb, var(--priority-medium) 15%, transparent);
+        color: var(--priority-medium);
+      }
+      &.low {
+        background: color-mix(in srgb, var(--priority-low) 15%, transparent);
+        color: var(--priority-low);
+      }
       &.lowest {
-        background: var(--priority-lowest);
-        color: var(--text-normal);
+        background: color-mix(in srgb, var(--priority-lowest) 15%, transparent);
+        color: var(--priority-lowest);
       }
     }
 

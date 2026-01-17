@@ -76,6 +76,24 @@ function cleanWikiLinks(text: string): string {
   });
 }
 
+function InlineTag({ tag }: { tag: string }): React.ReactElement {
+  const iconRef = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    if (iconRef.current) {
+      iconRef.current.replaceChildren();
+      setIcon(iconRef.current, "hash");
+    }
+  }, []);
+
+  return (
+    <span className="tag">
+      <span ref={iconRef} className="icon"></span>
+      {tag}
+    </span>
+  );
+}
+
 function renderTextWithTags(text: string): React.ReactNode[] {
   const cleanedText = cleanWikiLinks(text);
   const parts: React.ReactNode[] = [];
@@ -88,12 +106,8 @@ function renderTextWithTags(text: string): React.ReactNode[] {
     if (match.index > lastIndex) {
       parts.push(cleanedText.slice(lastIndex, match.index));
     }
-    // Add the styled tag
-    parts.push(
-      <span key={match.index} className="tag">
-        #{match[1]}
-      </span>
-    );
+    // Add the styled tag with icon
+    parts.push(<InlineTag key={match.index} tag={match[1]} />);
     lastIndex = match.index + match[0].length;
   }
 
