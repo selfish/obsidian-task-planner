@@ -65,6 +65,16 @@
         text-decoration: line-through;
         color: var(--text-muted);
       }
+
+      .tag {
+        background: var(--tag-background);
+        color: var(--tag-color);
+        padding: 1px 6px;
+        border-radius: var(--tag-radius);
+        font-size: var(--font-xs);
+        font-weight: 500;
+        white-space: nowrap;
+      }
     }
 
     .meta {
