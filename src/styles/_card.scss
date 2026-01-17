@@ -67,13 +67,28 @@
       }
 
       .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
         background: var(--tag-background);
         color: var(--tag-color);
-        padding: 1px 6px;
+        padding: 1px 6px 1px 4px;
         border-radius: var(--tag-radius);
         font-size: var(--font-xs);
         font-weight: 500;
         white-space: nowrap;
+        vertical-align: baseline;
+
+        .icon {
+          width: 10px;
+          height: 10px;
+          opacity: 0.7;
+
+          svg {
+            width: 10px;
+            height: 10px;
+          }
+        }
       }
     }
 

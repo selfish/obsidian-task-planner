@@ -31,12 +31,12 @@
   // Transitions
   --transition: all 0.15s ease;
 
-  // Priority Colors
-  --priority-critical: #dc2626;
-  --priority-high: #ea580c;
-  --priority-medium: #2563eb;
-  --priority-low: #64748b;
-  --priority-lowest: #94a3b8;
+  // Priority Colors - use theme variables for consistency
+  --priority-critical: var(--text-error);
+  --priority-high: var(--text-warning);
+  --priority-medium: var(--text-accent);
+  --priority-low: var(--text-muted);
+  --priority-lowest: var(--text-faint);
 
   // Layout
   --column-min: 240px;
