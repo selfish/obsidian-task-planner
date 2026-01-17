@@ -70,9 +70,9 @@
         display: inline-flex;
         align-items: center;
         gap: 1px;
-        padding: 0 4px 0 2px;
+        padding: 0 3px 0 1px;
         font-size: inherit;
-        font-weight: 500;
+        font-weight: inherit;
         border-radius: var(--tag-radius);
         white-space: nowrap;
         background: var(--tag-background);
@@ -81,13 +81,13 @@
         .icon {
           display: flex;
           align-items: center;
-          width: 10px;
-          height: 10px;
-          opacity: 0.6;
+          width: 9px;
+          height: 9px;
+          opacity: 0.5;
 
           svg.svg-icon {
-            width: 10px;
-            height: 10px;
+            width: 9px;
+            height: 9px;
           }
         }
       }
