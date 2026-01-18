@@ -11,7 +11,7 @@ describe('TaskPlannerEvent', () => {
       const handler = jest.fn().mockResolvedValue(undefined);
       const event = new TaskPlannerEvent<string>(handler);
 
-      await event.fireAsync('test');
+      await event.fire('test');
 
       expect(handler).toHaveBeenCalledWith('test');
     });
@@ -23,7 +23,7 @@ describe('TaskPlannerEvent', () => {
       const handler = jest.fn().mockResolvedValue(undefined);
 
       event.listen(handler);
-      await event.fireAsync('test');
+      await event.fire('test');
 
       expect(handler).toHaveBeenCalledWith('test');
     });
@@ -35,7 +35,7 @@ describe('TaskPlannerEvent', () => {
 
       event.listen(handler1);
       event.listen(handler2);
-      await event.fireAsync(42);
+      await event.fire(42);
 
       expect(handler1).toHaveBeenCalledWith(42);
       expect(handler2).toHaveBeenCalledWith(42);
@@ -47,7 +47,7 @@ describe('TaskPlannerEvent', () => {
 
       const unsubscribe = event.listen(handler);
       unsubscribe();
-      await event.fireAsync('test');
+      await event.fire('test');
 
       expect(handler).not.toHaveBeenCalled();
     });
@@ -61,20 +61,20 @@ describe('TaskPlannerEvent', () => {
       event.listen(handler2);
 
       unsubscribe1();
-      await event.fireAsync('test');
+      await event.fire('test');
 
       expect(handler1).not.toHaveBeenCalled();
       expect(handler2).toHaveBeenCalledWith('test');
     });
   });
 
-  describe('fireAsync', () => {
+  describe('fire', () => {
     it('should call all handlers with event data', async () => {
       const event = new TaskPlannerEvent<{ name: string; value: number }>();
       const handler = jest.fn().mockResolvedValue(undefined);
 
       event.listen(handler);
-      await event.fireAsync({ name: 'test', value: 123 });
+      await event.fire({ name: 'test', value: 123 });
 
       expect(handler).toHaveBeenCalledWith({ name: 'test', value: 123 });
     });
@@ -94,7 +94,7 @@ describe('TaskPlannerEvent', () => {
 
       event.listen(handler1);
       event.listen(handler2);
-      await event.fireAsync('test');
+      await event.fire('test');
 
       // Handler 2 should complete first since it has shorter delay
       expect(executionOrder).toEqual([2, 1]);
@@ -112,7 +112,7 @@ describe('TaskPlannerEvent', () => {
       event.listen(successHandler);
 
       // Should not throw and should still call the success handler
-      await event.fireAsync('test');
+      await event.fire('test');
 
       expect(successHandler).toHaveBeenCalled();
     });
@@ -121,7 +121,7 @@ describe('TaskPlannerEvent', () => {
       const event = new TaskPlannerEvent<string>();
 
       // Should not throw
-      await event.fireAsync('test');
+      await event.fire('test');
     });
   });
 
@@ -148,7 +148,7 @@ describe('TaskPlannerEvent', () => {
         },
       };
 
-      await event.fireAsync(testData);
+      await event.fire(testData);
 
       expect(handler).toHaveBeenCalledWith(testData);
     });
@@ -158,7 +158,7 @@ describe('TaskPlannerEvent', () => {
       const handler = jest.fn().mockResolvedValue(undefined);
 
       event.listen(handler);
-      await event.fireAsync([1, 2, 3, 4, 5]);
+      await event.fire([1, 2, 3, 4, 5]);
 
       expect(handler).toHaveBeenCalledWith([1, 2, 3, 4, 5]);
     });
@@ -168,7 +168,7 @@ describe('TaskPlannerEvent', () => {
       const handler = jest.fn().mockResolvedValue(undefined);
 
       event.listen(handler);
-      await event.fireAsync(null);
+      await event.fire(null);
 
       expect(handler).toHaveBeenCalledWith(null);
     });

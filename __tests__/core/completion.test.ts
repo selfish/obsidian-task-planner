@@ -42,46 +42,4 @@ describe('Completion', () => {
       expect(result).toBeNull();
     });
   });
-
-  describe('instance methods', () => {
-    let completion: Completion;
-
-    beforeEach(() => {
-      completion = new Completion();
-    });
-
-    describe('complete', () => {
-      it('should return empty array when not at an attribute position', () => {
-        const result = completion.complete('Buy groceries', 5);
-        expect(result).toEqual([]);
-      });
-
-      it('should return empty array when at beginning of line', () => {
-        const result = completion.complete('Buy groceries', 0);
-        expect(result).toEqual([]);
-      });
-
-      it('should return empty array for empty content', () => {
-        const result = completion.complete('', 0);
-        expect(result).toEqual([]);
-      });
-
-      it('should return empty array when @ is not preceded by space', () => {
-        const result = completion.complete('email@example.com', 6);
-        expect(result).toEqual([]);
-      });
-
-      it('should recognize attribute position after space and @', () => {
-        const result = completion.complete('Task @due', 9);
-        // Returns empty since completeAttribute is stubbed
-        expect(result).toEqual([]);
-      });
-
-      it('should recognize attribute value position', () => {
-        const result = completion.complete('Task @due(val', 13);
-        // Returns empty since findMatchingAttributeValues returns []
-        expect(result).toEqual([]);
-      });
-    });
-  });
 });

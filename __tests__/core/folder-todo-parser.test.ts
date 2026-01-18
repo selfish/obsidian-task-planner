@@ -8,8 +8,8 @@ const createMockFileAdapter = (id: string, content: string): FileAdapter<unknown
   id,
   path: `notes/${id}.md`,
   name: `${id}.md`,
-  getContentAsync: jest.fn().mockResolvedValue(content),
-  setContentAsync: jest.fn().mockResolvedValue(undefined),
+  getContent: jest.fn().mockResolvedValue(content),
+  setContent: jest.fn().mockResolvedValue(undefined),
   createOrSave: jest.fn().mockResolvedValue(undefined),
   isInFolder: jest.fn().mockReturnValue(false),
   file: {},
@@ -23,7 +23,7 @@ const createMockLogger = (): Logger => ({
 });
 
 const createMockFileTodoParser = (todos: TodoItem<unknown>[]): FileTodoParser<unknown> => ({
-  parseMdFileAsync: jest.fn().mockResolvedValue(todos),
+  parseMdFile: jest.fn().mockResolvedValue(todos),
 }) as unknown as FileTodoParser<unknown>;
 
 describe('FolderTodoParser', () => {
@@ -33,7 +33,7 @@ describe('FolderTodoParser', () => {
     mockLogger = createMockLogger();
   });
 
-  describe('ParseFilesAsync', () => {
+  describe('parseFiles', () => {
     it('should parse multiple files and return todos by file', async () => {
       const mockTodos1: TodoItem<unknown>[] = [
         { status: TodoStatus.Todo, text: 'Task 1', file: {} as FileAdapter<unknown> },
@@ -43,7 +43,7 @@ describe('FolderTodoParser', () => {
       ];
 
       const mockFileTodoParser = {
-        parseMdFileAsync: jest.fn()
+        parseMdFile: jest.fn()
           .mockResolvedValueOnce(mockTodos1)
           .mockResolvedValueOnce(mockTodos2),
       } as unknown as FileTodoParser<unknown>;
@@ -57,7 +57,7 @@ describe('FolderTodoParser', () => {
       const file1 = createMockFileAdapter('file1', '- [ ] Task 1');
       const file2 = createMockFileAdapter('file2', '- [ ] Task 2');
 
-      const result = await parser.ParseFilesAsync([file1, file2]);
+      const result = await parser.parseFiles([file1, file2]);
 
       expect(result).toHaveLength(2);
       expect(result[0].file).toBe(file1);
@@ -76,7 +76,7 @@ describe('FolderTodoParser', () => {
 
       const file = createMockFileAdapter('file1', '');
 
-      await parser.ParseFilesAsync([file]);
+      await parser.parseFiles([file]);
 
       expect(mockLogger.debug).toHaveBeenCalledWith('Loading 1 files');
       expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Loaded 1 todos in'));
@@ -90,7 +90,7 @@ describe('FolderTodoParser', () => {
       };
       const parser = new FolderTodoParser(deps);
 
-      const result = await parser.ParseFilesAsync([]);
+      const result = await parser.parseFiles([]);
 
       expect(result).toHaveLength(0);
       expect(mockLogger.debug).toHaveBeenCalledWith('Loading 0 files');
@@ -99,7 +99,7 @@ describe('FolderTodoParser', () => {
     it('should parse files in parallel', async () => {
       const parseOrder: string[] = [];
       const mockFileTodoParser = {
-        parseMdFileAsync: jest.fn().mockImplementation(async (file: FileAdapter<unknown>) => {
+        parseMdFile: jest.fn().mockImplementation(async (file: FileAdapter<unknown>) => {
           parseOrder.push(file.id);
           // Add a small delay to verify parallel execution
           await new Promise(resolve => setTimeout(resolve, 10));
@@ -119,7 +119,7 @@ describe('FolderTodoParser', () => {
         createMockFileAdapter('file3', ''),
       ];
 
-      await parser.ParseFilesAsync(files);
+      await parser.parseFiles(files);
 
       // All files should have been parsed
       expect(parseOrder).toContain('file1');
@@ -140,7 +140,7 @@ describe('FolderTodoParser', () => {
         createMockFileAdapter('file2', ''),
       ];
 
-      await parser.ParseFilesAsync(files);
+      await parser.parseFiles(files);
 
       // "Loaded 2 todos" because we have 2 TodosInFiles results
       expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringMatching(/Loaded 2 todos in \d+ms/));

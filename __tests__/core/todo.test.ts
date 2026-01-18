@@ -1,7 +1,6 @@
 import { TodoStatus, TodoItem, getTodoId } from '../../src/types/todo';
 import { FileAdapter } from '../../src/types/file-adapter';
 
-// Mock FileAdapter
 const createMockFileAdapter = (id: string, path: string): FileAdapter<unknown> => ({
   id,
   path,
