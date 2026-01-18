@@ -72,6 +72,29 @@ Allow users to define their own attribute names for grouping/filtering.
 
 ---
 
+### [ ] Task Inbox / Quick Add
+**Effort:** Medium | **Type:** Feature
+
+Add ability to create tasks directly from the task view.
+
+**Open questions:**
+- Where do new tasks get dropped? (dedicated inbox note? current daily note? configurable?)
+- UI: floating button? keyboard shortcut? input field in header?
+
+---
+
+### [ ] Render Tasks Like Notes
+**Effort:** Small | **Type:** UI
+
+Task text should render closer to how it appears in notes:
+- Markdown links `[text](url)` should display as plaintext (not raw syntax)
+- Wikilinks `[[page]]` should render plainly
+- Other inline formatting as appropriate
+
+Currently task text is shown raw, which looks cluttered.
+
+---
+
 ## Low Priority / Future
 
 ### [ ] Status Toggle UI
@@ -145,6 +168,15 @@ The `project?: string` field in `TodoItem` is:
 - Never used in UI or filtering
 
 **Action:** Remove the field and any related dead code.
+
+---
+
+### [ ] Align Settings LED Buttons with Planning View
+**Effort:** Small | **Type:** UI Consistency
+
+LED toggle buttons in settings look different from the LED buttons in the planning view "controls" section. They should use the same styling.
+
+**Action:** Unify the LED button component/styles between settings and planning view controls.
 
 ---
 
