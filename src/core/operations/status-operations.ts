@@ -1,7 +1,7 @@
+import { Completion } from "./completion";
 import { TaskPlannerSettings } from "../../settings";
 import { AttributesStructure, TodoItem, TodoParsingResult, TodoStatus } from "../../types";
 import { LineParser } from "../parsers/line-parser";
-import { Completion } from "./completion";
 
 export class StatusOperations {
   private lineParser: LineParser;

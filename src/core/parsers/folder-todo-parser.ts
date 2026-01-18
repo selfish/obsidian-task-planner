@@ -1,6 +1,6 @@
+import { FileTodoParser } from "./file-todo-parser";
 import { ParseError } from "../../lib/errors";
 import { FileAdapter, Logger, TodosInFiles } from "../../types";
-import { FileTodoParser } from "./file-todo-parser";
 
 export interface FolderTodoParserDeps<TFile> {
   fileTodoParser: FileTodoParser<TFile>;

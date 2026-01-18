@@ -1,10 +1,12 @@
-import * as React from "react";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { App, TFile } from "obsidian";
+
+import * as React from "react";
+
 import { TodoItemComponent } from "./todo-item-component";
 import { TaskPlannerSettings } from "../settings/types";
-import { Logger } from "../types/logger";
 import { Consts } from "../types/constants";
+import { Logger } from "../types/logger";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { getFileDisplayName } from "../utils/file-utils";
 
 function getPriorityValue(todo: TodoItem<TFile>): number {

@@ -1,4 +1,5 @@
 import { Command, Workspace } from "obsidian";
+
 import { PlanningView } from "../views";
 
 export class OpenPlanningCommand implements Command {

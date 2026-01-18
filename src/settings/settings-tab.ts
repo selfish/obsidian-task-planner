@@ -1,7 +1,8 @@
-import TaskPlannerPlugin from "../main";
 import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidian";
-import { FolderSuggest } from "../ui/folder-suggest";
+
+import TaskPlannerPlugin from "../main";
 import { HorizonColor, CustomHorizon } from "./types";
+import { FolderSuggest } from "../ui/folder-suggest";
 
 const HORIZON_COLORS: { value: HorizonColor; cssVar: string }[] = [
   { value: "red", cssVar: "var(--color-red)" },
@@ -104,12 +105,13 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       labelSpan.setText(day.label);
       dayButton.createSpan({ cls: "th-weekday-btn-led" });
 
-      dayButton.addEventListener("click", async () => {
+      dayButton.addEventListener("click", () => {
         const newValue = !isChecked;
         (this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = newValue;
-        await this.plugin.saveSettings();
-        this.plugin.refreshPlanningViews();
-        this.display();
+        void this.plugin.saveSettings().then(() => {
+          this.plugin.refreshPlanningViews();
+          this.display();
+        });
       });
     });
 
@@ -485,10 +487,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     const row1 = card.createDiv({ cls: "th-horizon-card-row" });
 
-    const colorPicker = this.createColorPicker(horizon.color, async (color) => {
+    const colorPicker = this.createColorPicker(horizon.color, (color) => {
       this.plugin.settings.customHorizons[index].color = color;
-      await this.plugin.saveSettings();
-      this.plugin.refreshPlanningViews();
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.refreshPlanningViews();
+      });
     });
     row1.appendChild(colorPicker);
 
@@ -498,10 +501,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       value: horizon.label,
       attr: { placeholder: "Horizon name" },
     });
-    labelInput.addEventListener("change", async () => {
+    labelInput.addEventListener("change", () => {
       this.plugin.settings.customHorizons[index].label = labelInput.value.trim();
-      await this.plugin.saveSettings();
-      this.plugin.refreshPlanningViews();
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.refreshPlanningViews();
+      });
     });
 
     const deleteBtn = row1.createEl("button", {
@@ -509,11 +513,12 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       attr: { "aria-label": "Delete", type: "button" },
     });
     setIcon(deleteBtn, "trash-2");
-    deleteBtn.addEventListener("click", async () => {
+    deleteBtn.addEventListener("click", () => {
       this.plugin.settings.customHorizons.splice(index, 1);
-      await this.plugin.saveSettings();
-      this.plugin.refreshPlanningViews();
-      this.display();
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.refreshPlanningViews();
+        this.display();
+      });
     });
 
     const row2 = card.createDiv({ cls: "th-horizon-card-row th-horizon-card-row--details" });
@@ -523,10 +528,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       cls: "th-horizon-date",
       value: horizon.date,
     });
-    dateInput.addEventListener("change", async () => {
+    dateInput.addEventListener("change", () => {
       this.plugin.settings.customHorizons[index].date = dateInput.value;
-      await this.plugin.saveSettings();
-      this.plugin.refreshPlanningViews();
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.refreshPlanningViews();
+      });
     });
 
     const tagWrapper = row2.createDiv({ cls: "th-horizon-tag-wrapper" });
@@ -537,10 +543,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       value: horizon.tag || "",
       attr: { placeholder: "Tag" },
     });
-    tagInput.addEventListener("change", async () => {
+    tagInput.addEventListener("change", () => {
       this.plugin.settings.customHorizons[index].tag = tagInput.value.trim() || undefined;
-      await this.plugin.saveSettings();
-      this.plugin.refreshPlanningViews();
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.refreshPlanningViews();
+      });
     });
 
     const positionSelect = row2.createEl("select", { cls: "th-horizon-position dropdown" });
@@ -553,10 +560,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       const option = positionSelect.createEl("option", { value: pos.value, text: pos.label });
       if (horizon.position === pos.value) option.selected = true;
     }
-    positionSelect.addEventListener("change", async () => {
+    positionSelect.addEventListener("change", () => {
       this.plugin.settings.customHorizons[index].position = positionSelect.value as "before" | "after" | "end";
-      await this.plugin.saveSettings();
-      this.plugin.refreshPlanningViews();
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.refreshPlanningViews();
+      });
     });
   }
 

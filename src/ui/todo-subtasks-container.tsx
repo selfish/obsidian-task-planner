@@ -1,9 +1,11 @@
-import * as React from "react";
-import { TodoItemComponent } from "./todo-item-component";
-import { TodoItem } from "../types/todo";
 import { App, TFile, setIcon } from "obsidian";
+
+import * as React from "react";
+
+import { TodoItemComponent } from "./todo-item-component";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
+import { TodoItem } from "../types/todo";
 
 export interface TodoSubtasksContainerDeps {
   logger: Logger;

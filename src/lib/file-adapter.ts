@@ -1,5 +1,6 @@
-import { FileAdapter } from "../types";
 import { App, TFile } from "obsidian";
+
+import { FileAdapter } from "../types";
 
 export class ObsidianFile implements FileAdapter<TFile> {
   name: string;

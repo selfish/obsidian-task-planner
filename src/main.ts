@@ -14,6 +14,7 @@
  */
 
 import { App, Plugin, PluginManifest, TFile } from "obsidian";
+
 import {
   CompleteLineCommand,
   OpenPlanningCommand,
@@ -165,6 +166,7 @@ export default class TaskPlannerPlugin extends Plugin {
     }, 50);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-function -- cleanup handled by Obsidian's Plugin base class
   onunload(): void {}
 
   async loadSettings(): Promise<void> {

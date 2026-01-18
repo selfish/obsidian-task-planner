@@ -1,7 +1,8 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
+
 import { TaskPlannerSettings } from "../settings";
-import { mountTodoReportComponent, TodoReportComponentDeps } from "../ui/todo-report-component";
 import { PlanningView } from "./planning-view";
+import { mountTodoReportComponent, TodoReportComponentDeps } from "../ui/todo-report-component";
 
 export class TodoReportView extends ItemView {
   static viewType = "task-planner.report";
@@ -43,7 +44,7 @@ export class TodoReportView extends ItemView {
         app: this.app,
         settings: this.settings,
       },
-      onOpenPlanning: () => this.openPlanning(),
+      onOpenPlanning: () => { void this.openPlanning(); },
     });
   }
 

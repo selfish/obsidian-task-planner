@@ -1,4 +1,5 @@
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
+
 import { StatusOperations } from "../core";
 import { TaskPlannerSettings } from "../settings";
 

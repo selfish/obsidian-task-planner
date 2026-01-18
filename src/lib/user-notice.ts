@@ -1,4 +1,5 @@
 import { Notice } from "obsidian";
+
 import { TaskPlannerError, ErrorTier } from "./errors";
 
 /**

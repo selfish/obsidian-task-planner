@@ -1,9 +1,10 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
+
 import { TodoIndex } from "../core";
 import { TaskPlannerSettings } from "../settings";
 import { Logger } from "../types";
-import { mountPlanningComponent } from "../ui/planning-component";
 import { TodoReportView } from "./todo-report-view";
+import { mountPlanningComponent } from "../ui/planning-component";
 
 export interface PlanningViewDeps {
   logger: Logger;
@@ -51,7 +52,7 @@ export class PlanningView extends ItemView {
       settings: this.settings,
       app: this.app,
       onRefresh: () => this.render(),
-      onOpenReport: () => this.openReport(),
+      onOpenReport: () => { void this.openReport(); },
     });
   }
 
