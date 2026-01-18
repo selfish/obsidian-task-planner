@@ -1,4 +1,5 @@
 import { App, TAbstractFile, TFolder } from "obsidian";
+
 import { TextInputSuggest } from "./text-input-suggest";
 
 export class FolderSuggest extends TextInputSuggest<TFolder> {

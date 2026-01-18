@@ -115,7 +115,16 @@ export default [
       "@microsoft/sdl/no-inner-html": "error",
 
       // Import rules
-      "import/no-extraneous-dependencies": "error",
+      "import/no-extraneous-dependencies": [
+        "error",
+        {
+          // @codemirror packages are bundled with Obsidian
+          devDependencies: false,
+          peerDependencies: true,
+          optionalDependencies: false,
+          bundledDependencies: false,
+        },
+      ],
       "import/order": [
         "error",
         {

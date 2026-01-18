@@ -1,17 +1,20 @@
-import * as React from "react";
-import { createRoot } from "react-dom/client";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
-import { Logger } from "../types/logger";
 import { App, TFile } from "obsidian";
-import { moment, Moment } from "../utils/moment";
-import { findTodoDate } from "../utils/todo-utils";
+
+import * as React from "react";
+
+import { createRoot } from "react-dom/client";
+
+import { PlanningSettingsComponent } from "./planning-settings-component";
+import { PlanningSettingsStore } from "./planning-settings-store";
+import { PlanningTodoColumn } from "./planning-todo-column";
 import { TodoIndex } from "../core/index/todo-index";
+import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { FileOperations } from "../core/operations/file-operations";
 import { TaskPlannerSettings } from "../settings/types";
-import { PlanningSettingsComponent } from "./planning-settings-component";
-import { PlanningTodoColumn } from "./planning-todo-column";
-import { TodoMatcher } from "../core/matchers/todo-matcher";
-import { PlanningSettingsStore } from "./planning-settings-store";
+import { Logger } from "../types/logger";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
+import { moment, Moment } from "../utils/moment";
+import { findTodoDate } from "../utils/todo-utils";
 
 export interface PlanningComponentDeps {
   logger: Logger;

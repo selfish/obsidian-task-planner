@@ -1,14 +1,17 @@
-import * as React from "react";
-import { createRoot } from "react-dom/client";
 import { App, TFile, setIcon } from "obsidian";
-import { Logger } from "../types/logger";
+
+import * as React from "react";
+
+import { createRoot } from "react-dom/client";
+
+import { TodoListComponent } from "./todo-list-component";
 import { TodoIndex } from "../core/index/todo-index";
+import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { TaskPlannerSettings } from "../settings/types";
+import { Logger } from "../types/logger";
 import { TodoItem, TodoStatus } from "../types/todo";
 import { moment, Moment } from "../utils/moment";
 import { findTodoDate } from "../utils/todo-utils";
-import { TodoListComponent } from "./todo-list-component";
-import { TodoMatcher } from "../core/matchers/todo-matcher";
 
 export interface TodoReportComponentDeps {
   logger: Logger;

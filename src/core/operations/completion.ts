@@ -1,4 +1,5 @@
 import * as chrono from "chrono-node";
+
 import { moment } from "../../utils";
 
 export class Completion {

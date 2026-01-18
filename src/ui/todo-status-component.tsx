@@ -1,9 +1,11 @@
-import * as React from "react";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { App, Menu, TFile, setIcon } from "obsidian";
+
+import * as React from "react";
+
 import { FileOperations } from "../core/operations/file-operations";
-import { Logger } from "../types/logger";
 import { TaskPlannerSettings } from "../settings/types";
+import { Logger } from "../types/logger";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 
 function getStatusIcon(status: TodoStatus): string {
   switch (status) {

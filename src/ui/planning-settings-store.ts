@@ -1,4 +1,5 @@
 import { App } from "obsidian";
+
 import { PlanningSettings, getDefaultSettings } from "./planning-settings";
 
 // Type augmentation for Obsidian's App - these methods exist but aren't in public types

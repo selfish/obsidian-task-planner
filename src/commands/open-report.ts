@@ -1,4 +1,5 @@
 import { Command, Workspace } from "obsidian";
+
 import { TodoReportView } from "../views";
 
 export class OpenReportCommand implements Command {

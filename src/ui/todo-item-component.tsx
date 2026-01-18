@@ -1,11 +1,13 @@
-import * as React from "react";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { MarkdownView, Menu, TFile, setIcon } from "obsidian";
-import { TodoSubtasksContainer } from "./todo-subtasks-container";
-import { TodoStatusComponent } from "./todo-status-component";
-import { Consts } from "../types/constants";
-import { FileOperations } from "../core/operations/file-operations";
+
+import * as React from "react";
+
 import { StandardDependencies } from "./standard-dependencies";
+import { TodoStatusComponent } from "./todo-status-component";
+import { TodoSubtasksContainer } from "./todo-subtasks-container";
+import { FileOperations } from "../core/operations/file-operations";
+import { Consts } from "../types/constants";
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { getFileDisplayName } from "../utils/file-utils";
 
 interface PriorityBadgeProps {

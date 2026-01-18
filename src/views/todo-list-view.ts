@@ -1,4 +1,5 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
+
 import { TodoIndex } from "../core";
 import { TaskPlannerSettings } from "../settings";
 import { Logger } from "../types";

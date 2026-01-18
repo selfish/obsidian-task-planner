@@ -1,6 +1,8 @@
-import * as React from "react";
-import { PlanningSettings } from "./planning-settings";
 import { App, setIcon } from "obsidian";
+
+import * as React from "react";
+
+import { PlanningSettings } from "./planning-settings";
 
 export interface PlanningSettingsComponentProps {
   setPlanningSettings: (settings: PlanningSettings) => void;

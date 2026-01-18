@@ -1,10 +1,12 @@
 import { App, TFile, setIcon } from "obsidian";
+
 import * as React from "react";
-import { Consts } from "../types/constants";
-import { TodoItem } from "../types/todo";
-import { TaskPlannerSettings, HorizonColor } from "../settings/types";
-import { Logger } from "../types/logger";
+
 import { TodoListComponent } from "./todo-list-component";
+import { TaskPlannerSettings, HorizonColor } from "../settings/types";
+import { Consts } from "../types/constants";
+import { Logger } from "../types/logger";
+import { TodoItem } from "../types/todo";
 
 const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
   red: "var(--color-red)",

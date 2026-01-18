@@ -1,6 +1,7 @@
 import { App } from "obsidian";
-import { Logger } from "../types/logger";
+
 import { TaskPlannerSettings } from "../settings/types";
+import { Logger } from "../types/logger";
 
 export interface StandardDependencies {
   logger: Logger;
