@@ -52,7 +52,9 @@ export class PlanningView extends ItemView {
       settings: this.settings,
       app: this.app,
       onRefresh: () => this.render(),
-      onOpenReport: () => { void this.openReport(); },
+      onOpenReport: () => {
+        void this.openReport();
+      },
     });
   }
 

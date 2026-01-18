@@ -117,13 +117,7 @@ export class FileOperations {
     try {
       content = await file.getContent();
     } catch (error) {
-      throw new FileOperationError(
-        `Failed to read file: ${file.path}`,
-        file.path,
-        'read',
-        'HIGH',
-        { originalError: error instanceof Error ? error.message : String(error), lineNumber }
-      );
+      throw new FileOperationError(`Failed to read file: ${file.path}`, file.path, "read", "HIGH", { originalError: error instanceof Error ? error.message : String(error), lineNumber });
     }
 
     const EOL = this.getEOL(content);
@@ -136,13 +130,7 @@ export class FileOperations {
     try {
       await file.setContent(res);
     } catch (error) {
-      throw new FileOperationError(
-        `Failed to write file: ${file.path}`,
-        file.path,
-        'write',
-        'HIGH',
-        { originalError: error instanceof Error ? error.message : String(error), lineNumber }
-      );
+      throw new FileOperationError(`Failed to write file: ${file.path}`, file.path, "write", "HIGH", { originalError: error instanceof Error ? error.message : String(error), lineNumber });
     }
   }
 
@@ -220,13 +208,7 @@ export class FileOperations {
     try {
       content = await file.getContent();
     } catch (error) {
-      throw new FileOperationError(
-        `Failed to read file for batch update: ${file.path}`,
-        file.path,
-        'read',
-        'HIGH',
-        { originalError: error instanceof Error ? error.message : String(error), todoCount: todos.length }
-      );
+      throw new FileOperationError(`Failed to read file for batch update: ${file.path}`, file.path, "read", "HIGH", { originalError: error instanceof Error ? error.message : String(error), todoCount: todos.length });
     }
 
     const EOL = this.getEOL(content);
@@ -247,13 +229,7 @@ export class FileOperations {
     try {
       await file.setContent(res);
     } catch (error) {
-      throw new FileOperationError(
-        `Failed to write file during batch update: ${file.path}`,
-        file.path,
-        'write',
-        'HIGH',
-        { originalError: error instanceof Error ? error.message : String(error), todoCount: todos.length }
-      );
+      throw new FileOperationError(`Failed to write file during batch update: ${file.path}`, file.path, "write", "HIGH", { originalError: error instanceof Error ? error.message : String(error), todoCount: todos.length });
     }
   }
 }

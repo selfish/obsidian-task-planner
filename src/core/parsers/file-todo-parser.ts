@@ -64,13 +64,7 @@ export class FileTodoParser<TFile> {
     try {
       content = await file.getContent();
     } catch (error) {
-      throw new ParseError(
-        `Failed to read file content: ${file.path}`,
-        file.path,
-        undefined,
-        'MEDIUM',
-        { originalError: error instanceof Error ? error.message : String(error) }
-      );
+      throw new ParseError(`Failed to read file content: ${file.path}`, file.path, undefined, "MEDIUM", { originalError: error instanceof Error ? error.message : String(error) });
     }
 
     const lines = content.split("\n");

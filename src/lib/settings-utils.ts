@@ -30,10 +30,7 @@ function delay(ms: number): Promise<void> {
  * @returns The result of the operation
  * @throws SettingsSaveError if all retry attempts fail
  */
-export async function withRetry<T>(
-  operation: () => Promise<T>,
-  options?: RetryOptions
-): Promise<T> {
+export async function withRetry<T>(operation: () => Promise<T>, options?: RetryOptions): Promise<T> {
   const { maxAttempts, initialDelayMs, backoffMultiplier } = {
     ...DEFAULT_RETRY_OPTIONS,
     ...options,
@@ -56,11 +53,7 @@ export async function withRetry<T>(
     }
   }
 
-  throw new SettingsSaveError(
-    `Operation failed after ${maxAttempts} attempts: ${lastError?.message}`,
-    'HIGH',
-    { maxAttempts, lastError: lastError?.message }
-  );
+  throw new SettingsSaveError(`Operation failed after ${maxAttempts} attempts: ${lastError?.message}`, "HIGH", { maxAttempts, lastError: lastError?.message });
 }
 
 /**
@@ -70,9 +63,6 @@ export async function withRetry<T>(
  * @param options - Optional retry options
  * @returns A promise that resolves when save succeeds or rejects after all retries fail
  */
-export async function saveSettingsWithRetry(
-  saveOperation: () => Promise<void>,
-  options?: RetryOptions
-): Promise<void> {
+export async function saveSettingsWithRetry(saveOperation: () => Promise<void>, options?: RetryOptions): Promise<void> {
   return withRetry(saveOperation, options);
 }
