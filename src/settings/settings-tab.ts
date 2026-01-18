@@ -309,6 +309,61 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
+    // === SHORTCUT ATTRIBUTES ===
+    new Setting(containerEl).setName("Shortcut attributes").setHeading();
+
+    const shortcutDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
+    shortcutDesc.setText("Control which @shortcuts are recognized. Unknown shortcuts (like @person in wiki links) will be ignored.");
+
+    const atSettings = this.plugin.settings.atShortcutSettings;
+
+    new Setting(containerEl)
+      .setName("Enable @ shortcuts")
+      .setDesc("Master toggle for all @ shortcut attributes")
+      .addToggle((toggle) =>
+        toggle.setValue(atSettings.enableAtShortcuts).onChange(async (value) => {
+          this.plugin.settings.atShortcutSettings.enableAtShortcuts = value;
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+
+    // Only show sub-toggles if master toggle is on
+    if (atSettings.enableAtShortcuts) {
+      new Setting(containerEl)
+        .setName("Date shortcuts")
+        .setDesc("@today, @tomorrow, @monday, etc.")
+        .setClass("th-sub-setting")
+        .addToggle((toggle) =>
+          toggle.setValue(atSettings.enableDateShortcuts).onChange(async (value) => {
+            this.plugin.settings.atShortcutSettings.enableDateShortcuts = value;
+            await this.plugin.saveSettings();
+          })
+        );
+
+      new Setting(containerEl)
+        .setName("Priority shortcuts")
+        .setDesc("@critical, @high, @medium, @low, @lowest")
+        .setClass("th-sub-setting")
+        .addToggle((toggle) =>
+          toggle.setValue(atSettings.enablePriorityShortcuts).onChange(async (value) => {
+            this.plugin.settings.atShortcutSettings.enablePriorityShortcuts = value;
+            await this.plugin.saveSettings();
+          })
+        );
+
+      new Setting(containerEl)
+        .setName("Builtin shortcuts")
+        .setDesc("@selected for pinning tasks")
+        .setClass("th-sub-setting")
+        .addToggle((toggle) =>
+          toggle.setValue(atSettings.enableBuiltinShortcuts).onChange(async (value) => {
+            this.plugin.settings.atShortcutSettings.enableBuiltinShortcuts = value;
+            await this.plugin.saveSettings();
+          })
+        );
+    }
+
     // === FILTERING & INDEXING ===
     new Setting(containerEl).setName("Filtering & indexing").setHeading();
 
