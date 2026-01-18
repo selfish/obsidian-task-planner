@@ -2,9 +2,24 @@ import { App, TFile, setIcon } from "obsidian";
 import * as React from "react";
 import { Consts } from "../types/constants";
 import { TodoItem } from "../types/todo";
-import { TaskPlannerSettings } from "../settings/types";
+import { TaskPlannerSettings, HorizonColor } from "../settings/types";
 import { Logger } from "../types/logger";
 import { TodoListComponent } from "./TodoListComponent";
+
+const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
+  red: "var(--color-red)",
+  orange: "var(--color-orange)",
+  yellow: "var(--color-yellow)",
+  green: "var(--color-green)",
+  cyan: "var(--color-cyan)",
+  blue: "var(--color-blue)",
+  purple: "var(--color-purple)",
+  pink: "var(--color-pink)",
+  accent: "var(--text-accent)",
+  success: "var(--text-success)",
+  warning: "var(--text-warning)",
+  error: "var(--text-error)",
+};
 
 export interface PlanningTodoColumnDeps {
   app: App;
@@ -21,9 +36,10 @@ export interface PlanningTodoColumnProps {
   hideIfEmpty: boolean;
   deps: PlanningTodoColumnDeps;
   substyle?: string;
+  customColor?: HorizonColor;
 }
 
-export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle }: PlanningTodoColumnProps): React.ReactElement | null {
+export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
@@ -99,12 +115,16 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
     if (substyle.includes("wip-exceeded")) contentModifiers.push("wip-exceeded");
     if (substyle.includes("today-horizon")) contentModifiers.push("today-horizon");
   }
+  if (customColor) contentModifiers.push("custom-horizon");
   if (isHovering) contentModifiers.push("hover");
 
   const contentClasses = ["content", ...contentModifiers].join(" ");
 
+  // Build inline style for custom horizon color
+  const columnStyle: React.CSSProperties | undefined = customColor ? ({ "--custom-horizon-color": HORIZON_COLOR_CSS_VAR[customColor] } as React.CSSProperties) : undefined;
+
   return (
-    <div className={columnClasses}>
+    <div className={columnClasses} style={columnStyle}>
       <div className="header">
         <span ref={iconRef} className="icon"></span>
         <span className="title">{title}</span>

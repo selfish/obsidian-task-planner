@@ -211,7 +211,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return todos.filter((todo) => status.includes(todo.status));
   }
 
-  function todoColumn(icon: string, title: string, todos: TodoItem<TFile>[], hideIfEmpty = hideEmpty, onTodoDropped: ((todoId: string) => void) | null = null, onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null, substyle?: string) {
+  function todoColumn(icon: string, title: string, todos: TodoItem<TFile>[], hideIfEmpty = hideEmpty, onTodoDropped: ((todoId: string) => void) | null = null, onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null, substyle?: string, customColor?: string) {
     return (
       <PlanningTodoColumn
         hideIfEmpty={hideIfEmpty}
@@ -227,6 +227,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           logger: deps.logger,
         }}
         substyle={substyle}
+        customColor={customColor as Parameters<typeof PlanningTodoColumn>[0]["customColor"]}
       />
     );
   }
@@ -374,7 +375,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const horizonDate = moment(horizon.date);
         const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
         const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
-        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color);
       }
     }
 
@@ -405,7 +406,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const horizonDate = moment(horizon.date);
         const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
         const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
-        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color);
       }
     }
 
@@ -537,7 +538,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const horizonDate = moment(horizon.date);
         const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
         const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
-        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color);
       }
     }
   }
