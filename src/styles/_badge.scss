@@ -50,13 +50,6 @@
       border: 1px solid var(--background-modifier-border);
     }
 
-    // Project badge
-    &.project {
-      background: var(--background-secondary);
-      color: var(--text-accent);
-      border: 1px solid var(--interactive-accent);
-    }
-
     // Selected/Pinned badge
     &.selected {
       background: var(--interactive-accent);
