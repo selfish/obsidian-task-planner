@@ -5,7 +5,7 @@ export class TFile {
   name: string;
   basename: string;
   extension: string;
-  vault: Vault;
+  vault: any;
   parent: TFolder | null;
   stat: { ctime: number; mtime: number; size: number };
 
@@ -14,7 +14,7 @@ export class TFile {
     this.name = path.split('/').pop() || path;
     this.basename = this.name.replace(/\.[^.]+$/, '');
     this.extension = this.name.split('.').pop() || '';
-    this.vault = new Vault();
+    this.vault = null; // Avoid circular reference
     this.parent = null;
     this.stat = { ctime: Date.now(), mtime: Date.now(), size: 0 };
   }
@@ -23,14 +23,14 @@ export class TFile {
 export class TFolder {
   path: string;
   name: string;
-  vault: Vault;
+  vault: any;
   parent: TFolder | null;
   children: (TFile | TFolder)[];
 
   constructor(path: string = '') {
     this.path = path;
     this.name = path.split('/').pop() || '';
-    this.vault = new Vault();
+    this.vault = null; // Avoid circular reference
     this.parent = null;
     this.children = [];
   }
@@ -39,13 +39,13 @@ export class TFolder {
 export class TAbstractFile {
   path: string;
   name: string;
-  vault: Vault;
+  vault: any;
   parent: TFolder | null;
 
   constructor(path: string = '') {
     this.path = path;
     this.name = path.split('/').pop() || '';
-    this.vault = new Vault();
+    this.vault = null; // Avoid circular reference
     this.parent = null;
   }
 }
@@ -428,3 +428,20 @@ export function getLinkpath(linkText: string): string {
 
 export const request = jest.fn().mockResolvedValue('');
 export const requestUrl = jest.fn().mockResolvedValue({ text: '', json: {} });
+
+export abstract class AbstractInputSuggest<T> {
+  protected app: App;
+  protected inputEl: HTMLInputElement;
+
+  constructor(app: App, inputEl: HTMLInputElement) {
+    this.app = app;
+    this.inputEl = inputEl;
+  }
+
+  abstract getSuggestions(inputStr: string): T[];
+  abstract renderSuggestion(item: T, el: HTMLElement): void;
+  abstract selectSuggestion(item: T, evt: MouseEvent | KeyboardEvent): void;
+
+  open = jest.fn();
+  close = jest.fn();
+}
