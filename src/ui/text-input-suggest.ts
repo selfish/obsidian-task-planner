@@ -1,9 +1,5 @@
 import { AbstractInputSuggest, App } from "obsidian";
 
-/**
- * Base class for input suggestions using Obsidian's built-in AbstractInputSuggest.
- * Provides type-safe autocomplete functionality for input elements.
- */
 export abstract class TextInputSuggest<T> extends AbstractInputSuggest<T> {
   protected inputEl: HTMLInputElement;
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { TodoItemComponent } from "./TodoItemComponent";
+import { TodoItemComponent } from "./todo-item-component";
 import { TodoItem } from "../types/todo";
 import { App, TFile, setIcon } from "obsidian";
 import { TaskPlannerSettings } from "../settings/types";

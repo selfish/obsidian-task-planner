@@ -6,7 +6,7 @@ import { TaskPlannerSettings } from "../settings/types";
 import { moment } from "../utils/moment";
 import { TodoIndex } from "../core/index/todo-index";
 import { Logger } from "../types/logger";
-import { TodoListComponent } from "./TodoListComponent";
+import { TodoListComponent } from "./todo-list-component";
 
 export interface TodoSidePanelComponentDeps {
   todoIndex: TodoIndex<TFile>;
@@ -66,7 +66,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   );
 }
 
-export function MountSidePanelComponent(onElement: HTMLElement, props: TodoSidePanelComponentProps) {
+export function mountSidePanelComponent(onElement: HTMLElement, props: TodoSidePanelComponentProps) {
   onElement.addClass("task-planner");
   onElement.addClass("panel");
   const root = createRoot(onElement);

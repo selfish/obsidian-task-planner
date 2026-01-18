@@ -1,10 +1,11 @@
 import * as React from "react";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { App, TFile } from "obsidian";
-import { TodoItemComponent } from "./TodoItemComponent";
+import { TodoItemComponent } from "./todo-item-component";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
 import { Consts } from "../types/constants";
+import { getFileDisplayName } from "../utils/file-utils";
 
 function getPriorityValue(todo: TodoItem<TFile>): number {
   if (!todo.attributes || !todo.attributes["priority"]) {
@@ -49,12 +50,6 @@ function sortTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
   });
 }
 
-function cleanFileName(fileName: string): string {
-  const name = fileName.replace(/\.md$/, "");
-  const cleaned = name.replace(/^[\d- ]+/, "").trim();
-  return cleaned || name;
-}
-
 function groupTodosByFile(todos: TodoItem<TFile>[]): Map<string, TodoItem<TFile>[]> {
   const groups = new Map<string, TodoItem<TFile>[]>();
 
@@ -87,17 +82,6 @@ export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListC
   const sortedTodos = React.useMemo(() => sortTodos(todos), [todos]);
   const groupedTodos = React.useMemo(() => groupTodosByFile(sortedTodos), [sortedTodos]);
 
-  function getDisplayName(file: TFile): string {
-    const cache = deps.app.metadataCache.getFileCache(file);
-    const frontmatterTitle = cache?.frontmatter?.title;
-
-    if (frontmatterTitle && typeof frontmatterTitle === "string") {
-      return frontmatterTitle;
-    }
-
-    return cleanFileName(file.name);
-  }
-
   function onGroupDragStart(ev: React.DragEvent, fileTodos: TodoItem<TFile>[]): void {
     const visibleIncompleteTodos = fileTodos.filter((todo) => {
       if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
@@ -112,7 +96,7 @@ export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListC
   return (
     <div>
       {Array.from(groupedTodos.entries()).map(([_fileName, fileTodos]) => {
-        const displayName = getDisplayName(fileTodos[0].file.file);
+        const displayName = getFileDisplayName(fileTodos[0].file.file, deps.app);
         const fileKey = fileTodos[0].file.file.path;
         return (
           <div key={fileKey} className="group">

@@ -4,7 +4,7 @@ import { Consts } from "../types/constants";
 import { TodoItem } from "../types/todo";
 import { TaskPlannerSettings, HorizonColor } from "../settings/types";
 import { Logger } from "../types/logger";
-import { TodoListComponent } from "./TodoListComponent";
+import { TodoListComponent } from "./todo-list-component";
 
 const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
   red: "var(--color-red)",
@@ -98,12 +98,10 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
     return null;
   }
 
-  // Build column classes
-  // Note: "today-horizon" is NOT a today column (it's in the future section), so exclude it
+  // "today-horizon" is in the future section, not a true today column
   const isToday = substyle?.includes("today") && !substyle?.includes("today-horizon");
   const columnClasses = ["column", isToday && "today", todos.length === 0 && !isToday && "empty"].filter(Boolean).join(" ");
 
-  // Build content classes from substyle
   const contentModifiers: string[] = [];
   if (substyle) {
     if (substyle.includes("today") && !substyle.includes("today-horizon")) contentModifiers.push("today");
@@ -120,7 +118,6 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
 
   const contentClasses = ["content", ...contentModifiers].join(" ");
 
-  // Build inline style for custom horizon color
   const columnStyle: React.CSSProperties | undefined = customColor ? ({ "--custom-horizon-color": HORIZON_COLOR_CSS_VAR[customColor] } as React.CSSProperties) : undefined;
 
   return (
