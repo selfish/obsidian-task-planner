@@ -14,6 +14,9 @@ export default [
   js.configs.recommended,
   {
     files: ["src/**/*.{ts,tsx}"],
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -113,6 +116,41 @@ export default [
 
       // Import rules
       "import/no-extraneous-dependencies": "error",
+      "import/order": [
+        "error",
+        {
+          groups: [
+            "builtin", // Node.js built-in modules
+            "external", // External packages (node_modules)
+            "internal", // Internal aliases (if any)
+            ["parent", "sibling", "index"], // Relative imports
+            "type", // Type imports
+          ],
+          pathGroups: [
+            {
+              pattern: "obsidian",
+              group: "external",
+              position: "before",
+            },
+            {
+              pattern: "react",
+              group: "external",
+              position: "before",
+            },
+            {
+              pattern: "react-dom",
+              group: "external",
+              position: "before",
+            },
+          ],
+          pathGroupsExcludedImportTypes: ["type"],
+          "newlines-between": "always",
+          alphabetize: {
+            order: "asc",
+            caseInsensitive: true,
+          },
+        },
+      ],
 
       // ESLint directive comment rules
       "@eslint-community/eslint-comments/require-description": "error",
