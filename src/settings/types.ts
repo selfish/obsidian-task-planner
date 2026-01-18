@@ -1,5 +1,20 @@
 export type HorizonColor = "red" | "orange" | "yellow" | "green" | "cyan" | "blue" | "purple" | "pink" | "accent" | "success" | "warning" | "error";
 
+export interface CustomAtShortcut {
+  keyword: string;
+  targetAttribute: string;
+  value: string | true;
+}
+
+export interface AtShortcutSettings {
+  enableAtShortcuts: boolean;        // Master toggle (default: true)
+  enableDateShortcuts: boolean;      // @today, @tomorrow, etc. (default: true)
+  enablePriorityShortcuts: boolean;  // @critical, @high, @medium, @low, @lowest (default: true)
+  enableBuiltinShortcuts: boolean;   // @selected (default: true)
+  enableParenthesesSyntax: boolean;  // @foo(bar) legacy format (default: false)
+  customShortcuts: CustomAtShortcut[];
+}
+
 export interface CustomHorizon {
   label: string;
   date: string; // ISO date (YYYY-MM-DD) - required
@@ -50,6 +65,7 @@ export interface TaskPlannerSettings {
   firstWeekday: number;
   customHorizons: CustomHorizon[];
   horizonVisibility: HorizonVisibility;
+  atShortcutSettings: AtShortcutSettings;
 }
 
 export const DEFAULT_SETTINGS: TaskPlannerSettings = {
@@ -80,5 +96,13 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     showQuarters: false,
     showNextYear: false,
     showLater: true,
+  },
+  atShortcutSettings: {
+    enableAtShortcuts: true,
+    enableDateShortcuts: true,
+    enablePriorityShortcuts: true,
+    enableBuiltinShortcuts: true,
+    enableParenthesesSyntax: false,
+    customShortcuts: [],
   },
 };
