@@ -1,11 +1,12 @@
 import * as React from "react";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
-import { App, MarkdownView, Menu, TFile, setIcon } from "obsidian";
-import { TodoSubtasksContainer } from "./TodoSubtasksContainer";
-import { TodoStatusComponent } from "./TodoStatusComponent";
+import { MarkdownView, Menu, TFile, setIcon } from "obsidian";
+import { TodoSubtasksContainer } from "./todo-subtasks-container";
+import { TodoStatusComponent } from "./todo-status-component";
 import { Consts } from "../types/constants";
 import { FileOperations } from "../core/operations/file-operations";
-import { StandardDependencies } from "./StandardDependencies";
+import { StandardDependencies } from "./standard-dependencies";
+import { getFileDisplayName } from "../utils/file-utils";
 
 interface PriorityBadgeProps {
   priority: string;
@@ -119,23 +120,6 @@ function renderTextWithTags(text: string): React.ReactNode[] {
   return parts.length > 0 ? parts : [cleanedText];
 }
 
-function cleanFileName(fileName: string): string {
-  const name = fileName.replace(/\.md$/, "");
-  const cleaned = name.replace(/^[\d- ]+/, "").trim();
-  return cleaned || name;
-}
-
-function getDisplayName(file: TFile, app: App): string {
-  const cache = app.metadataCache.getFileCache(file);
-  const frontmatterTitle = cache?.frontmatter?.title;
-
-  if (frontmatterTitle && typeof frontmatterTitle === "string") {
-    return frontmatterTitle;
-  }
-
-  return cleanFileName(file.name);
-}
-
 export interface TodoItemComponentProps {
   todo: TodoItem<TFile>;
   dontCrossCompleted?: boolean;
@@ -176,7 +160,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
       item.setTitle(`Change priority to ${label}`);
       item.setIcon(icon);
       item.onClick(() => {
-        void fileOperations.updateAttributeAsync(todo, "priority", name);
+        void fileOperations.updateAttribute(todo, "priority", name);
       });
     });
   }
@@ -194,14 +178,14 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     menu.addItem((item) => {
       item.setTitle("Reset priority");
       item.setIcon("reset");
-      item.onClick(() => void fileOperations.removeAttributeAsync(todo, "priority"));
+      item.onClick(() => void fileOperations.removeAttribute(todo, "priority"));
     });
     menu.addSeparator();
     menu.addItem((item) => {
       item.setTitle("Toggle pinned");
       item.setIcon("pin");
       item.onClick(() => {
-        void fileOperations.updateAttributeAsync(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
+        void fileOperations.updateAttribute(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
       });
     });
 
@@ -213,7 +197,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
           item.setTitle(`Remove #${tag}`);
           item.setIcon("x");
           item.onClick(() => {
-            void fileOperations.removeTagAsync(todo, tag);
+            void fileOperations.removeTag(todo, tag);
           });
         });
       }
@@ -239,7 +223,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
         <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
         <div className="body">
           <div className={textClasses}>{renderTextWithTags(todo.text)}</div>
-          {!hideFileRef && <div className="file-ref">{getDisplayName(todo.file.file, app)}</div>}
+          {!hideFileRef && <div className="file-ref">{getFileDisplayName(todo.file.file, app)}</div>}
           {(priority || isSelected) && (
             <div className="meta">
               {isSelected && <SelectedBadge />}

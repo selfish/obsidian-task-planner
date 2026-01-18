@@ -6,7 +6,8 @@ import { TodoIndex } from "../core/index/todo-index";
 import { TaskPlannerSettings } from "../settings/types";
 import { TodoItem, TodoStatus } from "../types/todo";
 import { moment, Moment } from "../utils/moment";
-import { TodoListComponent } from "./TodoListComponent";
+import { findTodoDate } from "../utils/todo-utils";
+import { TodoListComponent } from "./todo-list-component";
 import { TodoMatcher } from "../core/matchers/todo-matcher";
 
 export interface TodoReportComponentDeps {
@@ -51,19 +52,7 @@ function moveToPreviousMonday(date: Moment): Moment {
   return date;
 }
 
-function findTodoDate<T>(todo: TodoItem<T>, attribute: string): Moment | null {
-  if (!todo.attributes) {
-    return null;
-  }
-  const attr = todo.attributes[attribute];
-  if (attr) {
-    const d = moment(`${todo.attributes[attribute]}`);
-    return d.isValid() ? d : null;
-  }
-  return null;
-}
-
-function findTodoCompletionDate(todo: TodoItem<TFile>, settings: TaskPlannerSettings) {
+function findTodoCompletionDate(todo: TodoItem<TFile>, settings: TaskPlannerSettings): Moment | null {
   let d = findTodoDate(todo, settings.completedDateAttribute);
   if (d) {
     return d;
@@ -376,7 +365,7 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
   );
 }
 
-export function MountTodoReportComponent(onElement: HTMLElement, props: TodoReportComponentProps) {
+export function mountTodoReportComponent(onElement: HTMLElement, props: TodoReportComponentProps) {
   onElement.addClass("task-planner");
   onElement.addClass("report");
   const client = createRoot(onElement);

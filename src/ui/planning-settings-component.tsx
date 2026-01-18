@@ -1,5 +1,5 @@
 import * as React from "react";
-import { PlanningSettings } from "./PlanningSettings";
+import { PlanningSettings } from "./planning-settings";
 import { App, setIcon } from "obsidian";
 
 export interface PlanningSettingsComponentProps {
