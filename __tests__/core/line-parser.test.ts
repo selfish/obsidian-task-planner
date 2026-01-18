@@ -1,4 +1,5 @@
 import { LineParser } from '../../src/core/parsers/line-parser';
+import { DEFAULT_SETTINGS, TaskPlannerSettings } from '../../src/settings/types';
 
 describe('LineParser', () => {
   describe('parseLine', () => {
@@ -288,6 +289,150 @@ describe('LineParser', () => {
         tags: [],
       });
       expect(result).toBe('Plain task');
+    });
+  });
+
+  describe('parseAttributes with whitelist settings', () => {
+    it('should NOT parse @ inside wiki links [[@person]]', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task with [[@jon doe]] link');
+      expect(result.textWithoutAttributes).toBe('Task with [[@jon doe]] link');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should ignore unknown @ shortcuts like @randomword', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task @randomword here');
+      expect(result.textWithoutAttributes).toBe('Task @randomword here');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should still parse @today as date shortcut', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task @today');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ today: true });
+    });
+
+    it('should still parse @tomorrow as date shortcut', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task @tomorrow');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ tomorrow: true });
+    });
+
+    it('should still parse priority shortcuts with settings', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task @high');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ priority: 'high' });
+    });
+
+    it('should parse @selected builtin shortcut', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task @selected');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ selected: true });
+    });
+
+    it('should disable all @ shortcuts when master toggle is off', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          enableAtShortcuts: false,
+        },
+      };
+      const parser = new LineParser(settings);
+      const result = parser.parseAttributes('Task @today @high');
+      expect(result.textWithoutAttributes).toBe('Task @today @high');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should disable date shortcuts when toggle is off', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          enableDateShortcuts: false,
+        },
+      };
+      const parser = new LineParser(settings);
+      const result = parser.parseAttributes('Task @today @high');
+      expect(result.textWithoutAttributes).toBe('Task @today');
+      expect(result.attributes).toEqual({ priority: 'high' });
+    });
+
+    it('should disable priority shortcuts when toggle is off', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          enablePriorityShortcuts: false,
+        },
+      };
+      const parser = new LineParser(settings);
+      const result = parser.parseAttributes('Task @today @high');
+      expect(result.textWithoutAttributes).toBe('Task @high');
+      expect(result.attributes).toEqual({ today: true });
+    });
+
+    it('should disable builtin shortcuts when toggle is off', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          enableBuiltinShortcuts: false,
+        },
+      };
+      const parser = new LineParser(settings);
+      const result = parser.parseAttributes('Task @selected');
+      expect(result.textWithoutAttributes).toBe('Task @selected');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should parse custom shortcuts from settings', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          customShortcuts: [
+            { keyword: 'work', targetAttribute: 'context', value: 'work' },
+          ],
+        },
+      };
+      const parser = new LineParser(settings);
+      const result = parser.parseAttributes('Task @work');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ context: 'work' });
+    });
+
+    it('should handle Dataview attributes when @ shortcuts are disabled', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          enableAtShortcuts: false,
+        },
+      };
+      const parser = new LineParser(settings);
+      const result = parser.parseAttributes('Task [due:: 2025-01-15]');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ due: '2025-01-15' });
+    });
+
+    it('should handle wiki link with @ followed by known shortcut', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task [[@high priority]] @low');
+      expect(result.textWithoutAttributes).toBe('Task [[@high priority]]');
+      expect(result.attributes).toEqual({ priority: 'low' });
+    });
+
+    it('should handle multiple wiki links', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Meeting with [[@alice]] and [[@bob]]');
+      expect(result.textWithoutAttributes).toBe('Meeting with [[@alice]] and [[@bob]]');
+      expect(result.attributes).toEqual({});
     });
   });
 });
