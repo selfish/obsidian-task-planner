@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies -- @codemirror/view is provided by Obsidian at runtime
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { StatusOperations } from "../core/operations/status-operations";
 import { TaskPlannerSettings } from "../settings/types";
