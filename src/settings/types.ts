@@ -1,7 +1,10 @@
+export type HorizonColor = "red" | "orange" | "yellow" | "green" | "cyan" | "blue" | "purple" | "pink" | "accent" | "success" | "warning" | "error";
+
 export interface CustomHorizon {
   label: string;
   date: string; // ISO date (YYYY-MM-DD) - required
   tag?: string; // Tag to apply when dropping tasks to this horizon
+  color?: HorizonColor; // Color tint for the column
   position: "before" | "after" | "end"; // before = before backlog, after = after backlog, end = after time horizons
 }
 
