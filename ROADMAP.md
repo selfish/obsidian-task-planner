@@ -72,16 +72,6 @@ Allow users to define their own attribute names for grouping/filtering.
 
 ---
 
-### [ ] Custom Horizon Colors
-**Effort:** Small | **Type:** UI
-
-Allow users to select a color for each custom horizon.
-
-**Current:** Custom horizons use default styling
-**Target:** Color picker in custom horizon settings, applies tint to column (like overdue=red, today-horizon=amber)
-
----
-
 ## Low Priority / Future
 
 ### [ ] Status Toggle UI
@@ -175,6 +165,7 @@ Worth investigating what other task plugins do.
 
 ## Completed
 
+- **Custom Horizon Colors** — color picker in settings with 12 theme-aware options, applies tint to custom horizon columns
 - **Parse #hashtags from Task Text** — hashtags like `#shopping` are now parsed directly from task text and used for custom horizon filtering
 - **Simplify Attribute Syntax** — removed `@key(value)` syntax, now Dataview `[key:: value]` only
 - **Today Focus / View Modes** — sun/calendar-range toggles to focus on today or future
