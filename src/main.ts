@@ -15,13 +15,7 @@
 
 import { App, Plugin, PluginManifest, TFile } from "obsidian";
 
-import {
-  CompleteLineCommand,
-  OpenPlanningCommand,
-  OpenReportCommand,
-  ToggleOngoingTodoCommand,
-  ToggleTodoCommand,
-} from "./commands";
+import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, ToggleOngoingTodoCommand, ToggleTodoCommand } from "./commands";
 import { FileTodoParser, FolderTodoParser, StatusOperations, TodoIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice } from "./lib";
@@ -178,9 +172,9 @@ export default class TaskPlannerPlugin extends Plugin {
       await saveSettingsWithRetry(() => this.saveData(this.settings));
     } catch (error) {
       this.logger.error(error instanceof Error ? error : new Error(String(error)), {
-        operation: 'saveSettings',
+        operation: "saveSettings",
       });
-      showErrorNotice('Failed to save settings. Please try again.', 'HIGH');
+      showErrorNotice("Failed to save settings. Please try again.", "HIGH");
       throw error;
     }
   }

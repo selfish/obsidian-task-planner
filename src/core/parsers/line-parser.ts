@@ -58,25 +58,20 @@ export class LineParser {
         return null;
       }
 
-      if (atSettings.enablePriorityShortcuts &&
-          LineParser.PRIORITY_SHORTCUTS.includes(keyword)) {
+      if (atSettings.enablePriorityShortcuts && LineParser.PRIORITY_SHORTCUTS.includes(keyword)) {
         return [keyword, true];
       }
 
-      if (atSettings.enableDateShortcuts &&
-          Completion.completeDate(keyword) !== null) {
+      if (atSettings.enableDateShortcuts && Completion.completeDate(keyword) !== null) {
         return [keyword, true];
       }
 
-      if (atSettings.enableBuiltinShortcuts &&
-          keyword === "selected") {
+      if (atSettings.enableBuiltinShortcuts && keyword === "selected") {
         return [keyword, true];
       }
 
       if (atSettings.customShortcuts) {
-        const customShortcut = atSettings.customShortcuts.find(
-          (s) => s.keyword.toLowerCase() === keyword
-        );
+        const customShortcut = atSettings.customShortcuts.find((s) => s.keyword.toLowerCase() === keyword);
         if (customShortcut) {
           return [customShortcut.targetAttribute, customShortcut.value];
         }

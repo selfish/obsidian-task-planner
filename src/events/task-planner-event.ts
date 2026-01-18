@@ -29,17 +29,13 @@ export class TaskPlannerEvent<T> {
   }
 
   async fire(evtDetails: T): Promise<void> {
-    const results = await Promise.allSettled(
-      this.handlers.map((handler) => handler(evtDetails))
-    );
+    const results = await Promise.allSettled(this.handlers.map((handler) => handler(evtDetails)));
 
     // Log any failures instead of silently swallowing them
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
-      if (result.status === 'rejected') {
-        const error = result.reason instanceof Error
-          ? result.reason
-          : new Error(String(result.reason));
+      if (result.status === "rejected") {
+        const error = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
         this.logger?.error(error, {
           handlerIndex: i,
           eventDetails: evtDetails,

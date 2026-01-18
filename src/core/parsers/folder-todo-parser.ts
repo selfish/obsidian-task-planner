@@ -19,15 +19,7 @@ export class FolderTodoParser<TFile> {
       };
     } catch (error) {
       // Log the error and return empty todos for this file to continue processing others
-      const parseError = error instanceof ParseError
-        ? error
-        : new ParseError(
-            `Failed to parse file: ${file.path}`,
-            file.path,
-            undefined,
-            'MEDIUM',
-            { originalError: error instanceof Error ? error.message : String(error) }
-          );
+      const parseError = error instanceof ParseError ? error : new ParseError(`Failed to parse file: ${file.path}`, file.path, undefined, "MEDIUM", { originalError: error instanceof Error ? error.message : String(error) });
       this.deps.logger.error(parseError, { filePath: file.path });
       return {
         todos: [],

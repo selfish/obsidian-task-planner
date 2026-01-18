@@ -44,7 +44,9 @@ export class TodoReportView extends ItemView {
         app: this.app,
         settings: this.settings,
       },
-      onOpenPlanning: () => { void this.openPlanning(); },
+      onOpenPlanning: () => {
+        void this.openPlanning();
+      },
     });
   }
 

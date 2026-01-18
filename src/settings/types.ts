@@ -7,10 +7,10 @@ export interface CustomAtShortcut {
 }
 
 export interface AtShortcutSettings {
-  enableAtShortcuts: boolean;        // Master toggle (default: true)
-  enableDateShortcuts: boolean;      // @today, @tomorrow, etc. (default: true)
-  enablePriorityShortcuts: boolean;  // @critical, @high, @medium, @low, @lowest (default: true)
-  enableBuiltinShortcuts: boolean;   // @selected (default: true)
+  enableAtShortcuts: boolean; // Master toggle (default: true)
+  enableDateShortcuts: boolean; // @today, @tomorrow, etc. (default: true)
+  enablePriorityShortcuts: boolean; // @critical, @high, @medium, @low, @lowest (default: true)
+  enableBuiltinShortcuts: boolean; // @selected (default: true)
   customShortcuts: CustomAtShortcut[];
 }
 
