@@ -1,6 +1,22 @@
 import TaskPlannerPlugin from "../main";
-import { App, PluginSettingTab, SearchComponent, Setting } from "obsidian";
+import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidian";
 import { FolderSuggest } from "../ui/FolderSuggest";
+import { HorizonColor, CustomHorizon } from "./types";
+
+const HORIZON_COLORS: { value: HorizonColor; cssVar: string }[] = [
+  { value: "red", cssVar: "var(--color-red)" },
+  { value: "orange", cssVar: "var(--color-orange)" },
+  { value: "yellow", cssVar: "var(--color-yellow)" },
+  { value: "green", cssVar: "var(--color-green)" },
+  { value: "cyan", cssVar: "var(--color-cyan)" },
+  { value: "blue", cssVar: "var(--color-blue)" },
+  { value: "purple", cssVar: "var(--color-purple)" },
+  { value: "pink", cssVar: "var(--color-pink)" },
+  { value: "accent", cssVar: "var(--text-accent)" },
+  { value: "success", cssVar: "var(--text-success)" },
+  { value: "warning", cssVar: "var(--text-warning)" },
+  { value: "error", cssVar: "var(--text-error)" },
+];
 
 export class TaskPlannerSettingsTab extends PluginSettingTab {
   plugin: TaskPlannerPlugin;
@@ -202,110 +218,34 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     const horizonDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     horizonDesc.setText("Create custom date horizons. Optionally stamp a tag when tasks are dropped here.");
 
-    let labelInput: HTMLInputElement;
-    let tagInput: HTMLInputElement;
-    let dateInput: HTMLInputElement;
-    let positionDropdown: HTMLSelectElement;
+    // Container for all horizon cards
+    const horizonsContainer = containerEl.createDiv({ cls: "th-horizons-container" });
 
-    const horizonInputContainer = containerEl.createDiv({ cls: "th-horizon-input-container" });
-
-    new Setting(horizonInputContainer)
-      .setName("New horizon")
-      .addText((text) => {
-        labelInput = text.inputEl;
-        text.setPlaceholder("Label");
-        text.inputEl.addClass("th-input-label");
-      })
-      .addText((text) => {
-        dateInput = text.inputEl;
-        text.setPlaceholder("Date yyyy-mm-dd");
-        text.inputEl.addClass("th-input-date");
-      })
-      .addText((text) => {
-        tagInput = text.inputEl;
-        text.setPlaceholder("Tag (optional)");
-        text.inputEl.addClass("th-input-tag");
-      })
-      .addDropdown((dropdown) => {
-        positionDropdown = dropdown.selectEl;
-        dropdown.addOption("before", "Before backlog");
-        dropdown.addOption("after", "After backlog");
-        dropdown.addOption("end", "End");
-        dropdown.setValue("end");
-      })
-      .addButton((button) => {
-        button.setIcon("plus");
-        button.setTooltip("Add horizon");
-        button.onClick(async () => {
-          const label = labelInput.value.trim();
-          const tag = tagInput.value.trim();
-          const date = dateInput.value.trim();
-          const position = positionDropdown.value as "before" | "after" | "end";
-
-          if (!label) {
-            this.showError(containerEl, "Label is required");
-            return;
-          }
-
-          if (!date) {
-            this.showError(containerEl, "Date is required");
-            return;
-          }
-
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-            this.showError(containerEl, "Invalid date format (use YYYY-MM-DD)");
-            return;
-          }
-
-          this.plugin.settings.customHorizons.push({
-            label,
-            date,
-            tag: tag || undefined,
-            position,
-          });
-
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-
-          labelInput.value = "";
-          tagInput.value = "";
-          dateInput.value = "";
-          positionDropdown.value = "end";
-
-          this.display();
-        });
-      });
-
+    // Render existing horizons as cards
     this.plugin.settings.customHorizons.forEach((horizon, index) => {
-      const tagInfo = horizon.tag ? ` → #${horizon.tag}` : "";
-      let positionLabel: string;
-      if (horizon.position === "before") {
-        positionLabel = "Before backlog";
-      } else if (horizon.position === "after") {
-        positionLabel = "After backlog";
-      } else {
-        positionLabel = "End";
-      }
+      this.renderHorizonCard(horizonsContainer, horizon, index);
+    });
 
-      new Setting(containerEl)
-        .setDesc(`${horizon.date}${tagInfo} - ${positionLabel}`)
-        .addText((text) => {
-          text.setPlaceholder("Label");
-          text.setValue(horizon.label);
-          text.onChange(async (value) => {
-            this.plugin.settings.customHorizons[index].label = value.trim();
-            await this.plugin.saveSettings();
-            this.plugin.refreshPlanningViews();
-          });
-        })
-        .addButton((button) =>
-          button.setButtonText("Remove").onClick(async () => {
-            this.plugin.settings.customHorizons.splice(index, 1);
-            await this.plugin.saveSettings();
-            this.plugin.refreshPlanningViews();
-            this.display();
-          })
-        );
+    // Add new horizon button
+    new Setting(containerEl).addButton((button) => {
+      button.setButtonText("Add custom horizon");
+      button.setCta();
+      button.onClick(async () => {
+        // Add a new horizon with sensible defaults
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateStr = tomorrow.toISOString().split("T")[0];
+
+        this.plugin.settings.customHorizons.push({
+          label: "New Horizon",
+          date: dateStr,
+          position: "end",
+        });
+
+        await this.plugin.saveSettings();
+        this.plugin.refreshPlanningViews();
+        this.display();
+      });
     });
 
     // === TASK ATTRIBUTES ===
@@ -440,6 +380,154 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           this.plugin.refreshPlanningViews();
         })
       );
+  }
+
+  private createColorPicker(initialColor: HorizonColor | undefined, onChange: (color: HorizonColor | undefined) => void): HTMLElement {
+    const container = createEl("div", { cls: "th-color-picker" });
+
+    // Trigger button showing current color
+    const trigger = container.createEl("button", {
+      cls: "th-color-picker-trigger clickable-icon",
+      attr: { "aria-label": "Select color", type: "button" },
+    });
+
+    const updateTrigger = (color: HorizonColor | undefined) => {
+      trigger.empty();
+      if (color) {
+        const colorDef = HORIZON_COLORS.find((c) => c.value === color);
+        if (colorDef) {
+          trigger.style.setProperty("--trigger-color", colorDef.cssVar);
+          trigger.removeClass("th-color-picker-trigger--none");
+        }
+      } else {
+        trigger.style.removeProperty("--trigger-color");
+        trigger.addClass("th-color-picker-trigger--none");
+        const icon = trigger.createSpan({ cls: "th-color-picker-trigger-icon" });
+        setIcon(icon, "palette");
+      }
+    };
+
+    updateTrigger(initialColor);
+
+    // Popover with color swatches
+    const popover = container.createEl("div", { cls: "th-color-picker-popover" });
+
+    // "None" option
+    const noneBtn = popover.createEl("button", {
+      cls: `th-color-swatch th-color-swatch--none clickable-icon ${!initialColor ? "th-color-swatch--selected" : ""}`,
+      attr: { "aria-label": "No color", type: "button" },
+    });
+    const noneIcon = noneBtn.createSpan({ cls: "th-color-swatch-icon" });
+    setIcon(noneIcon, "ban");
+
+    noneBtn.addEventListener("click", () => {
+      popover.querySelectorAll(".th-color-swatch").forEach((el) => el.removeClass("th-color-swatch--selected"));
+      noneBtn.addClass("th-color-swatch--selected");
+      updateTrigger(undefined);
+      onChange(undefined);
+    });
+
+    // Color swatches
+    for (const { value, cssVar } of HORIZON_COLORS) {
+      const swatch = popover.createEl("button", {
+        cls: `th-color-swatch clickable-icon ${initialColor === value ? "th-color-swatch--selected" : ""}`,
+        attr: { "aria-label": value, type: "button" },
+      });
+      swatch.style.setProperty("--swatch-color", cssVar);
+
+      swatch.addEventListener("click", () => {
+        popover.querySelectorAll(".th-color-swatch").forEach((el) => el.removeClass("th-color-swatch--selected"));
+        swatch.addClass("th-color-swatch--selected");
+        updateTrigger(value);
+        onChange(value);
+      });
+    }
+
+    return container;
+  }
+
+  private renderHorizonCard(container: HTMLElement, horizon: CustomHorizon, index: number): void {
+    const card = container.createDiv({ cls: "th-horizon-card" });
+
+    // Row 1: Color + Label + Delete
+    const row1 = card.createDiv({ cls: "th-horizon-card-row" });
+
+    // Color picker
+    const colorPicker = this.createColorPicker(horizon.color, (color) => {
+      this.plugin.settings.customHorizons[index].color = color;
+      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+    });
+    row1.appendChild(colorPicker);
+
+    // Label input
+    const labelInput = row1.createEl("input", {
+      type: "text",
+      cls: "th-horizon-label",
+      value: horizon.label,
+      attr: { placeholder: "Horizon name" },
+    });
+    labelInput.addEventListener("change", () => {
+      this.plugin.settings.customHorizons[index].label = labelInput.value.trim();
+      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+    });
+
+    // Delete button
+    const deleteBtn = row1.createEl("button", {
+      cls: "th-horizon-delete clickable-icon",
+      attr: { "aria-label": "Delete", type: "button" },
+    });
+    setIcon(deleteBtn, "trash-2");
+    deleteBtn.addEventListener("click", () => {
+      this.plugin.settings.customHorizons.splice(index, 1);
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.refreshPlanningViews();
+        this.display();
+      });
+    });
+
+    // Row 2: Date + Tag + Position
+    const row2 = card.createDiv({ cls: "th-horizon-card-row th-horizon-card-row--details" });
+
+    // Date input
+    const dateInput = row2.createEl("input", {
+      type: "date",
+      cls: "th-horizon-date",
+      value: horizon.date,
+    });
+    dateInput.addEventListener("change", () => {
+      this.plugin.settings.customHorizons[index].date = dateInput.value;
+      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+    });
+
+    // Tag input with # prefix
+    const tagWrapper = row2.createDiv({ cls: "th-horizon-tag-wrapper" });
+    tagWrapper.createSpan({ cls: "th-horizon-tag-prefix", text: "#" });
+    const tagInput = tagWrapper.createEl("input", {
+      type: "text",
+      cls: "th-horizon-tag",
+      value: horizon.tag || "",
+      attr: { placeholder: "Tag" },
+    });
+    tagInput.addEventListener("change", () => {
+      this.plugin.settings.customHorizons[index].tag = tagInput.value.trim() || undefined;
+      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+    });
+
+    // Position dropdown
+    const positionSelect = row2.createEl("select", { cls: "th-horizon-position dropdown" });
+    const positions = [
+      { value: "before", label: "Before backlog" },
+      { value: "after", label: "After backlog" },
+      { value: "end", label: "End" },
+    ];
+    for (const pos of positions) {
+      const option = positionSelect.createEl("option", { value: pos.value, text: pos.label });
+      if (horizon.position === pos.value) option.selected = true;
+    }
+    positionSelect.addEventListener("change", () => {
+      this.plugin.settings.customHorizons[index].position = positionSelect.value as "before" | "after" | "end";
+      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+    });
   }
 
   private showError(containerEl: HTMLElement, message: string): void {
