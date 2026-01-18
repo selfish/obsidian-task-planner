@@ -61,33 +61,39 @@ export class LineParser {
     const shortcutMatch = shortcutRegex.exec(matchStr);
     if (shortcutMatch) {
       const keyword = shortcutMatch[1].toLowerCase();
+      const atSettings = this.settings?.atShortcutSettings;
 
-      // Check if @ shortcuts are enabled
-      if (!this.settings?.atShortcutSettings?.enableAtShortcuts) {
+      // If no settings provided, use old behavior (accept all shortcuts)
+      if (!atSettings) {
+        return [keyword, true];
+      }
+
+      // Check if @ shortcuts are enabled (master toggle)
+      if (!atSettings.enableAtShortcuts) {
         return null;
       }
 
       // Priority shortcuts: @critical, @high, @medium, @low, @lowest
-      if (this.settings.atShortcutSettings.enablePriorityShortcuts &&
+      if (atSettings.enablePriorityShortcuts &&
           LineParser.PRIORITY_SHORTCUTS.includes(keyword)) {
         return [keyword, true];
       }
 
       // Date shortcuts: validate with chrono (@today, @tomorrow, etc.)
-      if (this.settings.atShortcutSettings.enableDateShortcuts &&
+      if (atSettings.enableDateShortcuts &&
           Completion.completeDate(keyword) !== null) {
         return [keyword, true];
       }
 
       // Builtin shortcuts: @selected
-      if (this.settings.atShortcutSettings.enableBuiltinShortcuts &&
+      if (atSettings.enableBuiltinShortcuts &&
           keyword === "selected") {
         return [keyword, true];
       }
 
       // Custom shortcuts from settings
-      if (this.settings.atShortcutSettings.customShortcuts) {
-        const customShortcut = this.settings.atShortcutSettings.customShortcuts.find(
+      if (atSettings.customShortcuts) {
+        const customShortcut = atSettings.customShortcuts.find(
           (s) => s.keyword.toLowerCase() === keyword
         );
         if (customShortcut) {
@@ -163,8 +169,8 @@ export class LineParser {
       } else {
         res[attrKey] = attrValue;
       }
-      // Remove that chunk from the text
-      textWithoutAttributes = textWithoutAttributes.replace(match, "");
+      // Remove that chunk from the text and collapse multiple spaces
+      textWithoutAttributes = textWithoutAttributes.replace(match, "").replace(/\s+/g, " ");
     });
 
     return { textWithoutAttributes: textWithoutAttributes.trim(), attributes: res, tags };
