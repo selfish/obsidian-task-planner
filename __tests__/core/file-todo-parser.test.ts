@@ -7,8 +7,8 @@ const createMockFileAdapter = (content: string): FileAdapter<unknown> => ({
   id: 'file-1',
   path: 'notes/todo.md',
   name: 'todo.md',
-  getContentAsync: jest.fn().mockResolvedValue(content),
-  setContentAsync: jest.fn().mockResolvedValue(undefined),
+  getContent: jest.fn().mockResolvedValue(content),
+  setContent: jest.fn().mockResolvedValue(undefined),
   createOrSave: jest.fn().mockResolvedValue(undefined),
   isInFolder: jest.fn().mockReturnValue(false),
   file: {},
@@ -21,12 +21,12 @@ describe('FileTodoParser', () => {
     parser = new FileTodoParser(DEFAULT_SETTINGS);
   });
 
-  describe('parseMdFileAsync', () => {
+  describe('parseMdFile', () => {
     it('should parse a simple todo file', async () => {
       const content = '- [ ] Task one\n- [ ] Task two\n- [ ] Task three';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(3);
       expect(todos[0].text).toBe('Task one');
@@ -38,7 +38,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Task one\n- [ ] Task two\n- [ ] Task three';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos[0].line).toBe(0);
       expect(todos[1].line).toBe(1);
@@ -49,7 +49,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Task';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos[0].file).toBe(file);
     });
@@ -58,7 +58,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Todo\n- [x] Completed\n- [>] In Progress\n- [-] Canceled';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos[0].status).toBe(TodoStatus.Todo);
       expect(todos[1].status).toBe(TodoStatus.Complete);
@@ -70,7 +70,7 @@ describe('FileTodoParser', () => {
       const content = 'Regular text\n- [ ] Task\n- Plain list item\nMore text';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(1);
       expect(todos[0].text).toBe('Task');
@@ -80,7 +80,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Task [due:: 2025-01-15] [priority:: high]';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos[0].attributes).toEqual({
         due: '2025-01-15',
@@ -91,7 +91,7 @@ describe('FileTodoParser', () => {
     it('should handle empty file', async () => {
       const file = createMockFileAdapter('');
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(0);
     });
@@ -99,7 +99,7 @@ describe('FileTodoParser', () => {
     it('should handle file with only blank lines', async () => {
       const file = createMockFileAdapter('\n\n\n');
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(0);
     });
@@ -110,7 +110,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Parent task\n  - [ ] Child task';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       // Only parent should be in top-level list
       expect(todos).toHaveLength(1);
@@ -123,7 +123,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Level 1\n  - [ ] Level 2\n    - [ ] Level 3';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(1);
       expect(todos[0].subtasks).toHaveLength(1);
@@ -135,7 +135,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Parent\n  - [ ] Child 1\n  - [ ] Child 2\n  - [ ] Child 3';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(1);
       expect(todos[0].subtasks).toHaveLength(3);
@@ -145,7 +145,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Parent 1\n  - [ ] Child 1\n- [ ] Parent 2';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(2);
       expect(todos[0].text).toBe('Parent 1');
@@ -157,7 +157,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Parent\n\n  - [ ] Child';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(1);
       expect(todos[0].subtasks).toHaveLength(1);
@@ -174,7 +174,7 @@ describe('FileTodoParser', () => {
       ].join('\n');
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(2);
       expect(todos[0].text).toBe('Task A');
@@ -188,7 +188,7 @@ describe('FileTodoParser', () => {
       const content = '- [ ] Parent\n\t- [ ] Child';
       const file = createMockFileAdapter(content);
 
-      const todos = await parser.parseMdFileAsync(file);
+      const todos = await parser.parseMdFile(file);
 
       expect(todos).toHaveLength(1);
       expect(todos[0].subtasks).toHaveLength(1);

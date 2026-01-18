@@ -1,6 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
 
-// Mock TFile
 export class TFile {
   path: string;
   name: string;
@@ -21,7 +20,6 @@ export class TFile {
   }
 }
 
-// Mock TFolder
 export class TFolder {
   path: string;
   name: string;
@@ -38,7 +36,6 @@ export class TFolder {
   }
 }
 
-// Mock TAbstractFile
 export class TAbstractFile {
   path: string;
   name: string;
@@ -53,7 +50,6 @@ export class TAbstractFile {
   }
 }
 
-// Mock Vault
 export class Vault {
   adapter: any;
   configDir: string;
@@ -92,7 +88,6 @@ export class Vault {
   trigger = jest.fn();
 }
 
-// Mock Workspace
 export class Workspace {
   leftSplit: any;
   rightSplit: any;
@@ -122,7 +117,6 @@ export class Workspace {
   trigger = jest.fn();
 }
 
-// Mock WorkspaceLeaf
 export class WorkspaceLeaf {
   view: any;
 
@@ -137,7 +131,6 @@ export class WorkspaceLeaf {
   detach = jest.fn();
 }
 
-// Mock App
 export class App {
   vault: Vault;
   workspace: Workspace;
@@ -150,7 +143,6 @@ export class App {
   }
 }
 
-// Mock MetadataCache
 export class MetadataCache {
   getFileCache = jest.fn().mockReturnValue(null);
   getCache = jest.fn().mockReturnValue(null);
@@ -160,7 +152,6 @@ export class MetadataCache {
   trigger = jest.fn();
 }
 
-// Mock Plugin
 export class Plugin {
   app: App;
   manifest: PluginManifest;
@@ -187,7 +178,6 @@ export class Plugin {
   registerInterval = jest.fn().mockReturnValue(0);
 }
 
-// Mock PluginManifest
 export interface PluginManifest {
   id: string;
   name: string;
@@ -199,7 +189,6 @@ export interface PluginManifest {
   isDesktopOnly?: boolean;
 }
 
-// Mock PluginSettingTab
 export class PluginSettingTab {
   app: App;
   plugin: Plugin;
@@ -215,7 +204,6 @@ export class PluginSettingTab {
   hide(): void {}
 }
 
-// Mock Setting
 export class Setting {
   settingEl: HTMLElement;
   infoEl: HTMLElement;
@@ -251,7 +239,6 @@ export class Setting {
   then = jest.fn().mockReturnThis();
 }
 
-// Mock ItemView
 export class ItemView {
   app: App;
   leaf: WorkspaceLeaf;
@@ -289,7 +276,6 @@ export class ItemView {
   }
 }
 
-// Mock MarkdownView
 export class MarkdownView extends ItemView {
   editor: any;
   file: TFile | null;
@@ -316,7 +302,6 @@ export class MarkdownView extends ItemView {
   }
 }
 
-// Mock Modal
 export class Modal {
   app: App;
   containerEl: HTMLElement;
@@ -338,7 +323,6 @@ export class Modal {
   onClose(): void {}
 }
 
-// Mock Notice
 export class Notice {
   noticeEl: HTMLElement;
 
@@ -352,7 +336,6 @@ export class Notice {
   }
 }
 
-// Mock Menu
 export class Menu {
   constructor() {}
 
@@ -364,7 +347,6 @@ export class Menu {
   close = jest.fn();
 }
 
-// Mock MenuItem
 export class MenuItem {
   setTitle = jest.fn().mockReturnThis();
   setIcon = jest.fn().mockReturnThis();
@@ -374,7 +356,6 @@ export class MenuItem {
   setSection = jest.fn().mockReturnThis();
 }
 
-// Mock Events
 export class Events {
   on = jest.fn().mockReturnValue({ unload: jest.fn() });
   off = jest.fn();
@@ -382,7 +363,6 @@ export class Events {
   tryTrigger = jest.fn();
 }
 
-// Mock Component
 export class Component {
   load = jest.fn();
   onload = jest.fn();
@@ -396,13 +376,11 @@ export class Component {
   registerInterval = jest.fn().mockReturnValue(0);
 }
 
-// Utility functions
 export function setIcon(_el: HTMLElement, _iconId: string): void {}
 export function setTooltip(_el: HTMLElement, _tooltip: string): void {}
 export function addIcon(_iconId: string, _svgContent: string): void {}
 export function removeIcon(_iconId: string): void {}
 
-// Platform detection
 export const Platform = {
   isDesktop: true,
   isDesktopApp: true,
@@ -416,17 +394,14 @@ export const Platform = {
   isSafari: false,
 };
 
-// Keymap
 export const Keymap = {
   isModEvent: jest.fn().mockReturnValue(false),
   isModifier: jest.fn().mockReturnValue(false),
 };
 
-// Re-export moment from the moment package
 import momentLib from "moment";
 export const moment = momentLib;
 
-// Debounce utility
 export function debounce<T extends (...args: any[]) => any>(
   fn: T,
   delay: number,
@@ -443,7 +418,6 @@ export function debounce<T extends (...args: any[]) => any>(
   return debouncedFn;
 }
 
-// Normalization utilities
 export function normalizePath(path: string): string {
   return path.replace(/\\/g, '/').replace(/\/+/g, '/');
 }
@@ -452,6 +426,5 @@ export function getLinkpath(linkText: string): string {
   return linkText.replace(/[#^|].*$/, '');
 }
 
-// Mock request functions
 export const request = jest.fn().mockResolvedValue('');
 export const requestUrl = jest.fn().mockResolvedValue({ text: '', json: {} });

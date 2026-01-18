@@ -1,7 +1,7 @@
 import * as React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { getDefaultSettings, ViewMode } from "../../src/ui/PlanningSettings";
+import { getDefaultSettings, ViewMode } from "../../src/ui/planning-settings";
 
 describe("ViewMode", () => {
   describe("getDefaultSettings", () => {

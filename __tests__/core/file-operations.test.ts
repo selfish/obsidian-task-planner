@@ -8,8 +8,8 @@ const createMockFileAdapter = (content: string): FileAdapter<unknown> => {
     id: 'file-1',
     path: 'notes/todo.md',
     name: 'todo.md',
-    getContentAsync: jest.fn().mockImplementation(() => Promise.resolve(currentContent)),
-    setContentAsync: jest.fn().mockImplementation((newContent: string) => {
+    getContent: jest.fn().mockImplementation(() => Promise.resolve(currentContent)),
+    setContent: jest.fn().mockImplementation((newContent: string) => {
       currentContent = newContent;
       return Promise.resolve();
     }),
@@ -33,16 +33,16 @@ describe('FileOperations', () => {
     operations = new FileOperations();
   });
 
-  describe('updateAttributeAsync', () => {
+  describe('updateAttribute', () => {
     it('should add an attribute to a todo', async () => {
       const fileContent = '- [ ] Task one\n- [ ] Task two\n- [ ] Task three';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task two', 1, file);
 
-      await operations.updateAttributeAsync(todo, 'due', '2025-01-15');
+      await operations.updateAttribute(todo, 'due', '2025-01-15');
 
-      expect(file.setContentAsync).toHaveBeenCalled();
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(file.setContent).toHaveBeenCalled();
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [ ] Task two [due:: 2025-01-15]');
     });
 
@@ -51,9 +51,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
-      await operations.updateAttributeAsync(todo, 'due', '2025-01-20');
+      await operations.updateAttribute(todo, 'due', '2025-01-20');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[due:: 2025-01-20]');
       expect(setContentCall).not.toContain('[due:: 2025-01-10]');
     });
@@ -63,9 +63,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
-      await operations.updateAttributeAsync(todo, 'due', undefined);
+      await operations.updateAttribute(todo, 'due', undefined);
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task');
     });
 
@@ -74,9 +74,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
-      await operations.updateAttributeAsync(todo, 'selected', false);
+      await operations.updateAttribute(todo, 'selected', false);
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task');
     });
 
@@ -89,22 +89,22 @@ describe('FileOperations', () => {
         line: undefined,
       };
 
-      await operations.updateAttributeAsync(todo, 'due', '2025-01-15');
+      await operations.updateAttribute(todo, 'due', '2025-01-15');
 
       // Should silently skip - no file modification when line number is missing
-      expect(file.setContentAsync).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
   });
 
-  describe('removeAttributeAsync', () => {
+  describe('removeAttribute', () => {
     it('should remove a specific attribute', async () => {
       const fileContent = '- [ ] Task [due:: 2025-01-15] [priority:: high]';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task', 0, file);
 
-      await operations.removeAttributeAsync(todo, 'due');
+      await operations.removeAttribute(todo, 'due');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task [priority:: high]');
     });
   });
@@ -118,7 +118,7 @@ describe('FileOperations', () => {
       await operations.updateTodoStatus(todo, 'completed');
 
       // First call updates checkbox, second call updates completed attribute
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls.length).toBe(2);
       expect(calls[0][0]).toContain('[x]');
     });
@@ -130,7 +130,7 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[-]');
     });
 
@@ -141,7 +141,7 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[>]');
     });
 
@@ -152,7 +152,7 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[!]');
     });
 
@@ -163,7 +163,7 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[d]');
     });
 
@@ -174,7 +174,7 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[ ]');
     });
 
@@ -185,7 +185,7 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       // Second call adds the completed attribute
       expect(calls[1][0]).toMatch(/\[completed:: \d{4}-\d{2}-\d{2}\]/);
     });
@@ -197,7 +197,7 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[1][0]).not.toContain('[completed::');
     });
 
@@ -208,13 +208,13 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      const calls = (file.setContentAsync as jest.Mock).mock.calls;
+      const calls = (file.setContent as jest.Mock).mock.calls;
       // Unknown status results in empty checkbox string
       expect(calls[0][0]).toBe('- Task');
     });
   });
 
-  describe('batchUpdateAttributeAsync', () => {
+  describe('batchUpdateAttribute', () => {
     it('should update multiple todos in the same file', async () => {
       const fileContent = '- [ ] Task one\n- [ ] Task two\n- [ ] Task three';
       const file = createMockFileAdapter(fileContent);
@@ -223,18 +223,18 @@ describe('FileOperations', () => {
         createTodo('Task two', 1, file),
       ];
 
-      await operations.batchUpdateAttributeAsync(todos, 'priority', 'high');
+      await operations.batchUpdateAttribute(todos, 'priority', 'high');
 
       // Should only write to file once
-      expect(file.setContentAsync).toHaveBeenCalledTimes(1);
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [ ] Task one [priority:: high]');
       expect(setContentCall).toContain('- [ ] Task two [priority:: high]');
       expect(setContentCall).toContain('- [ ] Task three');
     });
 
     it('should handle empty array', async () => {
-      await operations.batchUpdateAttributeAsync([], 'due', '2025-01-15');
+      await operations.batchUpdateAttribute([], 'due', '2025-01-15');
       // No errors should be thrown
     });
 
@@ -246,14 +246,14 @@ describe('FileOperations', () => {
         createTodo('Task two', 0, file2),
       ];
 
-      await operations.batchUpdateAttributeAsync(todos, 'priority', 'high');
+      await operations.batchUpdateAttribute(todos, 'priority', 'high');
 
-      expect(file1.setContentAsync).toHaveBeenCalledTimes(1);
-      expect(file2.setContentAsync).toHaveBeenCalledTimes(1);
+      expect(file1.setContent).toHaveBeenCalledTimes(1);
+      expect(file2.setContent).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('batchRemoveAttributeAsync', () => {
+  describe('batchRemoveAttribute', () => {
     it('should remove attribute from multiple todos', async () => {
       const fileContent = '- [ ] Task one [selected:: true]\n- [ ] Task two [selected:: true]';
       const file = createMockFileAdapter(fileContent);
@@ -262,20 +262,20 @@ describe('FileOperations', () => {
         createTodo('Task two', 1, file),
       ];
 
-      await operations.batchRemoveAttributeAsync(todos, 'selected');
+      await operations.batchRemoveAttribute(todos, 'selected');
 
-      expect(file.setContentAsync).toHaveBeenCalledTimes(1);
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).not.toContain('[selected::');
     });
 
     it('should handle empty array', async () => {
-      await operations.batchRemoveAttributeAsync([], 'due');
+      await operations.batchRemoveAttribute([], 'due');
       // No errors should be thrown
     });
   });
 
-  describe('batchUpdateTodoStatusAsync', () => {
+  describe('batchUpdateTodoStatus', () => {
     it('should update status for multiple todos', async () => {
       const fileContent = '- [ ] Task one\n- [ ] Task two';
       const file = createMockFileAdapter(fileContent);
@@ -284,16 +284,16 @@ describe('FileOperations', () => {
         createTodo('Task two', 1, file, TodoStatus.Complete),
       ];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      expect(file.setContentAsync).toHaveBeenCalledTimes(1);
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [x] Task one');
       expect(setContentCall).toContain('- [x] Task two');
     });
 
     it('should handle empty array', async () => {
-      await operations.batchUpdateTodoStatusAsync([], 'completed');
+      await operations.batchUpdateTodoStatus([], 'completed');
       // No errors should be thrown
     });
 
@@ -302,9 +302,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.Todo)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[ ]');
     });
 
@@ -313,9 +313,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.Canceled)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[-]');
     });
 
@@ -324,9 +324,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.AttentionRequired)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[!]');
     });
 
@@ -335,9 +335,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.Delegated)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[d]');
     });
 
@@ -346,9 +346,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.InProgress)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[>]');
     });
 
@@ -357,9 +357,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, 999 as TodoStatus)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       // Unknown status defaults to empty checkbox
       expect(setContentCall).toContain('- Task');
     });
@@ -372,10 +372,10 @@ describe('FileOperations', () => {
         { status: TodoStatus.Complete, text: 'Task missing line', file, line: undefined } as TodoItem<unknown>,
       ];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
       // Should silently skip the todo without line number but still update the valid todo
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [x] Task one');
     });
 
@@ -384,9 +384,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.Complete)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toMatch(/\[completed:: \d{4}-\d{2}-\d{2}\]/);
     });
 
@@ -395,9 +395,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todos = [createTodo('Task', 0, file, TodoStatus.Todo)];
 
-      await operations.batchUpdateTodoStatusAsync(todos, 'completed');
+      await operations.batchUpdateTodoStatus(todos, 'completed');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).not.toContain('[completed::');
     });
   });
@@ -408,22 +408,22 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task one', 0, file);
 
-      await operations.updateAttributeAsync(todo, 'due', '2025-01-15');
+      await operations.updateAttribute(todo, 'due', '2025-01-15');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('\r\n');
     });
   });
 
-  describe('appendTagAsync', () => {
+  describe('appendTag', () => {
     it('should append a tag to a todo', async () => {
       const fileContent = '- [ ] Task one';
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task one', 0, file);
 
-      await operations.appendTagAsync(todo, 'work');
+      await operations.appendTag(todo, 'work');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task one #work');
     });
 
@@ -432,9 +432,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task one', 0, file);
 
-      await operations.appendTagAsync(todo, 'urgent');
+      await operations.appendTag(todo, 'urgent');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task one #urgent [due:: 2025-01-15]');
     });
 
@@ -449,9 +449,9 @@ describe('FileOperations', () => {
         tags: ['work'],
       };
 
-      await operations.appendTagAsync(todo, 'work');
+      await operations.appendTag(todo, 'work');
 
-      expect(file.setContentAsync).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
 
     it('should handle todo without line number', async () => {
@@ -463,13 +463,13 @@ describe('FileOperations', () => {
         line: undefined,
       };
 
-      await operations.appendTagAsync(todo, 'test');
+      await operations.appendTag(todo, 'test');
 
-      expect(file.setContentAsync).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
   });
 
-  describe('removeTagAsync', () => {
+  describe('removeTag', () => {
     it('should remove a tag from a todo', async () => {
       const fileContent = '- [ ] Task one #work';
       const file = createMockFileAdapter(fileContent);
@@ -481,9 +481,9 @@ describe('FileOperations', () => {
         tags: ['work'],
       };
 
-      await operations.removeTagAsync(todo, 'work');
+      await operations.removeTag(todo, 'work');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task one');
     });
 
@@ -498,9 +498,9 @@ describe('FileOperations', () => {
         tags: ['work', 'urgent'],
       };
 
-      await operations.removeTagAsync(todo, 'work');
+      await operations.removeTag(todo, 'work');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task one #urgent');
     });
 
@@ -515,9 +515,9 @@ describe('FileOperations', () => {
         tags: ['work'],
       };
 
-      await operations.removeTagAsync(todo, 'work');
+      await operations.removeTag(todo, 'work');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task one [due:: 2025-01-15]');
     });
 
@@ -532,9 +532,9 @@ describe('FileOperations', () => {
         tags: [],
       };
 
-      await operations.removeTagAsync(todo, 'work');
+      await operations.removeTag(todo, 'work');
 
-      expect(file.setContentAsync).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
 
     it('should skip if todo has undefined tags', async () => {
@@ -542,9 +542,9 @@ describe('FileOperations', () => {
       const file = createMockFileAdapter(fileContent);
       const todo = createTodo('Task one', 0, file);
 
-      await operations.removeTagAsync(todo, 'work');
+      await operations.removeTag(todo, 'work');
 
-      expect(file.setContentAsync).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
 
     it('should handle todo without line number', async () => {
@@ -557,13 +557,13 @@ describe('FileOperations', () => {
         tags: ['work'],
       };
 
-      await operations.removeTagAsync(todo, 'work');
+      await operations.removeTag(todo, 'work');
 
-      expect(file.setContentAsync).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
   });
 
-  describe('batchAppendTagAsync', () => {
+  describe('batchAppendTag', () => {
     it('should append tag to multiple todos in the same file', async () => {
       const fileContent = '- [ ] Task one\n- [ ] Task two\n- [ ] Task three';
       const file = createMockFileAdapter(fileContent);
@@ -572,10 +572,10 @@ describe('FileOperations', () => {
         createTodo('Task two', 1, file),
       ];
 
-      await operations.batchAppendTagAsync(todos, 'project');
+      await operations.batchAppendTag(todos, 'project');
 
-      expect(file.setContentAsync).toHaveBeenCalledTimes(1);
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [ ] Task one #project');
       expect(setContentCall).toContain('- [ ] Task two #project');
       expect(setContentCall).toContain('- [ ] Task three');
@@ -589,16 +589,16 @@ describe('FileOperations', () => {
         { status: TodoStatus.Todo, text: 'Task two', file, line: 1, tags: [] },
       ];
 
-      await operations.batchAppendTagAsync(todos, 'project');
+      await operations.batchAppendTag(todos, 'project');
 
-      expect(file.setContentAsync).toHaveBeenCalledTimes(1);
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       // First task should not get double tag
       expect(setContentCall).toBe('- [ ] Task one #project\n- [ ] Task two #project');
     });
 
     it('should handle empty array', async () => {
-      await operations.batchAppendTagAsync([], 'project');
+      await operations.batchAppendTag([], 'project');
       // No errors should be thrown
     });
 
@@ -610,9 +610,9 @@ describe('FileOperations', () => {
         { status: TodoStatus.Todo, text: 'Task two #project', file, line: 1, tags: ['project'] },
       ];
 
-      await operations.batchAppendTagAsync(todos, 'project');
+      await operations.batchAppendTag(todos, 'project');
 
-      expect(file.setContentAsync).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
 
     it('should update todos in multiple files', async () => {
@@ -623,12 +623,12 @@ describe('FileOperations', () => {
         createTodo('Task two', 0, file2),
       ];
 
-      await operations.batchAppendTagAsync(todos, 'shared');
+      await operations.batchAppendTag(todos, 'shared');
 
-      expect(file1.setContentAsync).toHaveBeenCalledTimes(1);
-      expect(file2.setContentAsync).toHaveBeenCalledTimes(1);
-      expect((file1.setContentAsync as jest.Mock).mock.calls[0][0]).toContain('#shared');
-      expect((file2.setContentAsync as jest.Mock).mock.calls[0][0]).toContain('#shared');
+      expect(file1.setContent).toHaveBeenCalledTimes(1);
+      expect(file2.setContent).toHaveBeenCalledTimes(1);
+      expect((file1.setContent as jest.Mock).mock.calls[0][0]).toContain('#shared');
+      expect((file2.setContent as jest.Mock).mock.calls[0][0]).toContain('#shared');
     });
 
     it('should skip todos with missing line numbers', async () => {
@@ -639,9 +639,9 @@ describe('FileOperations', () => {
         { status: TodoStatus.Todo, text: 'Task missing line', file, line: undefined },
       ];
 
-      await operations.batchAppendTagAsync(todos, 'project');
+      await operations.batchAppendTag(todos, 'project');
 
-      const setContentCall = (file.setContentAsync as jest.Mock).mock.calls[0][0];
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [ ] Task one #project');
     });
   });

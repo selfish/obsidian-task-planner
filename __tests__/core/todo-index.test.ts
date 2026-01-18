@@ -10,8 +10,8 @@ const createMockFileAdapter = (id: string, inArchive = false): FileAdapter<unkno
   id,
   path: `notes/${id}.md`,
   name: `${id}.md`,
-  getContentAsync: jest.fn().mockResolvedValue(''),
-  setContentAsync: jest.fn().mockResolvedValue(undefined),
+  getContent: jest.fn().mockResolvedValue(''),
+  setContent: jest.fn().mockResolvedValue(undefined),
   createOrSave: jest.fn().mockResolvedValue(undefined),
   isInFolder: jest.fn().mockImplementation((folder: string) => inArchive && folder === 'archive'),
   file: {},
@@ -41,10 +41,10 @@ describe('TodoIndex', () => {
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockFileTodoParser = {
-      parseMdFileAsync: jest.fn().mockResolvedValue([]),
+      parseMdFile: jest.fn().mockResolvedValue([]),
     } as unknown as FileTodoParser<unknown>;
     mockFolderTodoParser = {
-      ParseFilesAsync: jest.fn().mockResolvedValue([]),
+      parseFiles: jest.fn().mockResolvedValue([]),
     } as unknown as FolderTodoParser<unknown>;
     settings = {
       ignoreArchivedTodos: false,
@@ -105,7 +105,7 @@ describe('TodoIndex', () => {
         { file: file2, todos: [todo2] },
       ];
 
-      (mockFolderTodoParser.ParseFilesAsync as jest.Mock).mockResolvedValue(todosInFiles);
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockResolvedValue(todosInFiles);
 
       const index = new TodoIndex(deps, settings);
       const updateHandler = jest.fn().mockResolvedValue(undefined);
@@ -130,13 +130,13 @@ describe('TodoIndex', () => {
       const normalFile = createMockFileAdapter('normal', false);
       const archivedFile = createMockFileAdapter('archived', true);
 
-      (mockFolderTodoParser.ParseFilesAsync as jest.Mock).mockResolvedValue([]);
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockResolvedValue([]);
 
       index.filesLoaded([normalFile, archivedFile]);
 
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(mockFolderTodoParser.ParseFilesAsync).toHaveBeenCalledWith([normalFile]);
+      expect(mockFolderTodoParser.parseFiles).toHaveBeenCalledWith([normalFile]);
     });
   });
 
@@ -149,7 +149,7 @@ describe('TodoIndex', () => {
       const index = new TodoIndex(deps, settings);
       index.files = [{ file, todos: [oldTodo] }];
 
-      (mockFileTodoParser.parseMdFileAsync as jest.Mock).mockResolvedValue([newTodo]);
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([newTodo]);
 
       const updateHandler = jest.fn().mockResolvedValue(undefined);
       index.onUpdateEvent.listen(updateHandler);
@@ -172,7 +172,7 @@ describe('TodoIndex', () => {
 
       index.fileUpdated(archivedFile);
 
-      expect(mockFileTodoParser.parseMdFileAsync).not.toHaveBeenCalled();
+      expect(mockFileTodoParser.parseMdFile).not.toHaveBeenCalled();
     });
 
     it('should log debug message', async () => {
@@ -180,7 +180,7 @@ describe('TodoIndex', () => {
       const index = new TodoIndex(deps, settings);
       index.files = [{ file, todos: [] }];
 
-      (mockFileTodoParser.parseMdFileAsync as jest.Mock).mockResolvedValue([]);
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([]);
 
       index.fileUpdated(file);
 
@@ -226,12 +226,12 @@ describe('TodoIndex', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('ignored because archived'));
     });
 
-    it('should throw error when file not found in index', () => {
+    it('should throw error when file not found in index', async () => {
       const file = createMockFileAdapter('file1');
       const index = new TodoIndex(deps, settings);
       index.files = [];
 
-      expect(() => index.fileDeleted(file)).toThrow('TodoIndex: File not found in index: file1');
+      await expect(index.fileDeleted(file)).rejects.toThrow('TodoIndex: File not found in index: file1');
       expect(mockLogger.error).toHaveBeenCalled();
     });
   });
@@ -245,14 +245,12 @@ describe('TodoIndex', () => {
       const index = new TodoIndex(deps, settings);
       index.files = [{ file: existingFile, todos: [] }];
 
-      (mockFileTodoParser.parseMdFileAsync as jest.Mock).mockResolvedValue([newTodo]);
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([newTodo]);
 
       const updateHandler = jest.fn().mockResolvedValue(undefined);
       index.onUpdateEvent.listen(updateHandler);
 
-      index.fileCreated(newFile);
-
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await index.fileCreated(newFile);
 
       expect(index.files).toHaveLength(2);
       expect(index.files[1].file).toBe(newFile);
@@ -270,7 +268,7 @@ describe('TodoIndex', () => {
 
       index.fileCreated(archivedFile);
 
-      expect(mockFileTodoParser.parseMdFileAsync).not.toHaveBeenCalled();
+      expect(mockFileTodoParser.parseMdFile).not.toHaveBeenCalled();
     });
   });
 
