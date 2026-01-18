@@ -11,7 +11,6 @@ export interface AtShortcutSettings {
   enableDateShortcuts: boolean;      // @today, @tomorrow, etc. (default: true)
   enablePriorityShortcuts: boolean;  // @critical, @high, @medium, @low, @lowest (default: true)
   enableBuiltinShortcuts: boolean;   // @selected (default: true)
-  enableParenthesesSyntax: boolean;  // @foo(bar) legacy format (default: false)
   customShortcuts: CustomAtShortcut[];
 }
 
@@ -102,7 +101,6 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     enableDateShortcuts: true,
     enablePriorityShortcuts: true,
     enableBuiltinShortcuts: true,
-    enableParenthesesSyntax: false,
     customShortcuts: [],
   },
 };

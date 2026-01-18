@@ -13,25 +13,20 @@
  * See LICENSE file for full license text.
  */
 
-import { ConsoleLogger, LogLevel } from "./lib/logger";
-import { FolderTodoParser } from "./core/parsers/folder-todo-parser";
-import { FileTodoParser } from "./core/parsers/file-todo-parser";
-import { Logger } from "./types/logger";
-import { ObsidianFile } from "./lib/file-adapter";
 import { App, Plugin, PluginManifest, TFile } from "obsidian";
-import { TodoIndex } from "./core/index/todo-index";
-import { ToggleTodoCommand } from "./commands/toggle-todo";
-import { StatusOperations } from "./core/operations/status-operations";
-import { ToggleOngoingTodoCommand } from "./commands/toggle-ongoing";
-import { TaskPlannerSettingsTab } from "./settings/settings-tab";
-import { DEFAULT_SETTINGS, TaskPlannerSettings } from "./settings/types";
-import { CompleteLineCommand } from "./commands/complete-line";
-import { PlanningView } from "./views/planning-view";
-import { OpenPlanningCommand } from "./commands/open-planning";
-import { TodoListView } from "./views/todo-list-view";
-import { TodoReportView } from "./views/todo-report-view";
-import { OpenReportCommand } from "./commands/open-report";
-import { createAutoConvertExtension } from "./editor/auto-convert-extension";
+import {
+  CompleteLineCommand,
+  OpenPlanningCommand,
+  OpenReportCommand,
+  ToggleOngoingTodoCommand,
+  ToggleTodoCommand,
+} from "./commands";
+import { FileTodoParser, FolderTodoParser, StatusOperations, TodoIndex } from "./core";
+import { createAutoConvertExtension } from "./editor";
+import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice } from "./lib";
+import { DEFAULT_SETTINGS, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
+import { Logger } from "./types";
+import { PlanningView, TodoListView, TodoReportView } from "./views";
 
 export default class TaskPlannerPlugin extends Plugin {
   logger: Logger = new ConsoleLogger(LogLevel.ERROR);
@@ -81,16 +76,20 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvents();
     this.registerEditorExtension(createAutoConvertExtension(() => this.settings));
 
-    this.app.workspace.onLayoutReady(() => {
+    this.app.workspace.onLayoutReady(async () => {
       this.loadFiles();
 
       if (this.app.workspace.getLeavesOfType(TodoListView.viewType).length) {
         return;
       }
 
-      void this.app.workspace.getRightLeaf(false)?.setViewState({
-        type: TodoListView.viewType,
-      });
+      try {
+        await this.app.workspace.getRightLeaf(false)?.setViewState({
+          type: TodoListView.viewType,
+        });
+      } catch (err) {
+        this.logger.error(`Failed to set view state: ${err}`);
+      }
     });
 
     this.logger.info("Task Planner loaded");
@@ -129,7 +128,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
         if (file instanceof TFile && file.extension === "md") {
-          this.todoIndex.fileUpdated(new ObsidianFile(this.app, file));
+          void this.todoIndex.fileUpdated(new ObsidianFile(this.app, file));
         }
       })
     );
@@ -137,7 +136,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("create", (file) => {
         if (file instanceof TFile && file.extension === "md") {
-          this.todoIndex.fileCreated(new ObsidianFile(this.app, file));
+          void this.todoIndex.fileCreated(new ObsidianFile(this.app, file));
         }
       })
     );
@@ -145,7 +144,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
         if (file instanceof TFile && file.extension === "md") {
-          this.todoIndex.fileDeleted(new ObsidianFile(this.app, file));
+          void this.todoIndex.fileDeleted(new ObsidianFile(this.app, file));
         }
       })
     );
@@ -162,20 +161,26 @@ export default class TaskPlannerPlugin extends Plugin {
   private loadFiles(): void {
     setTimeout(() => {
       const files = this.app.vault.getMarkdownFiles().map((file) => new ObsidianFile(this.app, file));
-      this.todoIndex.filesLoaded(files);
+      void this.todoIndex.filesLoaded(files);
     }, 50);
   }
 
-  onunload(): void {
-    // Cleanup handled by Obsidian
-  }
+  onunload(): void {}
 
   async loadSettings(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
   async saveSettings(): Promise<void> {
-    await this.saveData(this.settings);
+    try {
+      await saveSettingsWithRetry(() => this.saveData(this.settings));
+    } catch (error) {
+      this.logger.error(error instanceof Error ? error : new Error(String(error)), {
+        operation: 'saveSettings',
+      });
+      showErrorNotice('Failed to save settings. Please try again.', 'HIGH');
+      throw error;
+    }
   }
 
   refreshPlanningViews(): void {

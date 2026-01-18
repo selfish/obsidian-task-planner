@@ -14,7 +14,6 @@ export interface TodoItem<TFile> {
   text: string;
   file: FileAdapter<TFile>;
   folderType?: string;
-  project?: string;
   attributes?: Record<string, string | boolean>;
   tags?: string[];
   line?: number;

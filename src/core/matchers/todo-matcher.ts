@@ -1,4 +1,4 @@
-import { TodoItem } from "../../types/todo";
+import { TodoItem } from "../../types";
 
 export class TodoMatcher<T> {
   private matchTerm: string;
