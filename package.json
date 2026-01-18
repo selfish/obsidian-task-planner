@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -p tsconfig.json --noEmit && node esbuild.config.mjs production",
-    "deploy": "cp manifest.json main.js styles.css \"$OBSIDIAN_PATH/.obsidian/plugins/obsidian-task-planner\" && echo 'Deployed to $OBSIDIAN_PATH/.obsidian/plugins/obsidian-task-planner'",
+    "deploy": "mkdir -p \"$OBSIDIAN_PATH/.obsidian/plugins/obsidian-task-planner\" && cp manifest.json main.js styles.css \"$OBSIDIAN_PATH/.obsidian/plugins/obsidian-task-planner\" && echo 'Deployed to $OBSIDIAN_PATH/.obsidian/plugins/obsidian-task-planner'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

@@ -7,6 +7,53 @@ import { Completion } from "./completion";
 export class StatusOperations {
   private lineParser: LineParser;
 
+  /**
+   * Whitelist of recognized date-related keywords that should be auto-converted.
+   * These are common natural language date expressions that chrono-node can parse.
+   */
+  private static readonly DATE_KEYWORDS = [
+    // Relative days
+    "today",
+    "tomorrow",
+    "yesterday",
+    // Days of week
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat",
+    "sun",
+    // Relative week references
+    "next-monday",
+    "next-tuesday",
+    "next-wednesday",
+    "next-thursday",
+    "next-friday",
+    "next-saturday",
+    "next-sunday",
+    "last-monday",
+    "last-tuesday",
+    "last-wednesday",
+    "last-thursday",
+    "last-friday",
+    "last-saturday",
+    "last-sunday",
+    // Other relative terms
+    "now",
+    "tonight",
+    "week",
+    "month",
+    "year",
+  ];
+
   constructor(private settings?: TaskPlannerSettings) {
     this.lineParser = new LineParser(settings);
   }
@@ -24,17 +71,25 @@ export class StatusOperations {
     Object.keys(attributes.attributes).forEach((key) => {
       const val = attributes.attributes[key];
       if (typeof val === "string") {
-        // Complete date if it's an attribute value
-        const completion = Completion.completeDate(val);
-        if (completion !== null) {
-          attributes.attributes[key] = completion;
+        // Complete date if it's an attribute value (e.g., @due(tomorrow))
+        // Only convert if the value is a recognized date keyword
+        const normalizedVal = val.toLowerCase().trim();
+        if (StatusOperations.DATE_KEYWORDS.includes(normalizedVal)) {
+          const completion = Completion.completeDate(val);
+          if (completion !== null) {
+            attributes.attributes[key] = completion;
+          }
         }
       } else if (val === true) {
-        // try to convert tags like @today into @due(the_date)
-        const completion = Completion.completeDate(key);
-        if (completion !== null) {
-          delete attributes.attributes[key];
-          attributes.attributes[this.settings?.dueDateAttribute || "due"] = completion;
+        // Convert boolean shortcuts like @today into @due(the_date)
+        // Only convert if the key is a recognized date keyword
+        const normalizedKey = key.toLowerCase().trim();
+        if (StatusOperations.DATE_KEYWORDS.includes(normalizedKey)) {
+          const completion = Completion.completeDate(key);
+          if (completion !== null) {
+            delete attributes.attributes[key];
+            attributes.attributes[this.settings?.dueDateAttribute || "due"] = completion;
+          }
         }
       }
     });

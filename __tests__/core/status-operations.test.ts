@@ -178,9 +178,26 @@ describe('StatusOperations', () => {
         expect(result).toBe('- [ ] Task [priority:: lowest]');
       });
 
-      it('should preserve other attributes', () => {
+      it('should preserve non-date attributes that are not recognized', () => {
         const result = operations.convertAttributes('- [ ] Task @custom');
+        // @custom is not a recognized date keyword, so it stays as [custom:: true]
         expect(result).toBe('- [ ] Task [custom:: true]');
+      });
+
+      it('should not convert @mentions inside wiki links', () => {
+        const result = operations.convertAttributes('- [ ] Speak to [[@jon do]] about x');
+        // @jon inside [[@jon do]] should be preserved, not converted
+        expect(result).toBe('- [ ] Speak to [[@jon do]] about x');
+      });
+
+      it('should convert @foo(bar) syntax to [foo:: bar]', () => {
+        const result = operations.convertAttributes('- [ ] Task @priority(high)');
+        expect(result).toBe('- [ ] Task [priority:: high]');
+      });
+
+      it('should convert @due(tomorrow) to ISO date', () => {
+        const result = operations.convertAttributes('- [ ] Task @due(tomorrow)');
+        expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
       });
 
       it('should handle line without attributes', () => {

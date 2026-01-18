@@ -194,9 +194,24 @@ describe('LineParser', () => {
       });
     });
 
-    it('should not match @key inside parentheses', () => {
-      const result = parser.parseAttributes('Task with @mention(test)');
-      expect(result.textWithoutAttributes).toBe('Task with @mention(test)');
+    it('should parse @key(value) syntax', () => {
+      const result = parser.parseAttributes('Task @due(2025-01-20)');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({ due: '2025-01-20' });
+    });
+
+    it('should parse multiple @key(value) attributes', () => {
+      const result = parser.parseAttributes('Task @due(2025-01-20) @priority(high)');
+      expect(result.textWithoutAttributes).toBe('Task');
+      expect(result.attributes).toEqual({
+        due: '2025-01-20',
+        priority: 'high',
+      });
+    });
+
+    it('should not extract @mentions inside wiki links', () => {
+      const result = parser.parseAttributes('Speak to [[@jon do]] about x');
+      expect(result.textWithoutAttributes).toBe('Speak to [[@jon do]] about x');
       expect(result.attributes).toEqual({});
     });
 
