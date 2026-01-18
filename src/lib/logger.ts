@@ -1,4 +1,4 @@
-import { Logger } from "../types/logger";
+import { Logger } from "../types";
 
 export enum LogLevel {
   DEBUG = 0,
@@ -7,29 +7,15 @@ export enum LogLevel {
   ERROR = 3,
 }
 
-/**
- * No-op logger implementation.
- * Obsidian plugins should not use console logging.
- * This implementation satisfies the Logger interface without producing output.
- */
+// No-op logger - Obsidian plugins should not use console logging
 export class ConsoleLogger implements Logger {
-  constructor(_logLevel: LogLevel) {
-    // Log level ignored - this is a no-op logger
-  }
+  constructor(_logLevel: LogLevel) {}
 
-  debug(_msg: string): void {
-    // No-op: Obsidian plugins should not use console
-  }
+  debug(_msg: string, _context?: Record<string, unknown>): void {}
 
-  info(_msg: string): void {
-    // No-op: Obsidian plugins should not use console
-  }
+  info(_msg: string, _context?: Record<string, unknown>): void {}
 
-  warn(_msg: string): void {
-    // No-op: Obsidian plugins should not use console
-  }
+  warn(_msg: string, _context?: Record<string, unknown>): void {}
 
-  error(_msg: string): void {
-    // No-op: Obsidian plugins should not use console
-  }
+  error(_error: Error | string, _context?: Record<string, unknown>): void {}
 }

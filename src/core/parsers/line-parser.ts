@@ -1,5 +1,5 @@
-import { TaskPlannerSettings } from "../../settings/types";
-import { LineStructure, AttributesStructure } from "../../types/parsing";
+import { TaskPlannerSettings } from "../../settings";
+import { AttributesStructure, LineStructure } from "../../types";
 import { Completion } from "../operations/completion";
 
 export class LineParser {
@@ -31,67 +31,48 @@ export class LineParser {
     return `${line.indentation}${space(line.listMarker)}${space(line.checkbox)}${space(line.date, ": ")}${line.line}`;
   }
 
-  /**
-   * Provide a RegExp for matching attributes. Supports:
-   * - Dataview syntax: `[key:: value]`
-   * - Shortcut syntax: `@key` (boolean shortcuts like @today, @high)
-   * The negative lookbehind (?<!\[) prevents matching @ inside [[@wiki links]]
-   */
+  // Matches Dataview [key:: value] and @key shortcuts (negative lookbehind prevents matching @ inside [[@wiki links]])
   private getAttributeRegex(): RegExp {
-    // Match Dataview [key:: value] and simple @key shortcuts (no parentheses)
-    // (?<!\[) prevents matching @ that follows [ (wiki links like [[@person]])
     return /\[([^:\]]+)::([^\]]+)\]|(?<!\[)@(\w+)(?![(\w])/g;
   }
 
-  /**
-   * Convert a matched attribute string into `[attributeKey, attributeValue]`.
-   * Handles Dataview `[key:: value]` and shortcut `@key` formats.
-   * Returns null for unrecognized @ shortcuts (whitelist-based parsing).
-   */
+  // Returns null for unrecognized @ shortcuts (whitelist-based parsing)
   private parseSingleAttribute(matchStr: string): [string, string | boolean] | null {
-    // Try Dataview format first (always allow)
     const dataviewRegex = /\[([^:\]]+)::([^\]]+)\]/;
     const dataviewMatch = dataviewRegex.exec(matchStr);
     if (dataviewMatch) {
       return [dataviewMatch[1].trim(), dataviewMatch[2].trim()];
     }
 
-    // Try shortcut format (@key without parentheses)
     const shortcutRegex = /@(\w+)/;
     const shortcutMatch = shortcutRegex.exec(matchStr);
     if (shortcutMatch) {
       const keyword = shortcutMatch[1].toLowerCase();
       const atSettings = this.settings?.atShortcutSettings;
 
-      // If no settings provided, use old behavior (accept all shortcuts)
       if (!atSettings) {
         return [keyword, true];
       }
 
-      // Check if @ shortcuts are enabled (master toggle)
       if (!atSettings.enableAtShortcuts) {
         return null;
       }
 
-      // Priority shortcuts: @critical, @high, @medium, @low, @lowest
       if (atSettings.enablePriorityShortcuts &&
           LineParser.PRIORITY_SHORTCUTS.includes(keyword)) {
         return [keyword, true];
       }
 
-      // Date shortcuts: validate with chrono (@today, @tomorrow, etc.)
       if (atSettings.enableDateShortcuts &&
           Completion.completeDate(keyword) !== null) {
         return [keyword, true];
       }
 
-      // Builtin shortcuts: @selected
       if (atSettings.enableBuiltinShortcuts &&
           keyword === "selected") {
         return [keyword, true];
       }
 
-      // Custom shortcuts from settings
       if (atSettings.customShortcuts) {
         const customShortcut = atSettings.customShortcuts.find(
           (s) => s.keyword.toLowerCase() === keyword
@@ -101,16 +82,12 @@ export class LineParser {
         }
       }
 
-      // Unknown @ shortcut - ignore it
       return null;
     }
 
     return null;
   }
 
-  /**
-   * Convert a single `key` and `value` into Dataview format: `[key:: value]`
-   */
   private attributeToString(key: string, value: string | boolean): string {
     if (typeof value === "boolean") {
       return `[${key}:: true]`;
@@ -118,19 +95,10 @@ export class LineParser {
     return `[${key}:: ${value}]`;
   }
 
-  /**
-   * Priority shortcut keys that should be converted to [priority:: value]
-   */
   private static readonly PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
 
-  /**
-   * Regex for matching hashtags. Must start with a letter, can contain letters, numbers, hyphens, underscores.
-   */
   private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
 
-  /**
-   * Parse hashtags from text. Returns unique tags without the # prefix.
-   */
   private parseHashtags(text: string): string[] {
     const matches = text.matchAll(LineParser.HASHTAG_REGEX);
     const tags: string[] = [];
@@ -142,11 +110,7 @@ export class LineParser {
     return tags;
   }
 
-  /**
-   * Parse the attributes from a given line, removing those attribute tokens
-   * from the text and returning a map of { key -> value } plus the stripped text.
-   * Priority shortcuts like @high are automatically converted to priority attributes.
-   */
+  // Priority shortcuts like @high are converted to [priority:: high]
   parseAttributes(text: string): AttributesStructure {
     const regexp = this.getAttributeRegex();
     const matches = text.match(regexp);
@@ -159,28 +123,21 @@ export class LineParser {
 
     matches.forEach((match) => {
       const parsed = this.parseSingleAttribute(match);
-      if (parsed === null) return; // skip unrecognized @ shortcuts
+      if (parsed === null) return;
       const [attrKey, attrValue] = parsed;
-      if (!attrKey) return; // skip if something invalid
+      if (!attrKey) return;
 
-      // Convert priority shortcuts: @high -> priority: "high"
       if (LineParser.PRIORITY_SHORTCUTS.includes(attrKey) && attrValue === true) {
         res["priority"] = attrKey;
       } else {
         res[attrKey] = attrValue;
       }
-      // Remove that chunk from the text and collapse multiple spaces
       textWithoutAttributes = textWithoutAttributes.replace(match, "").replace(/\s+/g, " ");
     });
 
     return { textWithoutAttributes: textWithoutAttributes.trim(), attributes: res, tags };
   }
 
-  /**
-   * Build a single string from `textWithoutAttributes` + the attributes' dictionary.
-   * E.g. "Buy milk" + { due: "2025-01-01", critical: true }
-   * => "Buy milk [due:: 2025-01-01] [critical:: true]"
-   */
   attributesToString(attributesStructure: AttributesStructure): string {
     const { textWithoutAttributes, attributes } = attributesStructure;
     const attributeStr = Object.keys(attributes)
@@ -190,7 +147,6 @@ export class LineParser {
       })
       .join(" ");
 
-    // add a space only if there are attributes
     return attributeStr ? `${textWithoutAttributes} ${attributeStr}`.trim() : textWithoutAttributes;
   }
 }

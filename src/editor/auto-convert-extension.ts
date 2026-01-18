@@ -1,11 +1,8 @@
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { StatusOperations } from "../core/operations/status-operations";
-import { TaskPlannerSettings } from "../settings/types";
+import { StatusOperations } from "../core";
+import { TaskPlannerSettings } from "../settings";
 
-/**
- * Creates a CodeMirror extension that auto-converts attribute shortcuts
- * (like @high, @today) to Dataview format when the cursor leaves a line.
- */
+// Auto-converts @shortcuts to Dataview format when cursor leaves a line
 export function createAutoConvertExtension(getSettings: () => TaskPlannerSettings) {
   return ViewPlugin.fromClass(
     class {
@@ -22,10 +19,9 @@ export function createAutoConvertExtension(getSettings: () => TaskPlannerSetting
 
         const currentLine = this.getCurrentLine();
 
-        // Only process when cursor moves to a different line
         if (currentLine !== this.lastLine && this.lastLine >= 0) {
           const lineToConvert = this.lastLine;
-          // Defer the update to avoid "update during update" error
+          // Defer to avoid "update during update" error
           setTimeout(() => this.convertLine(lineToConvert), 0);
         }
 
@@ -35,7 +31,7 @@ export function createAutoConvertExtension(getSettings: () => TaskPlannerSetting
       private getCurrentLine(): number {
         const state = this.view.state;
         const selection = state.selection.main;
-        return state.doc.lineAt(selection.head).number - 1; // 0-indexed
+        return state.doc.lineAt(selection.head).number - 1;
       }
 
       private convertLine(lineIndex: number) {
@@ -46,19 +42,16 @@ export function createAutoConvertExtension(getSettings: () => TaskPlannerSetting
           return;
         }
 
-        const line = state.doc.line(lineIndex + 1); // 1-indexed in CodeMirror
+        const line = state.doc.line(lineIndex + 1);
         const lineText = line.text;
 
-        // Only process lines that look like todos with @ attributes
         if (!lineText.includes("@") || !lineText.match(/^(\s*)?[-*]\s*\[.\]/)) {
           return;
         }
 
-        // Refresh statusOperations with current settings
         const currentStatusOperations = new StatusOperations(getSettings());
         const converted = currentStatusOperations.convertAttributes(lineText);
 
-        // Only update if the line actually changed
         if (converted !== lineText) {
           this.view.dispatch({
             changes: {

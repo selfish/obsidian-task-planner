@@ -1,5 +1,5 @@
-import { StatusOperations } from "../core/operations/status-operations";
-import { TodoStatus } from "../types/todo";
+import { StatusOperations } from "../core";
+import { TodoStatus } from "../types";
 import { Command, Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
 
 export class ToggleOngoingTodoCommand implements Command {

@@ -1,13 +1,6 @@
-/**
- * Re-export moment with proper typing.
- *
- * Obsidian provides moment globally, but the type definition exports it as
- * `typeof Moment` (the namespace) rather than the callable function.
- * This wrapper provides proper types for the moment function.
- */
+// Re-export moment with proper typing (Obsidian's type exports the namespace, not the callable function)
 import { moment as obsidianMoment } from "obsidian";
 
-// Define Moment interface based on moment.js API used in this plugin
 interface Moment {
   format(formatStr?: string): string;
   isValid(): boolean;
@@ -28,10 +21,8 @@ interface Moment {
   isoWeekday(): number;
 }
 
-// MomentInput type inline to avoid importing from 'moment' package
 type MomentInput = string | number | Date | Moment | null | undefined;
 
-// Cast to the correct callable type
 type MomentFunction = {
   (): Moment;
   (inp?: MomentInput, strict?: boolean): Moment;

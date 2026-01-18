@@ -1,6 +1,5 @@
-import { TaskPlannerSettings } from "../../settings/types";
-import { TodoItem, TodoStatus } from "../../types/todo";
-import { TodoParsingResult, AttributesStructure } from "../../types/parsing";
+import { TaskPlannerSettings } from "../../settings";
+import { AttributesStructure, TodoItem, TodoParsingResult, TodoStatus } from "../../types";
 import { LineParser } from "../parsers/line-parser";
 import { Completion } from "./completion";
 
@@ -24,13 +23,11 @@ export class StatusOperations {
     Object.keys(attributes.attributes).forEach((key) => {
       const val = attributes.attributes[key];
       if (typeof val === "string") {
-        // Complete date if it's an attribute value
         const completion = Completion.completeDate(val);
         if (completion !== null) {
           attributes.attributes[key] = completion;
         }
       } else if (val === true) {
-        // try to convert tags like @today into @due(the_date)
         const completion = Completion.completeDate(key);
         if (completion !== null) {
           delete attributes.attributes[key];
@@ -44,7 +41,6 @@ export class StatusOperations {
   private convertPriorityAttributes(attributes: AttributesStructure): AttributesStructure {
     Object.keys(attributes.attributes).forEach((key) => {
       if (["critical", "high", "medium", "low", "lowest"].includes(key)) {
-        // complete priority if it's an attribute value, like @high into @priority(high)
         delete attributes.attributes[key];
         attributes.attributes["priority"] = key;
       }
@@ -68,10 +64,25 @@ export class StatusOperations {
     return this.lineParser.lineToString(parsedLine);
   }
 
-  private markToStatus = (mark: string) => {
-    mark = mark.toLowerCase();
-    return mark === "]" || mark === "-" || mark === "c" ? TodoStatus.Canceled : mark === ">" ? TodoStatus.InProgress : mark === "!" ? TodoStatus.AttentionRequired : mark === "x" ? TodoStatus.Complete : mark === " " ? TodoStatus.Todo : mark === "d" ? TodoStatus.Delegated : TodoStatus.Todo;
-  };
+  private markToStatus(mark: string): TodoStatus {
+    switch (mark.toLowerCase()) {
+      case "]":
+      case "-":
+      case "c":
+        return TodoStatus.Canceled;
+      case ">":
+        return TodoStatus.InProgress;
+      case "!":
+        return TodoStatus.AttentionRequired;
+      case "x":
+        return TodoStatus.Complete;
+      case "d":
+        return TodoStatus.Delegated;
+      case " ":
+      default:
+        return TodoStatus.Todo;
+    }
+  }
 
   private getIndentationLevel(str: string) {
     return (str.match(/ /g)?.length || 0) + (str.match(/\t/g)?.length || 0) * 4;

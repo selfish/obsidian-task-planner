@@ -1,8 +1,8 @@
-import { Logger } from "../types/logger";
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
-import { TodoIndex } from "../core/index/todo-index";
-import { TaskPlannerSettings } from "../settings/types";
-import { MountPlanningComponent } from "../ui/PlanningComponent";
+import { TodoIndex } from "../core";
+import { TaskPlannerSettings } from "../settings";
+import { Logger } from "../types";
+import { mountPlanningComponent } from "../ui/planning-component";
 import { TodoReportView } from "./todo-report-view";
 
 export interface PlanningViewDeps {
@@ -41,13 +41,12 @@ export class PlanningView extends ItemView {
   }
 
   onShow(): void {
-    // Refresh view when it becomes visible
     this.render();
   }
 
   render(): void {
     this.deps.logger.info("Rendering planning view");
-    MountPlanningComponent(this.contentView, {
+    mountPlanningComponent(this.contentView, {
       deps: this.deps,
       settings: this.settings,
       app: this.app,
@@ -56,8 +55,12 @@ export class PlanningView extends ItemView {
     });
   }
 
-  private openReport(): void {
+  private async openReport(): Promise<void> {
     const leaf = this.app.workspace.getLeaf("tab");
-    void leaf.setViewState({ type: TodoReportView.viewType });
+    try {
+      await leaf.setViewState({ type: TodoReportView.viewType });
+    } catch (err) {
+      this.deps.logger.error(`Failed to open report view: ${err}`);
+    }
   }
 }

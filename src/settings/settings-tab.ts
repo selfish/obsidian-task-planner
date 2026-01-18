@@ -1,6 +1,6 @@
 import TaskPlannerPlugin from "../main";
 import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidian";
-import { FolderSuggest } from "../ui/FolderSuggest";
+import { FolderSuggest } from "../ui/folder-suggest";
 import { HorizonColor, CustomHorizon } from "./types";
 
 const HORIZON_COLORS: { value: HorizonColor; cssVar: string }[] = [
@@ -30,7 +30,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    // === BASIC HORIZONS ===
     new Setting(containerEl).setName("Basic horizons").setHeading();
 
     const basicDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
@@ -69,7 +68,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    // === NEAR-TERM PLANNING ===
     new Setting(containerEl).setName("Near-term planning").setHeading();
 
     const nearTermDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
@@ -106,13 +104,12 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       labelSpan.setText(day.label);
       dayButton.createSpan({ cls: "th-weekday-btn-led" });
 
-      dayButton.addEventListener("click", () => {
+      dayButton.addEventListener("click", async () => {
         const newValue = !isChecked;
         (this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = newValue;
-        void this.plugin
-          .saveSettings()
-          .then(() => this.plugin.refreshPlanningViews())
-          .then(() => this.display());
+        await this.plugin.saveSettings();
+        this.plugin.refreshPlanningViews();
+        this.display();
       });
     });
 
@@ -125,16 +122,14 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           dropDown.addOption((index + 1).toString(), display);
         }
         dropDown.setValue((this.plugin.settings.firstWeekday || 1).toString());
-        dropDown.onChange((value: string) => {
+        dropDown.onChange(async (value: string) => {
           this.plugin.settings.firstWeekday = parseInt(value);
-          void this.plugin.saveSettings().then(() => {
-            this.plugin.refreshPlanningViews();
-            this.display();
-          });
+          await this.plugin.saveSettings();
+          this.plugin.refreshPlanningViews();
+          this.display();
         });
       });
 
-    // === FUTURE HORIZONS ===
     new Setting(containerEl).setName("Future horizons").setHeading();
 
     const futureDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
@@ -195,7 +190,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    // === WORK LIMITS ===
     new Setting(containerEl).setName("Work limits").setHeading();
 
     const limitsDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
@@ -212,26 +206,21 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    // === CUSTOM HORIZONS ===
     new Setting(containerEl).setName("Custom horizons").setHeading();
 
     const horizonDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
     horizonDesc.setText("Create custom date horizons. Optionally stamp a tag when tasks are dropped here.");
 
-    // Container for all horizon cards
     const horizonsContainer = containerEl.createDiv({ cls: "th-horizons-container" });
 
-    // Render existing horizons as cards
     this.plugin.settings.customHorizons.forEach((horizon, index) => {
       this.renderHorizonCard(horizonsContainer, horizon, index);
     });
 
-    // Add new horizon button
     new Setting(containerEl).addButton((button) => {
       button.setButtonText("Add custom horizon");
       button.setCta();
       button.onClick(async () => {
-        // Add a new horizon with sensible defaults
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const dateStr = tomorrow.toISOString().split("T")[0];
@@ -248,7 +237,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       });
     });
 
-    // === TASK ATTRIBUTES ===
     new Setting(containerEl).setName("Task attributes").setHeading();
 
     const attributesDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
@@ -309,7 +297,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    // === SHORTCUT ATTRIBUTES ===
     new Setting(containerEl).setName("Shortcut attributes").setHeading();
 
     const shortcutDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
@@ -328,7 +315,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    // Only show sub-toggles if master toggle is on
     if (atSettings.enableAtShortcuts) {
       new Setting(containerEl)
         .setName("Date shortcuts")
@@ -364,7 +350,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         );
     }
 
-    // === FILTERING & INDEXING ===
     new Setting(containerEl).setName("Filtering & indexing").setHeading();
 
     const filteringDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
@@ -382,26 +367,24 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .addButton((button) => {
         button.setIcon("plus");
         button.setTooltip("Add folder");
-        button.onClick(() => {
+        button.onClick(async () => {
           if (folderSearchInput === undefined) return;
 
           const newFolder = folderSearchInput.getValue();
           if (!newFolder) return;
 
-          void this.app.vault.adapter.exists(newFolder, true).then((exists) => {
-            if (!exists) {
-              this.showError(containerEl, `Folder doesn't exist: ${newFolder}`);
-              return;
-            }
+          const exists = await this.app.vault.adapter.exists(newFolder, true);
+          if (!exists) {
+            this.showError(containerEl, `Folder doesn't exist: ${newFolder}`);
+            return;
+          }
 
-            if (!this.plugin.settings.ignoredFolders.includes(newFolder)) {
-              this.plugin.settings.ignoredFolders.push(newFolder);
-              void this.plugin.saveSettings().then(() => {
-                folderSearchInput?.setValue("");
-                this.display();
-              });
-            }
-          });
+          if (!this.plugin.settings.ignoredFolders.includes(newFolder)) {
+            this.plugin.settings.ignoredFolders.push(newFolder);
+            await this.plugin.saveSettings();
+            folderSearchInput?.setValue("");
+            this.display();
+          }
         });
       });
 
@@ -440,7 +423,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
   private createColorPicker(initialColor: HorizonColor | undefined, onChange: (color: HorizonColor | undefined) => void): HTMLElement {
     const container = createEl("div", { cls: "th-color-picker" });
 
-    // Trigger button showing current color
     const trigger = container.createEl("button", {
       cls: "th-color-picker-trigger clickable-icon",
       attr: { "aria-label": "Select color", type: "button" },
@@ -464,10 +446,8 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     updateTrigger(initialColor);
 
-    // Popover with color swatches
     const popover = container.createEl("div", { cls: "th-color-picker-popover" });
 
-    // "None" option
     const noneBtn = popover.createEl("button", {
       cls: `th-color-swatch th-color-swatch--none clickable-icon ${!initialColor ? "th-color-swatch--selected" : ""}`,
       attr: { "aria-label": "No color", type: "button" },
@@ -482,7 +462,6 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       onChange(undefined);
     });
 
-    // Color swatches
     for (const { value, cssVar } of HORIZON_COLORS) {
       const swatch = popover.createEl("button", {
         cls: `th-color-swatch clickable-icon ${initialColor === value ? "th-color-swatch--selected" : ""}`,
@@ -504,57 +483,52 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
   private renderHorizonCard(container: HTMLElement, horizon: CustomHorizon, index: number): void {
     const card = container.createDiv({ cls: "th-horizon-card" });
 
-    // Row 1: Color + Label + Delete
     const row1 = card.createDiv({ cls: "th-horizon-card-row" });
 
-    // Color picker
-    const colorPicker = this.createColorPicker(horizon.color, (color) => {
+    const colorPicker = this.createColorPicker(horizon.color, async (color) => {
       this.plugin.settings.customHorizons[index].color = color;
-      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+      await this.plugin.saveSettings();
+      this.plugin.refreshPlanningViews();
     });
     row1.appendChild(colorPicker);
 
-    // Label input
     const labelInput = row1.createEl("input", {
       type: "text",
       cls: "th-horizon-label",
       value: horizon.label,
       attr: { placeholder: "Horizon name" },
     });
-    labelInput.addEventListener("change", () => {
+    labelInput.addEventListener("change", async () => {
       this.plugin.settings.customHorizons[index].label = labelInput.value.trim();
-      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+      await this.plugin.saveSettings();
+      this.plugin.refreshPlanningViews();
     });
 
-    // Delete button
     const deleteBtn = row1.createEl("button", {
       cls: "th-horizon-delete clickable-icon",
       attr: { "aria-label": "Delete", type: "button" },
     });
     setIcon(deleteBtn, "trash-2");
-    deleteBtn.addEventListener("click", () => {
+    deleteBtn.addEventListener("click", async () => {
       this.plugin.settings.customHorizons.splice(index, 1);
-      void this.plugin.saveSettings().then(() => {
-        this.plugin.refreshPlanningViews();
-        this.display();
-      });
+      await this.plugin.saveSettings();
+      this.plugin.refreshPlanningViews();
+      this.display();
     });
 
-    // Row 2: Date + Tag + Position
     const row2 = card.createDiv({ cls: "th-horizon-card-row th-horizon-card-row--details" });
 
-    // Date input
     const dateInput = row2.createEl("input", {
       type: "date",
       cls: "th-horizon-date",
       value: horizon.date,
     });
-    dateInput.addEventListener("change", () => {
+    dateInput.addEventListener("change", async () => {
       this.plugin.settings.customHorizons[index].date = dateInput.value;
-      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+      await this.plugin.saveSettings();
+      this.plugin.refreshPlanningViews();
     });
 
-    // Tag input with # prefix
     const tagWrapper = row2.createDiv({ cls: "th-horizon-tag-wrapper" });
     tagWrapper.createSpan({ cls: "th-horizon-tag-prefix", text: "#" });
     const tagInput = tagWrapper.createEl("input", {
@@ -563,12 +537,12 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       value: horizon.tag || "",
       attr: { placeholder: "Tag" },
     });
-    tagInput.addEventListener("change", () => {
+    tagInput.addEventListener("change", async () => {
       this.plugin.settings.customHorizons[index].tag = tagInput.value.trim() || undefined;
-      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+      await this.plugin.saveSettings();
+      this.plugin.refreshPlanningViews();
     });
 
-    // Position dropdown
     const positionSelect = row2.createEl("select", { cls: "th-horizon-position dropdown" });
     const positions = [
       { value: "before", label: "Before backlog" },
@@ -579,9 +553,10 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       const option = positionSelect.createEl("option", { value: pos.value, text: pos.label });
       if (horizon.position === pos.value) option.selected = true;
     }
-    positionSelect.addEventListener("change", () => {
+    positionSelect.addEventListener("change", async () => {
       this.plugin.settings.customHorizons[index].position = positionSelect.value as "before" | "after" | "end";
-      void this.plugin.saveSettings().then(() => this.plugin.refreshPlanningViews());
+      await this.plugin.saveSettings();
+      this.plugin.refreshPlanningViews();
     });
   }
 

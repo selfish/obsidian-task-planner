@@ -12,7 +12,6 @@ export interface TodoParsingResult<T> {
   isTodo: boolean;
   lineNumber: number;
   todo?: TodoItem<T>;
-  isBlank?: boolean;
   indentLevel: number;
 }
 

@@ -1,10 +1,7 @@
-import { TaskPlannerEvent } from "../../events/task-planner-event";
-import { Logger } from "../../types/logger";
+import { TaskPlannerEvent } from "../../events";
+import { FileAdapter, Logger, TodoItem, TodosInFiles } from "../../types";
 import { FileTodoParser } from "../parsers/file-todo-parser";
 import { FolderTodoParser } from "../parsers/folder-todo-parser";
-import { FileAdapter } from "../../types/file-adapter";
-import { TodosInFiles } from "../../types/todos-in-files";
-import { TodoItem } from "../../types/todo";
 
 export interface TodoIndexDeps<T> {
   fileTodoParser: FileTodoParser<T>;
@@ -42,47 +39,55 @@ export class TodoIndex<T> {
     return false;
   }
 
-  filesLoaded(files: FileAdapter<T>[]): void {
+  async filesLoaded(files: FileAdapter<T>[]): Promise<void> {
     const filteredFiles = files.filter((file) => !this.ignoreFile(file));
-    void this.deps.folderTodoParser.ParseFilesAsync(filteredFiles).then((todos) => {
+    try {
+      const todos = await this.deps.folderTodoParser.parseFiles(filteredFiles);
       this.files = todos;
-      this.triggerUpdate();
-    });
+      await this.triggerUpdate();
+    } catch (err) {
+      this.deps.logger.error(`Failed to load files: ${err}`);
+    }
   }
 
-  fileUpdated(file: FileAdapter<T>): void {
+  async fileUpdated(file: FileAdapter<T>): Promise<void> {
     if (this.ignoreFile(file)) return;
 
     this.deps.logger.debug(`TodoIndex: File updated: ${file.id}`);
     const index = this.findFileIndex(file);
-    void this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
+    try {
+      const todos = await this.deps.fileTodoParser.parseMdFile(file);
       this.files[index].todos = todos;
-      this.triggerUpdate();
-    });
+      await this.triggerUpdate();
+    } catch (err) {
+      this.deps.logger.error(`Failed to update file ${file.id}: ${err}`);
+    }
   }
 
   fileRenamed(id: string, file: FileAdapter<T>): void {
     this.deps.logger.debug(`TodoIndex: File renamed: ${id} to ${file.id}`);
-    // Files update themselves, no action needed
   }
 
-  fileDeleted(file: FileAdapter<T>): void {
+  async fileDeleted(file: FileAdapter<T>): Promise<void> {
     if (this.ignoreFile(file)) return;
 
     this.deps.logger.debug(`TodoIndex: File deleted: ${file.id}`);
     const index = this.findFileIndex(file);
     this.files.splice(index, 1);
-    this.triggerUpdate();
+    await this.triggerUpdate();
   }
 
-  fileCreated(file: FileAdapter<T>): void {
+  async fileCreated(file: FileAdapter<T>): Promise<void> {
     if (this.ignoreFile(file)) return;
 
     this.deps.logger.debug(`TodoIndex: File created: ${file.id}`);
-    void this.deps.fileTodoParser.parseMdFileAsync(file).then((todos) => {
+    try {
+      const todos = await this.deps.fileTodoParser.parseMdFile(file);
       this.files.push({ todos, file });
-      this.triggerUpdate();
-    });
+      await this.triggerUpdate();
+    } catch (err) {
+      this.deps.logger.error(`Failed to parse created file ${file.id}: ${err}`);
+    }
   }
 
   private findFileIndex(file: FileAdapter<T>): number {
@@ -94,7 +99,11 @@ export class TodoIndex<T> {
     return index;
   }
 
-  private triggerUpdate(): void {
-    void this.onUpdateEvent.fireAsync(this.todos);
+  private async triggerUpdate(): Promise<void> {
+    try {
+      await this.onUpdateEvent.fire(this.todos);
+    } catch (err) {
+      this.deps.logger.error(`Failed to trigger update event: ${err}`);
+    }
   }
 }

@@ -1,7 +1,6 @@
-import { FileAdapter } from "../../types/file-adapter";
-import { TodoParsingResult } from "../../types/parsing";
-import { TaskPlannerSettings } from "../../settings/types";
-import { TodoItem } from "../../types/todo";
+import { ParseError } from "../../lib/errors";
+import { TaskPlannerSettings } from "../../settings";
+import { FileAdapter, TodoItem, TodoParsingResult } from "../../types";
 import { StatusOperations } from "../operations/status-operations";
 
 export class FileTodoParser<TFile> {
@@ -60,8 +59,20 @@ export class FileTodoParser<TFile> {
     }
   }
 
-  async parseMdFileAsync(file: FileAdapter<TFile>): Promise<TodoItem<TFile>[]> {
-    const content = await file.getContentAsync();
+  async parseMdFile(file: FileAdapter<TFile>): Promise<TodoItem<TFile>[]> {
+    let content: string;
+    try {
+      content = await file.getContent();
+    } catch (error) {
+      throw new ParseError(
+        `Failed to read file content: ${file.path}`,
+        file.path,
+        undefined,
+        'MEDIUM',
+        { originalError: error instanceof Error ? error.message : String(error) }
+      );
+    }
+
     const lines = content.split("\n");
     const parsingResults = lines.map((line, number) => this.statusOperations.toTodo<TFile>(line, number));
 

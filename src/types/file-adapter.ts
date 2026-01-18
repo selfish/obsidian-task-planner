@@ -3,9 +3,7 @@ export interface FileAdapter<T> {
   name: string;
   path: string;
   id: string;
-  getLastModifiedAsync(): Promise<Date>;
-  renameAsync(folder: string): Promise<void>;
-  getContentAsync(): Promise<string>;
-  setContentAsync(val: string): Promise<void>;
+  getContent(): Promise<string>;
+  setContent(val: string): Promise<void>;
   isInFolder(folder: string): boolean;
 }

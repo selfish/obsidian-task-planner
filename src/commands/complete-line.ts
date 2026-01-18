@@ -1,4 +1,4 @@
-import { StatusOperations } from "../core/operations/status-operations";
+import { StatusOperations } from "../core";
 import { Command, Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
 
 export class CompleteLineCommand implements Command {
