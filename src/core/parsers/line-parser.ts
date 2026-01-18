@@ -1,5 +1,6 @@
 import { TaskPlannerSettings } from "../../settings/types";
 import { LineStructure, AttributesStructure } from "../../types/parsing";
+import { Completion } from "../operations/completion";
 
 export class LineParser {
   constructor(private settings?: TaskPlannerSettings) {}
@@ -34,18 +35,21 @@ export class LineParser {
    * Provide a RegExp for matching attributes. Supports:
    * - Dataview syntax: `[key:: value]`
    * - Shortcut syntax: `@key` (boolean shortcuts like @today, @high)
+   * The negative lookbehind (?<!\[) prevents matching @ inside [[@wiki links]]
    */
   private getAttributeRegex(): RegExp {
     // Match Dataview [key:: value] and simple @key shortcuts (no parentheses)
-    return /\[([^:\]]+)::([^\]]+)\]|@(\w+)(?![(\w])/g;
+    // (?<!\[) prevents matching @ that follows [ (wiki links like [[@person]])
+    return /\[([^:\]]+)::([^\]]+)\]|(?<!\[)@(\w+)(?![(\w])/g;
   }
 
   /**
    * Convert a matched attribute string into `[attributeKey, attributeValue]`.
    * Handles Dataview `[key:: value]` and shortcut `@key` formats.
+   * Returns null for unrecognized @ shortcuts (whitelist-based parsing).
    */
-  private parseSingleAttribute(matchStr: string): [string, string | boolean] {
-    // Try Dataview format first
+  private parseSingleAttribute(matchStr: string): [string, string | boolean] | null {
+    // Try Dataview format first (always allow)
     const dataviewRegex = /\[([^:\]]+)::([^\]]+)\]/;
     const dataviewMatch = dataviewRegex.exec(matchStr);
     if (dataviewMatch) {
@@ -56,10 +60,46 @@ export class LineParser {
     const shortcutRegex = /@(\w+)/;
     const shortcutMatch = shortcutRegex.exec(matchStr);
     if (shortcutMatch) {
-      return [shortcutMatch[1].trim(), true];
+      const keyword = shortcutMatch[1].toLowerCase();
+
+      // Check if @ shortcuts are enabled
+      if (!this.settings?.atShortcutSettings?.enableAtShortcuts) {
+        return null;
+      }
+
+      // Priority shortcuts: @critical, @high, @medium, @low, @lowest
+      if (this.settings.atShortcutSettings.enablePriorityShortcuts &&
+          LineParser.PRIORITY_SHORTCUTS.includes(keyword)) {
+        return [keyword, true];
+      }
+
+      // Date shortcuts: validate with chrono (@today, @tomorrow, etc.)
+      if (this.settings.atShortcutSettings.enableDateShortcuts &&
+          Completion.completeDate(keyword) !== null) {
+        return [keyword, true];
+      }
+
+      // Builtin shortcuts: @selected
+      if (this.settings.atShortcutSettings.enableBuiltinShortcuts &&
+          keyword === "selected") {
+        return [keyword, true];
+      }
+
+      // Custom shortcuts from settings
+      if (this.settings.atShortcutSettings.customShortcuts) {
+        const customShortcut = this.settings.atShortcutSettings.customShortcuts.find(
+          (s) => s.keyword.toLowerCase() === keyword
+        );
+        if (customShortcut) {
+          return [customShortcut.targetAttribute, customShortcut.value];
+        }
+      }
+
+      // Unknown @ shortcut - ignore it
+      return null;
     }
 
-    return ["", false];
+    return null;
   }
 
   /**
@@ -112,7 +152,9 @@ export class LineParser {
     let textWithoutAttributes = text;
 
     matches.forEach((match) => {
-      const [attrKey, attrValue] = this.parseSingleAttribute(match);
+      const parsed = this.parseSingleAttribute(match);
+      if (parsed === null) return; // skip unrecognized @ shortcuts
+      const [attrKey, attrValue] = parsed;
       if (!attrKey) return; // skip if something invalid
 
       // Convert priority shortcuts: @high -> priority: "high"
