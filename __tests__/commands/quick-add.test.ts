@@ -146,5 +146,50 @@ describe("QuickAddCommand", () => {
       expect(mockContainer.querySelector).toHaveBeenCalledWith(".settings-btn[aria-label='Quick add task']");
       expect(mockButton.click).toHaveBeenCalled();
     });
+
+    it("should handle button found but not HTMLElement after opening view", async () => {
+      const mockContainer = {
+        querySelector: jest.fn().mockReturnValue({ notAnElement: true }), // Not an HTMLElement
+      };
+
+      const mockLeaf = {
+        view: {
+          containerEl: mockContainer,
+        },
+        setViewState: jest.fn().mockResolvedValue(undefined),
+      } as unknown as WorkspaceLeaf;
+
+      (mockWorkspace.getLeavesOfType as jest.Mock).mockReturnValue([]);
+      (mockWorkspace.getMostRecentLeaf as jest.Mock).mockReturnValue(mockLeaf);
+
+      command.callback();
+
+      await Promise.resolve();
+      jest.advanceTimersByTime(100);
+
+      // Should not throw even when querySelector returns non-HTMLElement
+      expect(mockContainer.querySelector).toHaveBeenCalled();
+    });
+
+    it("should handle button found but not HTMLElement when view already open", () => {
+      const mockContainer = {
+        querySelector: jest.fn().mockReturnValue({ notAnElement: true }), // Not an HTMLElement
+      };
+
+      const mockLeaf = {
+        view: {
+          containerEl: mockContainer,
+        },
+      } as unknown as WorkspaceLeaf;
+
+      (mockWorkspace.getLeavesOfType as jest.Mock).mockReturnValue([mockLeaf]);
+
+      command.callback();
+
+      jest.advanceTimersByTime(50);
+
+      // Should not throw
+      expect(mockContainer.querySelector).toHaveBeenCalled();
+    });
   });
 });
