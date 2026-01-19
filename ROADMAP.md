@@ -95,6 +95,29 @@ Currently task text is shown raw, which looks cluttered.
 
 ---
 
+### [ ] Followup Task (Right-Click Action)
+**Effort:** Medium | **Type:** Feature
+
+Right-click context menu to create a followup task from an existing one.
+
+**Use case:** Task is done, but needs review/revisit later.
+
+**Behavior:**
+- Duplicates task immediately below the original (same note)
+- Removes due date (task goes to backlog)
+- Adds brief prefix (e.g., "F/U:" or "→")
+
+**Menu options:**
+1. "Create followup" — keeps original unchanged
+2. "Complete + followup" — marks original done, creates followup
+
+**UX considerations:**
+- Prefix should be short (original task text already provides context)
+- Could use icon/emoji instead of text prefix
+- Consider keyboard shortcut for power users
+
+---
+
 ## Low Priority / Future
 
 ### [ ] Status Toggle UI
