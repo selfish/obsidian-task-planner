@@ -462,12 +462,33 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .addDropdown((dropdown) => {
         dropdown.addOption("prepend", "Beginning");
         dropdown.addOption("append", "End");
+        dropdown.addOption("before-regex", "Before regex match");
+        dropdown.addOption("after-regex", "After regex match");
         dropdown.setValue(this.plugin.settings.quickAdd.placement);
         dropdown.onChange(async (value) => {
-          this.plugin.settings.quickAdd.placement = value as "prepend" | "append";
+          this.plugin.settings.quickAdd.placement = value as "prepend" | "append" | "before-regex" | "after-regex";
           await this.plugin.saveSettings();
+          this.display();
         });
       });
+
+    const usesRegex = this.plugin.settings.quickAdd.placement === "before-regex" || this.plugin.settings.quickAdd.placement === "after-regex";
+
+    if (usesRegex) {
+      new Setting(containerEl)
+        .setName("Location regex")
+        .setDesc("Regex pattern to find insertion point (frontmatter is excluded from search)")
+        .setClass("th-sub-setting")
+        .addText((text) =>
+          text
+            .setPlaceholder("^## .*")
+            .setValue(this.plugin.settings.quickAdd.locationRegex)
+            .onChange(async (value) => {
+              this.plugin.settings.quickAdd.locationRegex = value;
+              await this.plugin.saveSettings();
+            })
+        );
+    }
 
     if (this.plugin.settings.quickAdd.destination === "daily") {
       new Setting(containerEl)
@@ -483,6 +504,19 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           })
         );
     }
+
+    new Setting(containerEl)
+      .setName("Task pattern")
+      .setDesc("Template for the task. Use {task}, {time}, {date}, {datetime}, and \\n for newlines")
+      .addText((text) =>
+        text
+          .setPlaceholder("- [ ] {task}")
+          .setValue(this.plugin.settings.quickAdd.taskPattern)
+          .onChange(async (value) => {
+            this.plugin.settings.quickAdd.taskPattern = value || "- [ ] {task}";
+            await this.plugin.saveSettings();
+          })
+      );
   }
 
   private createColorPicker(initialColor: HorizonColor | undefined, onChange: (color: HorizonColor | undefined) => void): HTMLElement {

@@ -54,8 +54,10 @@ export interface HorizonVisibility {
 export interface QuickAddSettings {
   destination: "inbox" | "daily";
   inboxFilePath: string;
-  placement: "prepend" | "append";
+  placement: "prepend" | "append" | "before-regex" | "after-regex";
   templaterDelay: number;
+  taskPattern: string; // Template for task, e.g., "### {time}\n- [ ] {task}"
+  locationRegex: string; // Regex pattern to find insertion point (used with before-regex/after-regex)
 }
 
 export interface TaskPlannerSettings {
@@ -116,5 +118,7 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     inboxFilePath: "Inbox.md",
     placement: "prepend",
     templaterDelay: 300,
+    taskPattern: "- [ ] {task}",
+    locationRegex: "",
   },
 };

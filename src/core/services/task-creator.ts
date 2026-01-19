@@ -2,6 +2,7 @@ import { App, TFile, normalizePath } from "obsidian";
 
 import { DailyNoteService } from "./daily-note-service";
 import { TaskPlannerSettings } from "../../settings/types";
+import { moment } from "../../utils/moment";
 
 export class TaskCreator {
   private dailyNoteService: DailyNoteService;
@@ -14,7 +15,7 @@ export class TaskCreator {
   }
 
   async createTask(text: string): Promise<void> {
-    const taskLine = `- [ ] ${text.trim()}`;
+    const taskLine = this.formatTaskLine(text.trim());
     const targetFile = await this.getTargetFile();
 
     if (!targetFile) {
@@ -22,9 +23,114 @@ export class TaskCreator {
     }
 
     const currentContent = await this.app.vault.read(targetFile);
-    const newContent = this.settings.quickAdd.placement === "prepend" ? `${taskLine}\n${currentContent}` : `${currentContent}\n${taskLine}`;
+    const newContent = this.insertContent(currentContent, taskLine);
 
     await this.app.vault.modify(targetFile, newContent);
+  }
+
+  private formatTaskLine(task: string): string {
+    const { taskPattern } = this.settings.quickAdd;
+    const now = moment();
+
+    return taskPattern
+      .replace(/\\n/g, "\n") // Convert literal \n to actual newlines
+      .replace(/\{task\}/g, task)
+      .replace(/\{time\}/g, now.format("HH:mm"))
+      .replace(/\{date\}/g, now.format("YYYY-MM-DD"))
+      .replace(/\{datetime\}/g, now.format("YYYY-MM-DD HH:mm"));
+  }
+
+  private insertContent(content: string, taskLine: string): string {
+    const { placement, locationRegex } = this.settings.quickAdd;
+
+    // Handle regex-based placement
+    if ((placement === "before-regex" || placement === "after-regex") && locationRegex) {
+      const result = this.insertAtRegex(content, taskLine, locationRegex, placement === "before-regex");
+      if (result !== null) {
+        return result;
+      }
+      // If no match found, fall back to prepend
+      return this.prependAfterFrontmatter(content, taskLine);
+    }
+
+    // Normal prepend/append behavior
+    if (placement === "prepend") {
+      return this.prependAfterFrontmatter(content, taskLine);
+    }
+
+    // Append
+    return content.endsWith("\n") ? content + taskLine : content + "\n" + taskLine;
+  }
+
+  private insertAtRegex(content: string, taskLine: string, pattern: string, before: boolean): string | null {
+    // Get frontmatter end position so we can skip it
+    const fmEnd = this.getFrontmatterEndPosition(content);
+
+    // Search only in content after frontmatter
+    const searchContent = content.slice(fmEnd);
+
+    try {
+      const regex = new RegExp(pattern, "m");
+      const match = regex.exec(searchContent);
+
+      if (match && match.index !== undefined) {
+        // Adjust match index to account for frontmatter
+        const actualIndex = fmEnd + match.index;
+
+        if (before) {
+          return content.slice(0, actualIndex) + taskLine + "\n" + content.slice(actualIndex);
+        } else {
+          const insertPos = actualIndex + match[0].length;
+          return content.slice(0, insertPos) + "\n" + taskLine + content.slice(insertPos);
+        }
+      }
+    } catch {
+      // Invalid regex
+    }
+
+    return null;
+  }
+
+  private getFrontmatterEndPosition(content: string): number {
+    if (!content.startsWith("---")) {
+      return 0;
+    }
+
+    const endOfFrontmatter = content.indexOf("\n---", 3);
+    if (endOfFrontmatter === -1) {
+      return 0;
+    }
+
+    // Return position after the closing ---
+    return endOfFrontmatter + 4;
+  }
+
+  private prependAfterFrontmatter(content: string, taskLine: string): string {
+    // Check if content starts with frontmatter
+    if (!content.startsWith("---")) {
+      return taskLine + "\n" + content;
+    }
+
+    // Find the closing --- of frontmatter
+    const endOfFrontmatter = content.indexOf("\n---", 3);
+    if (endOfFrontmatter === -1) {
+      // No closing ---, treat as no frontmatter
+      return taskLine + "\n" + content;
+    }
+
+    // Find the position after the closing ---
+    const insertPosition = endOfFrontmatter + 4; // +4 for "\n---"
+
+    // Skip any newlines immediately after frontmatter
+    let actualInsertPosition = insertPosition;
+    while (actualInsertPosition < content.length && content[actualInsertPosition] === "\n") {
+      actualInsertPosition++;
+    }
+
+    const beforeInsert = content.slice(0, insertPosition);
+    const afterInsert = content.slice(actualInsertPosition);
+
+    return beforeInsert + "\n" + taskLine + "\n" + afterInsert;
   }
 
   private async getTargetFile(): Promise<TFile> {
