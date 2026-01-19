@@ -15,7 +15,7 @@
 
 import { App, Plugin, PluginManifest, TFile } from "obsidian";
 
-import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, ToggleOngoingTodoCommand, ToggleTodoCommand } from "./commands";
+import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, ToggleOngoingTodoCommand, ToggleTodoCommand } from "./commands";
 import { FileTodoParser, FolderTodoParser, StatusOperations, TodoIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice } from "./lib";
@@ -54,6 +54,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
     const openPlanningCommand = new OpenPlanningCommand(this.app.workspace);
     const openReportCommand = new OpenReportCommand(this.app.workspace);
+    const quickAddCommand = new QuickAddCommand(this.app.workspace);
     const statusOperations = new StatusOperations(this.settings);
 
     this.addCommand(new ToggleTodoCommand(statusOperations));
@@ -61,6 +62,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.addCommand(new ToggleOngoingTodoCommand(statusOperations));
     this.addCommand(openPlanningCommand);
     this.addCommand(openReportCommand);
+    this.addCommand(quickAddCommand);
     this.addSettingTab(new TaskPlannerSettingsTab(this.app, this));
 
     this.addRibbonIcon("calendar-glyph", "Open planning", () => {

@@ -2,6 +2,7 @@ import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidi
 
 import TaskPlannerPlugin from "../main";
 import { HorizonColor, CustomHorizon } from "./types";
+import { FileSuggest } from "../ui/file-suggest";
 import { FolderSuggest } from "../ui/folder-suggest";
 
 const HORIZON_COLORS: { value: HorizonColor; cssVar: string }[] = [
@@ -420,6 +421,68 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           this.plugin.refreshPlanningViews();
         })
       );
+
+    new Setting(containerEl).setName("Quick add").setHeading();
+
+    const quickAddDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
+    quickAddDesc.setText("Quickly add tasks from the planning board header using the + button or keyboard shortcut.");
+
+    new Setting(containerEl)
+      .setName("Destination")
+      .setDesc("Where to save new tasks")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("inbox", "Inbox file");
+        dropdown.addOption("daily", "Daily note");
+        dropdown.setValue(this.plugin.settings.quickAdd.destination);
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.quickAdd.destination = value as "inbox" | "daily";
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+
+    if (this.plugin.settings.quickAdd.destination === "inbox") {
+      new Setting(containerEl)
+        .setName("Inbox file")
+        .setDesc("Path to the file where tasks will be saved")
+        .addSearch((search) => {
+          new FileSuggest(search.inputEl, this.app);
+          search.setPlaceholder("Example: inbox.md");
+          search.setValue(this.plugin.settings.quickAdd.inboxFilePath);
+          search.onChange(async (value) => {
+            this.plugin.settings.quickAdd.inboxFilePath = value;
+            await this.plugin.saveSettings();
+          });
+        });
+    }
+
+    new Setting(containerEl)
+      .setName("Placement")
+      .setDesc("Where to add new tasks in the file")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("prepend", "Beginning");
+        dropdown.addOption("append", "End");
+        dropdown.setValue(this.plugin.settings.quickAdd.placement);
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.quickAdd.placement = value as "prepend" | "append";
+          await this.plugin.saveSettings();
+        });
+      });
+
+    if (this.plugin.settings.quickAdd.destination === "daily") {
+      new Setting(containerEl)
+        .setName("Templater delay")
+        .setDesc("Wait time for templater to process new daily notes (ms)")
+        .addText((text) =>
+          text.setValue(this.plugin.settings.quickAdd.templaterDelay.toString()).onChange(async (value) => {
+            const numValue = parseInt(value);
+            if (!isNaN(numValue) && numValue >= 0) {
+              this.plugin.settings.quickAdd.templaterDelay = numValue;
+              await this.plugin.saveSettings();
+            }
+          })
+        );
+    }
   }
 
   private createColorPicker(initialColor: HorizonColor | undefined, onChange: (color: HorizonColor | undefined) => void): HTMLElement {
