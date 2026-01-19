@@ -2,6 +2,7 @@ import { MarkdownView, Menu, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { MarkdownText } from "./markdown-text";
 import { StandardDependencies } from "./standard-dependencies";
 import { TodoStatusComponent } from "./todo-status-component";
 import { TodoSubtasksContainer } from "./todo-subtasks-container";
@@ -71,55 +72,6 @@ function getPriority(attributes: Record<string, string | boolean> | undefined): 
     }
   }
   return null;
-}
-
-function cleanWikiLinks(text: string): string {
-  return text.replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, (match, page, bar, alias) => {
-    return alias || page;
-  });
-}
-
-function InlineTag({ tag }: { tag: string }): React.ReactElement {
-  const iconRef = React.useRef<HTMLSpanElement>(null);
-
-  React.useEffect(() => {
-    if (iconRef.current) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, "hash");
-    }
-  }, []);
-
-  return (
-    <span className="tag">
-      <span ref={iconRef} className="icon"></span>
-      <span className="tag-text">{tag}</span>
-    </span>
-  );
-}
-
-function renderTextWithTags(text: string): React.ReactNode[] {
-  const cleanedText = cleanWikiLinks(text);
-  const parts: React.ReactNode[] = [];
-  const regex = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
-  let lastIndex = 0;
-  let match;
-
-  while ((match = regex.exec(cleanedText)) !== null) {
-    // Add text before the tag
-    if (match.index > lastIndex) {
-      parts.push(cleanedText.slice(lastIndex, match.index));
-    }
-    // Add the styled tag with icon
-    parts.push(<InlineTag key={match.index} tag={match[1]} />);
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after last tag
-  if (lastIndex < cleanedText.length) {
-    parts.push(cleanedText.slice(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : [cleanedText];
 }
 
 export interface TodoItemComponentProps {
@@ -224,7 +176,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
       <div className="content">
         <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
         <div className="body">
-          <div className={textClasses}>{renderTextWithTags(todo.text)}</div>
+          <MarkdownText text={todo.text} app={app} sourcePath={todo.file.file.path} className={textClasses} />
           {!hideFileRef && <div className="file-ref">{getFileDisplayName(todo.file.file, app)}</div>}
           {(priority || isSelected) && (
             <div className="meta">

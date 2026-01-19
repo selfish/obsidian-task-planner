@@ -66,37 +66,67 @@
         color: var(--text-muted);
       }
 
-      .tag {
-        display: inline-grid;
-        grid-auto-flow: column;
-        align-items: center;
-        gap: 2px;
-        padding: 1px 6px 1px 3px;
+      // Markdown-rendered content should be inline
+      p {
+        display: inline;
+        margin: 0;
+
+        &:first-child::before {
+          content: none;
+        }
+      }
+
+      // Links should inherit text color but show underline on hover
+      a.internal-link,
+      a.external-link {
+        color: var(--link-color);
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      // Unresolved links (pages that don't exist)
+      a.is-unresolved {
+        color: var(--link-unresolved-color);
+        opacity: var(--link-unresolved-opacity);
+      }
+
+      // Tags rendered by Obsidian
+      a.tag {
+        display: inline;
+        padding: 1px 6px;
         font-size: var(--font-xs);
         font-weight: 500;
         border-radius: var(--tag-radius);
         white-space: nowrap;
         background: var(--tag-background);
         color: var(--tag-color);
-        line-height: 1;
-        translate: 0 2px;
+        text-decoration: none;
+        vertical-align: baseline;
 
-        .tag-text{
-          padding-bottom: 2px;
+        &:hover {
+          text-decoration: none;
+          filter: brightness(1.1);
         }
+      }
 
-        .icon {
-          display: flex;
-          align-items: center;
-          width: 10px;
-          height: 10px;
-          opacity: 0.6;
+      // Inline code
+      code {
+        font-size: var(--font-xs);
+        padding: 1px 4px;
+        border-radius: var(--radius-xs);
+        background: var(--code-background);
+      }
 
-          svg.svg-icon {
-            width: 10px;
-            height: 10px;
-          }
-        }
+      // Bold and italic
+      strong {
+        font-weight: 600;
+      }
+
+      em {
+        font-style: italic;
       }
     }
 

@@ -83,18 +83,6 @@ Add ability to create tasks directly from the task view.
 
 ---
 
-### [ ] Render Tasks Like Notes
-**Effort:** Small | **Type:** UI
-
-Task text should render closer to how it appears in notes:
-- Markdown links `[text](url)` should display as plaintext (not raw syntax)
-- Wikilinks `[[page]]` should render plainly
-- Other inline formatting as appropriate
-
-Currently task text is shown raw, which looks cluttered.
-
----
-
 ### [ ] Followup Task (Right-Click Action)
 **Effort:** Medium | **Type:** Feature
 
@@ -220,6 +208,7 @@ Worth investigating what other task plugins do.
 
 ## Completed
 
+- **Render Tasks Like Notes** — task text now uses Obsidian's native MarkdownRenderer for proper rendering of links, wikilinks, tags, and inline formatting
 - **Custom Horizon Colors** — color picker in settings with 12 theme-aware options, applies tint to custom horizon columns
 - **Parse #hashtags from Task Text** — hashtags like `#shopping` are now parsed directly from task text and used for custom horizon filtering
 - **Simplify Attribute Syntax** — removed `@key(value)` syntax, now Dataview `[key:: value]` only
