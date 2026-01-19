@@ -51,6 +51,13 @@ export interface HorizonVisibility {
   showLater: boolean;
 }
 
+export interface QuickAddSettings {
+  destination: "inbox" | "daily";
+  inboxFilePath: string;
+  placement: "prepend" | "append";
+  templaterDelay: number;
+}
+
 export interface TaskPlannerSettings {
   version: number;
   ignoredFolders: string[];
@@ -65,6 +72,7 @@ export interface TaskPlannerSettings {
   customHorizons: CustomHorizon[];
   horizonVisibility: HorizonVisibility;
   atShortcutSettings: AtShortcutSettings;
+  quickAdd: QuickAddSettings;
 }
 
 export const DEFAULT_SETTINGS: TaskPlannerSettings = {
@@ -102,5 +110,11 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     enablePriorityShortcuts: true,
     enableBuiltinShortcuts: true,
     customShortcuts: [],
+  },
+  quickAdd: {
+    destination: "inbox",
+    inboxFilePath: "Inbox.md",
+    placement: "prepend",
+    templaterDelay: 300,
   },
 };
