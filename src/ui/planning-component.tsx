@@ -76,7 +76,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const completedDateIsInRange = dateIsInRange(completedDate);
 
       if (isDone) {
-        return includeSelected && isSelected && completedDateIsInRange;
+        // Show completed tasks if completed in date range (for Done column)
+        return completedDateIsInRange;
       }
 
       const isInRangeOrSelected = dueDateIsInRange || (includeSelected && isSelected);
@@ -527,12 +528,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     const completedTodos = filteredTodos.filter((todo) => {
       if (todo.status !== TodoStatus.Complete) return false;
       if (!todo.attributes) return false;
-      const isSelected = !!todo.attributes[settings.selectedAttribute];
       const completedDate = findTodoDate(todo, settings.completedDateAttribute);
-      return isSelected && dateIsInRange(completedDate);
+      return dateIsInRange(completedDate);
     });
     return completedTodos.length;
-  }, [filteredTodos, settings.selectedAttribute, settings.completedDateAttribute]);
+  }, [filteredTodos, settings.completedDateAttribute]);
 
   const futureSectionRef = React.useRef<HTMLDivElement>(null);
   const scrollIntervalRef = React.useRef<number | null>(null);
