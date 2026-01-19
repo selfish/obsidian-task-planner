@@ -95,6 +95,83 @@ describe("DailyNoteService", () => {
       expect(result).toBeNull();
     });
 
+    it("should handle periodic notes plugin with no settings", () => {
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = {
+        plugins: {
+          "periodic-notes": {
+            // No settings property
+          },
+        },
+      };
+
+      const result = service.getDailyNoteSettings();
+
+      // Should return default values when settings is undefined
+      expect(result).toEqual({
+        folder: "",
+        format: "YYYY-MM-DD",
+        template: undefined,
+      });
+    });
+
+    it("should handle periodic notes plugin with empty settings", () => {
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = {
+        plugins: {
+          "periodic-notes": {
+            settings: {},
+          },
+        },
+      };
+
+      const result = service.getDailyNoteSettings();
+
+      // Should return default values
+      expect(result).toEqual({
+        folder: "",
+        format: "YYYY-MM-DD",
+        template: undefined,
+      });
+    });
+
+    it("should handle core daily notes with no instance options", () => {
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = { plugins: {} };
+      (mockApp as unknown as { internalPlugins: { plugins: Record<string, { enabled: boolean; instance?: { options?: unknown } }> } }).internalPlugins = {
+        plugins: {
+          "daily-notes": {
+            enabled: true,
+            instance: {},
+          },
+        },
+      };
+
+      const result = service.getDailyNoteSettings();
+
+      expect(result).toEqual({
+        folder: "",
+        format: "YYYY-MM-DD",
+        template: undefined,
+      });
+    });
+
+    it("should handle core daily notes with no instance", () => {
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = { plugins: {} };
+      (mockApp as unknown as { internalPlugins: { plugins: Record<string, { enabled: boolean }> } }).internalPlugins = {
+        plugins: {
+          "daily-notes": {
+            enabled: true,
+          },
+        },
+      };
+
+      const result = service.getDailyNoteSettings();
+
+      expect(result).toEqual({
+        folder: "",
+        format: "YYYY-MM-DD",
+        template: undefined,
+      });
+    });
+
     it("should fall back to core daily notes when periodic notes not available", () => {
       (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = { plugins: {} };
       (mockApp as unknown as { internalPlugins: { plugins: Record<string, { enabled: boolean; instance?: { options?: unknown } }> } }).internalPlugins = {
@@ -289,6 +366,125 @@ describe("DailyNoteService", () => {
       const elapsed = Date.now() - startTime;
 
       expect(elapsed).toBeGreaterThanOrEqual(45); // Allow some tolerance
+    });
+
+    it("should skip delay when templaterDelay is 0", async () => {
+      const newFile = new TFile("Journal/2026-01-19.md");
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
+      mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
+      mockApp.vault.createFolder = jest.fn().mockResolvedValue(undefined);
+
+      const startTime = Date.now();
+      await service.ensureDailyNoteExists(0);
+      const elapsed = Date.now() - startTime;
+
+      // Should complete almost immediately
+      expect(elapsed).toBeLessThan(20);
+    });
+
+    it("should handle template path that is not a file", async () => {
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = {
+        plugins: {
+          "periodic-notes": {
+            settings: {
+              daily: {
+                enabled: true,
+                folder: "Journal",
+                format: "YYYY-MM-DD",
+                template: "templates/daily",
+              },
+            },
+          },
+        },
+      };
+
+      const newFile = new TFile("Journal/2026-01-19.md");
+
+      // Return a non-TFile for template path (like a folder)
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockImplementation((path: string) => {
+        if (path === "templates/daily") return { path: "templates/daily" }; // Not a TFile
+        return null;
+      });
+      mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
+      mockApp.vault.createFolder = jest.fn().mockResolvedValue(undefined);
+
+      await service.ensureDailyNoteExists(0);
+
+      // Should create with empty content since template wasn't a valid file
+      expect(mockApp.vault.create).toHaveBeenCalledWith("Journal/2026-01-19.md", "");
+    });
+
+    it("should create file at root without creating folders", async () => {
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = {
+        plugins: {
+          "periodic-notes": {
+            settings: {
+              daily: {
+                enabled: true,
+                folder: "",
+                format: "YYYY-MM-DD",
+              },
+            },
+          },
+        },
+      };
+
+      const newFile = new TFile("2026-01-19.md");
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
+      mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
+      mockApp.vault.createFolder = jest.fn();
+
+      await service.ensureDailyNoteExists(0);
+
+      // Should not create any folders
+      expect(mockApp.vault.createFolder).not.toHaveBeenCalled();
+      expect(mockApp.vault.create).toHaveBeenCalledWith("2026-01-19.md", "");
+    });
+
+    it("should not create folder if it already exists", async () => {
+      const newFile = new TFile("Journal/2026-01-19.md");
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockImplementation((path: string) => {
+        if (path === "Journal") return { path: "Journal" }; // Folder exists
+        return null; // File doesn't exist
+      });
+      mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
+      mockApp.vault.createFolder = jest.fn();
+
+      await service.ensureDailyNoteExists(0);
+
+      // Should not try to create existing folder
+      expect(mockApp.vault.createFolder).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("error handling", () => {
+    it("should handle exception in periodic notes settings gracefully", () => {
+      // Set up plugins to throw when accessed
+      Object.defineProperty(mockApp, "plugins", {
+        get: () => {
+          throw new Error("Plugin access error");
+        },
+        configurable: true,
+      });
+      (mockApp as unknown as { internalPlugins: { plugins: Record<string, unknown> } }).internalPlugins = { plugins: {} };
+
+      const result = service.getDailyNoteSettings();
+
+      expect(result).toBeNull();
+    });
+
+    it("should handle exception in core daily notes settings gracefully", () => {
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = { plugins: {} };
+      Object.defineProperty(mockApp, "internalPlugins", {
+        get: () => {
+          throw new Error("Internal plugin access error");
+        },
+        configurable: true,
+      });
+
+      const result = service.getDailyNoteSettings();
+
+      expect(result).toBeNull();
     });
   });
 });
