@@ -71,7 +71,7 @@
   "dependencies": {
     "@popperjs/core": "^2.11.6",
     "chrono-node": "^2.9.0",
-    "obsidian": "^1.0.0",
+    "obsidian": "^1.11.4",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
