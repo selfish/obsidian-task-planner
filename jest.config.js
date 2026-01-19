@@ -26,6 +26,8 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/main.ts',
+    // Exclude barrel exports (re-exports only, no testable logic)
+    '!src/**/index.ts',
     // Exclude Obsidian view wrappers (thin wrappers around React components)
     '!src/views/**/*.ts',
     // Exclude Obsidian settings UI (uses Obsidian Setting API extensively)
@@ -39,11 +41,7 @@ module.exports = {
     // Exclude CodeMirror editor extension (requires full editor mocking)
     '!src/editor/auto-convert-extension.ts',
     // Exclude React components (tested via logic tests, not rendering)
-    // Pure logic files like PlanningSettings.ts are still included
     '!src/ui/**/*.tsx',
-    '!src/ui/FolderSuggest.ts',
-    '!src/ui/TextInputSuggest.ts',
-    '!src/ui/PlanningSettingsStore.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
