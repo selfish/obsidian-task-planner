@@ -13,18 +13,18 @@ export enum LogLevel {
  * All methods intentionally do nothing.
  */
 export class ConsoleLogger implements Logger {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional no-op
+   
   constructor(_logLevel: LogLevel) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional no-op
+   
   debug(_msg: string, _context?: Record<string, unknown>): void {}
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional no-op
+   
   info(_msg: string, _context?: Record<string, unknown>): void {}
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional no-op
+   
   warn(_msg: string, _context?: Record<string, unknown>): void {}
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional no-op
+   
   error(_error: Error | string, _context?: Record<string, unknown>): void {}
 }

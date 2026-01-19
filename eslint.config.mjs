@@ -61,7 +61,7 @@ export default [
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "@typescript-eslint/ban-ts-comment": "warn",
-      "@typescript-eslint/no-empty-function": "error",
+      "@typescript-eslint/no-empty-function": ["error", { allow: ["constructors", "methods"] }],
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "error",
