@@ -98,6 +98,12 @@ describe('StatusOperations', () => {
         expect(result.todo?.status).toBe(TodoStatus.Canceled);
       });
 
+      it('should parse canceled with ] mark', () => {
+        const result = operations.toTodo('- []] Canceled task', 1);
+        expect(result.isTodo).toBe(true);
+        expect(result.todo?.status).toBe(TodoStatus.Canceled);
+      });
+
       it('should parse attention required todo', () => {
         const result = operations.toTodo('- [!] Urgent task', 1);
         expect(result.isTodo).toBe(true);
@@ -176,6 +182,16 @@ describe('StatusOperations', () => {
       it('should convert @lowest to [priority:: lowest]', () => {
         const result = operations.convertAttributes('- [ ] Task @lowest');
         expect(result).toBe('- [ ] Task [priority:: lowest]');
+      });
+
+      it('should convert priority case-insensitively (@Critical)', () => {
+        const result = operations.convertAttributes('- [ ] Task @Critical');
+        expect(result).toBe('- [ ] Task [priority:: critical]');
+      });
+
+      it('should convert priority case-insensitively (@HIGH)', () => {
+        const result = operations.convertAttributes('- [ ] Task @HIGH');
+        expect(result).toBe('- [ ] Task [priority:: high]');
       });
 
       it('should preserve other attributes', () => {

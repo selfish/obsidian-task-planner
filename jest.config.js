@@ -42,6 +42,8 @@ module.exports = {
     '!src/editor/auto-convert-extension.ts',
     // Exclude React components (tested via logic tests, not rendering)
     '!src/ui/**/*.tsx',
+    // Exclude WikilinkSuggest (requires browser Selection API not available in jsdom)
+    '!src/ui/wikilink-suggest.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
