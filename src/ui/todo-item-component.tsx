@@ -7,9 +7,12 @@ import { StandardDependencies } from "./standard-dependencies";
 import { TodoStatusComponent } from "./todo-status-component";
 import { TodoSubtasksContainer } from "./todo-subtasks-container";
 import { FileOperations } from "../core/operations/file-operations";
+import { FollowUpCreator } from "../core/services/follow-up-creator";
+import { showSuccessNotice, showErrorNotice } from "../lib/user-notice";
 import { Consts } from "../types/constants";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { getFileDisplayName } from "../utils/file-utils";
+import { moment } from "../utils/moment";
 
 interface PriorityBadgeProps {
   priority: string;
@@ -141,6 +144,43 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
       item.onClick(() => {
         void fileOperations.updateAttribute(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
       });
+    });
+
+    // Follow-up tasks
+    menu.addSeparator();
+
+    const followUpCreator = new FollowUpCreator<TFile>(settings);
+    const createFollowUp = async (dueDate: string | null) => {
+      try {
+        await followUpCreator.createFollowUp(todo, dueDate);
+        showSuccessNotice("Follow-up task created");
+      } catch (error) {
+        showErrorNotice(error instanceof Error ? error : new Error(String(error)));
+      }
+    };
+
+    menu.addItem((item) => {
+      item.setTitle("Follow-up → Today");
+      item.setIcon("calendar-check");
+      item.onClick(() => void createFollowUp(moment().format("YYYY-MM-DD")));
+    });
+
+    menu.addItem((item) => {
+      item.setTitle("Follow-up → Tomorrow");
+      item.setIcon("calendar-plus");
+      item.onClick(() => void createFollowUp(moment().add(1, "day").format("YYYY-MM-DD")));
+    });
+
+    menu.addItem((item) => {
+      item.setTitle("Follow-up → Next week");
+      item.setIcon("calendar-range");
+      item.onClick(() => void createFollowUp(moment().add(1, "week").format("YYYY-MM-DD")));
+    });
+
+    menu.addItem((item) => {
+      item.setTitle("Follow-up → Backlog");
+      item.setIcon("inbox");
+      item.onClick(() => void createFollowUp(null));
     });
 
     // Tag management
