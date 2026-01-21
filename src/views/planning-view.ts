@@ -9,6 +9,7 @@ import { mountPlanningComponent } from "../ui/planning-component";
 export interface PlanningViewDeps {
   logger: Logger;
   todoIndex: TodoIndex<TFile>;
+  onQuickAdd?: () => void;
 }
 
 export class PlanningView extends ItemView {
@@ -55,6 +56,7 @@ export class PlanningView extends ItemView {
       onOpenReport: () => {
         void this.openReport();
       },
+      onQuickAdd: this.deps.onQuickAdd,
     });
   }
 

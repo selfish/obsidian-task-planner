@@ -1,0 +1,134 @@
+// Quick Add Modal styles
+// The modal container itself - Obsidian applies .modal class to the parent
+.modal:has(.quick-add-modal) {
+  width: 800px;
+  max-width: 90vw;
+}
+
+.quick-add-modal {
+  padding: 0 var(--size-4-4);
+
+  .quick-add-title {
+    margin: 0 0 var(--size-4-4) 0;
+    padding: 0;
+    font-size: var(--font-ui-large);
+    font-weight: var(--font-semibold);
+    color: var(--text-normal);
+  }
+
+  .quick-add-editor {
+    min-height: 131px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: var(--size-4-3);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    font-family: var(--font-text);
+    font-size: var(--font-ui-medium);
+    line-height: var(--line-height-normal);
+    color: var(--text-normal);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      border-color: var(--interactive-accent);
+      box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.15);
+    }
+
+    // Placeholder styling
+    &:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-faint);
+      pointer-events: none;
+    }
+  }
+
+  // Styled link spans
+  .quick-add-link {
+    color: var(--link-external-color);
+    text-decoration: var(--link-decoration);
+    cursor: default;
+    border-radius: var(--radius-s);
+    padding: 0 2px;
+    margin: 0 1px;
+
+    &:hover {
+      background: var(--background-modifier-hover);
+    }
+  }
+
+  .quick-add-wikilink {
+    color: var(--link-color);
+    text-decoration: var(--link-decoration);
+    cursor: default;
+    border-radius: var(--radius-s);
+    padding: 0 2px;
+    margin: 0 1px;
+
+    &:hover {
+      background: var(--background-modifier-hover);
+    }
+  }
+
+  .quick-add-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--size-4-3);
+    margin-top: var(--size-4-3);
+  }
+
+  .quick-add-hint {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+  }
+
+  .quick-add-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-2);
+
+    button {
+      padding: var(--size-4-2) var(--size-4-4);
+      font-size: var(--font-ui-small);
+      border-radius: var(--radius-m);
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+
+      &:not(.mod-cta) {
+        background: var(--background-secondary);
+        border: 1px solid var(--background-modifier-border);
+        color: var(--text-normal);
+
+        &:hover {
+          background: var(--background-modifier-hover);
+        }
+      }
+    }
+  }
+
+  .quick-add-error {
+    margin-top: var(--size-4-2);
+    padding: var(--size-4-2) var(--size-4-3);
+    background: rgba(var(--color-red-rgb), 0.1);
+    border: 1px solid var(--color-red);
+    border-radius: var(--radius-s);
+    color: var(--color-red);
+    font-size: var(--font-ui-small);
+  }
+}
+
+// Suggestion styling for wikilinks
+.suggestion-container {
+  .suggestion-item {
+    .suggestion-title {
+      font-weight: 500;
+    }
+
+    .suggestion-note {
+      font-size: var(--font-ui-smaller);
+      color: var(--text-muted);
+    }
+  }
+}

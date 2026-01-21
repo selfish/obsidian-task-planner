@@ -1,4 +1,10 @@
 // Settings tab styles (outside main .task-planner wrapper)
+
+// Utility class for hiding elements
+.th-hidden {
+  display: none !important;
+}
+
 .th-settings-desc {
   margin-bottom: var(--size-4-4);
 }
@@ -206,6 +212,119 @@
 
 .th-horizon-position {
   font-size: var(--font-ui-small);
+}
+
+// Custom shortcuts cards
+.th-shortcuts-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  margin-bottom: var(--size-4-3);
+  margin-left: var(--size-4-6); // Indent under @ shortcuts section
+}
+
+.th-shortcut-card {
+  padding: var(--size-4-2) var(--size-4-3);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+}
+
+.th-shortcut-card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  flex-wrap: wrap;
+}
+
+.th-shortcut-prefix {
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-medium);
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+.th-shortcut-keyword {
+  width: 100px;
+  padding: var(--size-4-1) var(--size-4-2);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+
+  &:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+  }
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+}
+
+.th-shortcut-arrow {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.th-shortcut-attr {
+  width: 100px;
+  padding: var(--size-4-1) var(--size-4-2);
+  font-size: var(--font-ui-small);
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+
+  &:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+  }
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+}
+
+.th-shortcut-value-type {
+  font-size: var(--font-ui-small);
+  padding: var(--size-4-1) var(--size-4-2);
+}
+
+.th-shortcut-value {
+  width: 80px;
+  padding: var(--size-4-1) var(--size-4-2);
+  font-size: var(--font-ui-small);
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+
+  &:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+  }
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+}
+
+.th-shortcut-delete {
+  margin-left: auto;
+  padding: var(--size-4-1);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-error);
+    background: var(--background-modifier-hover);
+  }
 }
 
 // Color picker for custom horizons

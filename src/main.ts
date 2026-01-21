@@ -21,6 +21,7 @@ import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice } from "./lib";
 import { DEFAULT_SETTINGS, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
 import { Logger } from "./types";
+import { QuickAddModal } from "./ui/quick-add-modal";
 import { PlanningView, TodoListView, TodoReportView } from "./views";
 
 export default class TaskPlannerPlugin extends Plugin {
@@ -54,7 +55,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
     const openPlanningCommand = new OpenPlanningCommand(this.app.workspace);
     const openReportCommand = new OpenReportCommand(this.app.workspace);
-    const quickAddCommand = new QuickAddCommand(this.app.workspace);
+    const quickAddCommand = new QuickAddCommand(() => this.openQuickAddModal());
     const statusOperations = new StatusOperations(this.settings);
 
     this.addCommand(new ToggleTodoCommand(statusOperations));
@@ -72,6 +73,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerViews();
     this.registerEvents();
     this.registerEditorExtension(createAutoConvertExtension(() => this.settings));
+    this.registerUriHandler();
 
     this.app.workspace.onLayoutReady(async () => {
       this.loadFiles();
@@ -100,7 +102,15 @@ export default class TaskPlannerPlugin extends Plugin {
     });
 
     this.registerView(PlanningView.viewType, (leaf) => {
-      const view = new PlanningView({ logger: this.logger, todoIndex: this.todoIndex }, this.settings, leaf);
+      const view = new PlanningView(
+        {
+          logger: this.logger,
+          todoIndex: this.todoIndex,
+          onQuickAdd: () => this.openQuickAddModal(),
+        },
+        this.settings,
+        leaf
+      );
       view.render();
       return view;
     });
@@ -162,7 +172,42 @@ export default class TaskPlannerPlugin extends Plugin {
     }, 50);
   }
 
-   
+  private registerUriHandler(): void {
+    this.registerObsidianProtocolHandler("task-planner-quick-add", () => {
+      this.openQuickAddModal();
+    });
+
+    this.registerObsidianProtocolHandler("task-planner-planning", () => {
+      void this.openPlanningView();
+    });
+  }
+
+  async openPlanningView(): Promise<void> {
+    const existingLeaves = this.app.workspace.getLeavesOfType(PlanningView.viewType);
+    if (existingLeaves.length > 0) {
+      // Focus existing planning view
+      await this.app.workspace.revealLeaf(existingLeaves[0]);
+      return;
+    }
+
+    // Open new planning view in a tab
+    try {
+      const leaf = this.app.workspace.getLeaf("tab");
+      await leaf.setViewState({ type: PlanningView.viewType });
+      await this.app.workspace.revealLeaf(leaf);
+    } catch (err) {
+      this.logger.error(`Failed to open planning view: ${err}`);
+    }
+  }
+
+  openQuickAddModal(): void {
+    const modal = new QuickAddModal(this.app, this.settings);
+    modal.setOnTaskCreated(() => {
+      this.refreshPlanningViews();
+    });
+    modal.open();
+  }
+
   onunload(): void {}
 
   async loadSettings(): Promise<void> {
