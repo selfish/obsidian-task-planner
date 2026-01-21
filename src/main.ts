@@ -140,8 +140,11 @@ export default class TaskPlannerPlugin extends Plugin {
       })
     );
 
+    // Note: 'create' event fires for every existing file during initial load.
+    // Skip processing until workspace is ready to avoid blocking startup.
     this.registerEvent(
       this.app.vault.on("create", (file) => {
+        if (!this.app.workspace.layoutReady) return;
         if (file instanceof TFile && file.extension === "md") {
           void this.todoIndex.fileCreated(new ObsidianFile(this.app, file));
         }

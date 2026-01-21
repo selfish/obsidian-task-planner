@@ -18,6 +18,12 @@ const jsBuildOptions = {
   },
   entryPoints: ["./src/main.ts"],
   bundle: true,
+  alias: {
+    react: "preact/compat",
+    "react-dom": "preact/compat",
+    "react-dom/client": "preact/compat/client",
+    "react/jsx-runtime": "preact/jsx-runtime",
+  },
   external: [
     "obsidian",
     "electron",
