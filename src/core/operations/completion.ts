@@ -4,7 +4,8 @@ import { moment } from "../../utils";
 
 export class Completion {
   public static completeDate(prompt: string): string | null {
-    const parseResult = chrono.parseDate(prompt);
+    // Use forwardDate: true to prefer future dates (e.g., "sun" means next Sunday, not last)
+    const parseResult = chrono.parseDate(prompt, new Date(), { forwardDate: true });
     if (parseResult !== null) {
       return moment(parseResult).format("YYYY-MM-DD");
     }

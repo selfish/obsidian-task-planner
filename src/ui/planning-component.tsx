@@ -10,7 +10,6 @@ import { PlanningTodoColumn } from "./planning-todo-column";
 import { TodoIndex } from "../core/index/todo-index";
 import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { FileOperations } from "../core/operations/file-operations";
-import { TaskCreator } from "../core/services/task-creator";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
@@ -28,9 +27,10 @@ export interface PlanningComponentProps {
   app: App;
   onRefresh?: () => void;
   onOpenReport?: () => void;
+  onQuickAdd?: () => void;
 }
 
-export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport }: PlanningComponentProps) {
+export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport, onQuickAdd }: PlanningComponentProps) {
   const settingsStore = React.useMemo(() => new PlanningSettingsStore(app), [app]);
   const savedSettings = React.useMemo(() => settingsStore.getSettings(), [settingsStore]);
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
@@ -38,16 +38,6 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
   const { searchParameters, hideEmpty, hideDone, wipLimit, viewMode } = planningSettings;
   const fileOperations = new FileOperations(settings);
-  const taskCreator = React.useMemo(() => new TaskCreator(app, settings), [app, settings]);
-
-  const handleQuickAdd = React.useCallback(
-    async (text: string) => {
-      await taskCreator.createTask(text);
-      // Trigger a refresh to pick up the new task
-      onRefresh?.();
-    },
-    [taskCreator, onRefresh]
-  );
 
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
@@ -588,7 +578,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   return (
     <div className={boardClass}>
-      <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} onOpenReport={onOpenReport} onQuickAdd={handleQuickAdd} />
+      <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} onOpenReport={onOpenReport} onQuickAdd={onQuickAdd} />
       {viewMode !== "future" && (
         <div className="today-section">
           <div className="header">

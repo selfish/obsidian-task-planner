@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidian";
 
 import TaskPlannerPlugin from "../main";
-import { HorizonColor, CustomHorizon } from "./types";
+import { HorizonColor, CustomHorizon, CustomAtShortcut } from "./types";
 import { FileSuggest } from "../ui/file-suggest";
 import { FolderSuggest } from "../ui/folder-suggest";
 
@@ -300,16 +300,15 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl).setName("Shortcut attributes").setHeading();
+    new Setting(containerEl).setName("Attribute shorthand").setHeading();
 
     const shortcutDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    shortcutDesc.setText("Control which @shortcuts are recognized. Unknown shortcuts (like @person in wiki links) will be ignored.");
+    shortcutDesc.setText("Type @today, @high, or custom shorthand to quickly add task attributes. Unrecognized @ patterns are ignored.");
 
     const atSettings = this.plugin.settings.atShortcutSettings;
 
     new Setting(containerEl)
-      .setName("Enable @ shortcuts")
-      .setDesc("Master toggle for all @ shortcut attributes")
+      .setName("Enable @ shorthand")
       .addToggle((toggle) =>
         toggle.setValue(atSettings.enableAtShortcuts).onChange(async (value) => {
           this.plugin.settings.atShortcutSettings.enableAtShortcuts = value;
@@ -320,8 +319,8 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     if (atSettings.enableAtShortcuts) {
       new Setting(containerEl)
-        .setName("Date shortcuts")
-        .setDesc("@today, @tomorrow, @monday, etc.")
+        .setName("Dates")
+        .setDesc("@today, @tomorrow, @monday, @next week, etc.")
         .setClass("th-sub-setting")
         .addToggle((toggle) =>
           toggle.setValue(atSettings.enableDateShortcuts).onChange(async (value) => {
@@ -331,7 +330,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         );
 
       new Setting(containerEl)
-        .setName("Priority shortcuts")
+        .setName("Priority")
         .setDesc("@critical, @high, @medium, @low, @lowest")
         .setClass("th-sub-setting")
         .addToggle((toggle) =>
@@ -342,7 +341,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         );
 
       new Setting(containerEl)
-        .setName("Builtin shortcuts")
+        .setName("Pinned")
         .setDesc("@selected for pinning tasks")
         .setClass("th-sub-setting")
         .addToggle((toggle) =>
@@ -351,6 +350,33 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
         );
+
+      // Custom shorthand section
+      const customSetting = new Setting(containerEl)
+        .setName("Custom")
+        .setDesc("Define your own, like @home → [context:: home]")
+        .setClass("th-sub-setting");
+
+      customSetting.addButton((button) => {
+        button.setButtonText("Add");
+        button.setCta();
+        button.onClick(async () => {
+          this.plugin.settings.atShortcutSettings.customShortcuts.push({
+            keyword: "",
+            targetAttribute: "",
+            value: true,
+          });
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+
+      if (atSettings.customShortcuts.length > 0) {
+        const shortcutsContainer = containerEl.createDiv({ cls: "th-shortcuts-container" });
+        atSettings.customShortcuts.forEach((shortcut, index) => {
+          this.renderShortcutCard(shortcutsContainer, shortcut, index);
+        });
+      }
     }
 
     new Setting(containerEl).setName("Filtering & indexing").setHeading();
@@ -577,6 +603,95 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     }
 
     return container;
+  }
+
+  private renderShortcutCard(container: HTMLElement, shortcut: CustomAtShortcut, index: number): void {
+    const card = container.createDiv({ cls: "th-shortcut-card" });
+
+    const row = card.createDiv({ cls: "th-shortcut-card-row" });
+
+    // @ prefix
+    row.createSpan({ cls: "th-shortcut-prefix", text: "@" });
+
+    // Keyword input
+    const keywordInput = row.createEl("input", {
+      type: "text",
+      cls: "th-shortcut-keyword",
+      value: shortcut.keyword,
+      attr: { placeholder: "Keyword" },
+    });
+    keywordInput.addEventListener("change", () => {
+      this.plugin.settings.atShortcutSettings.customShortcuts[index].keyword = keywordInput.value.trim().toLowerCase();
+      void this.plugin.saveSettings();
+    });
+
+    // Arrow
+    row.createSpan({ cls: "th-shortcut-arrow", text: "→" });
+
+    // Attribute name input
+    const attrInput = row.createEl("input", {
+      type: "text",
+      cls: "th-shortcut-attr",
+      value: shortcut.targetAttribute,
+      attr: { placeholder: "Attribute" },
+    });
+    attrInput.addEventListener("change", () => {
+      this.plugin.settings.atShortcutSettings.customShortcuts[index].targetAttribute = attrInput.value.trim();
+      void this.plugin.saveSettings();
+    });
+
+    // Value type selector
+    const valueSelect = row.createEl("select", { cls: "th-shortcut-value-type dropdown" });
+    const valueTypes = [
+      { value: "true", label: ":: true" },
+      { value: "custom", label: ":: value" },
+    ];
+    for (const vt of valueTypes) {
+      const option = valueSelect.createEl("option", { value: vt.value, text: vt.label });
+      if ((shortcut.value === true && vt.value === "true") || (shortcut.value !== true && vt.value === "custom")) {
+        option.selected = true;
+      }
+    }
+
+    // Custom value input (shown only when value type is custom)
+    const valueInput = row.createEl("input", {
+      type: "text",
+      cls: "th-shortcut-value",
+      value: shortcut.value === true ? "" : shortcut.value,
+      attr: { placeholder: "Value" },
+    });
+    if (shortcut.value === true) {
+      valueInput.addClass("th-hidden");
+    }
+
+    valueSelect.addEventListener("change", () => {
+      if (valueSelect.value === "true") {
+        this.plugin.settings.atShortcutSettings.customShortcuts[index].value = true;
+        valueInput.addClass("th-hidden");
+      } else {
+        this.plugin.settings.atShortcutSettings.customShortcuts[index].value = valueInput.value.trim() || "value";
+        valueInput.removeClass("th-hidden");
+      }
+      void this.plugin.saveSettings();
+    });
+
+    valueInput.addEventListener("change", () => {
+      this.plugin.settings.atShortcutSettings.customShortcuts[index].value = valueInput.value.trim() || "value";
+      void this.plugin.saveSettings();
+    });
+
+    // Delete button
+    const deleteBtn = row.createEl("button", {
+      cls: "th-shortcut-delete clickable-icon",
+      attr: { "aria-label": "Delete", type: "button" },
+    });
+    setIcon(deleteBtn, "trash-2");
+    deleteBtn.addEventListener("click", () => {
+      this.plugin.settings.atShortcutSettings.customShortcuts.splice(index, 1);
+      void this.plugin.saveSettings().then(() => {
+        this.display();
+      });
+    });
   }
 
   private renderHorizonCard(container: HTMLElement, horizon: CustomHorizon, index: number): void {

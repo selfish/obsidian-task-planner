@@ -12,17 +12,12 @@ export interface PlanningSettingsComponentProps {
   app?: App;
   onRefresh?: () => void;
   onOpenReport?: () => void;
-  onQuickAdd?: (text: string) => Promise<void>;
+  onQuickAdd?: () => void;
 }
 
 export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
   const { hideEmpty, hideDone, searchParameters, viewMode } = planningSettings;
   const { searchPhrase } = searchParameters;
-
-  const [quickAddOpen, setQuickAddOpen] = React.useState(false);
-  const [quickAddValue, setQuickAddValue] = React.useState("");
-  const [quickAddLoading, setQuickAddLoading] = React.useState(false);
-  const quickAddInputRef = React.useRef<HTMLInputElement>(null);
 
   function toggleHideEmpty() {
     setPlanningSettings({
@@ -80,39 +75,6 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const todayFocusIconRef = React.useRef<HTMLSpanElement>(null);
   const futureFocusIconRef = React.useRef<HTMLSpanElement>(null);
 
-  async function handleQuickAddSubmit() {
-    if (!quickAddValue.trim() || !onQuickAdd || quickAddLoading) return;
-
-    setQuickAddLoading(true);
-    try {
-      await onQuickAdd(quickAddValue.trim());
-      setQuickAddValue("");
-      setQuickAddOpen(false);
-    } catch (error) {
-      console.error("Failed to create task:", error);
-    } finally {
-      setQuickAddLoading(false);
-    }
-  }
-
-  function handleQuickAddKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      void handleQuickAddSubmit();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setQuickAddValue("");
-      setQuickAddOpen(false);
-    }
-  }
-
-  function toggleQuickAdd() {
-    setQuickAddOpen(!quickAddOpen);
-    if (!quickAddOpen) {
-      setTimeout(() => quickAddInputRef.current?.focus(), 0);
-    }
-  }
-
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
       settingsIconRef.current.replaceChildren();
@@ -166,28 +128,9 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
         )}
       </div>
       <div className="controls">
-        {quickAddOpen ? (
-          <input
-            ref={quickAddInputRef}
-            type="text"
-            className="quick-add-input"
-            placeholder="New task..."
-            value={quickAddValue}
-            onChange={(e) => setQuickAddValue(e.target.value)}
-            onKeyDown={handleQuickAddKeyDown}
-            onBlur={() => {
-              if (!quickAddValue.trim()) {
-                setQuickAddOpen(false);
-              }
-            }}
-            disabled={quickAddLoading}
-            autoFocus
-          />
-        ) : (
-          <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
-        )}
+        <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
         <span className={"spacer"}></span>
-        {onQuickAdd && <button ref={quickAddIconRef} className={`settings-btn ${quickAddOpen ? "active" : ""}`} onClick={toggleQuickAdd} aria-label="Quick add task" />}
+        {onQuickAdd && <button ref={quickAddIconRef} className="settings-btn" onClick={onQuickAdd} aria-label="Quick add task" />}
         <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty horizons">
           <span ref={hideEmptyIconRef} className="icon" />
           <span className="led" />

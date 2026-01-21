@@ -40,9 +40,10 @@ export class StatusOperations {
 
   private convertPriorityAttributes(attributes: AttributesStructure): AttributesStructure {
     Object.keys(attributes.attributes).forEach((key) => {
-      if (["critical", "high", "medium", "low", "lowest"].includes(key)) {
+      const keyLower = key.toLowerCase();
+      if (["critical", "high", "medium", "low", "lowest"].includes(keyLower)) {
         delete attributes.attributes[key];
-        attributes.attributes["priority"] = key;
+        attributes.attributes["priority"] = keyLower;
       }
     });
     return attributes;
