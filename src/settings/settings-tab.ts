@@ -543,6 +543,44 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    new Setting(containerEl).setName("Follow-up tasks").setHeading();
+
+    const followUpDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
+    followUpDesc.setText("Create follow-up tasks from existing tasks via right-click menu.");
+
+    new Setting(containerEl)
+      .setName("Text prefix")
+      .setDesc("Prefix added to follow-up task text. A space is added automatically if needed.")
+      .addText((text) =>
+        text
+          .setPlaceholder("Follow up: ")
+          .setValue(this.plugin.settings.followUp.textPrefix)
+          .onChange(async (value) => {
+            this.plugin.settings.followUp.textPrefix = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Copy tags")
+      .setDesc("Include tags from the original task")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.followUp.copyTags).onChange(async (value) => {
+          this.plugin.settings.followUp.copyTags = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Copy priority")
+      .setDesc("Include priority from the original task")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.followUp.copyPriority).onChange(async (value) => {
+          this.plugin.settings.followUp.copyPriority = value;
+          await this.plugin.saveSettings();
+        })
+      );
   }
 
   private createColorPicker(initialColor: HorizonColor | undefined, onChange: (color: HorizonColor | undefined) => void): HTMLElement {

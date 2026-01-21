@@ -60,6 +60,12 @@ export interface QuickAddSettings {
   locationRegex: string; // Regex pattern to find insertion point (used with before-regex/after-regex)
 }
 
+export interface FollowUpSettings {
+  textPrefix: string; // Default: "Follow up: "
+  copyTags: boolean; // Default: true
+  copyPriority: boolean; // Default: false
+}
+
 export interface TaskPlannerSettings {
   version: number;
   ignoredFolders: string[];
@@ -75,10 +81,11 @@ export interface TaskPlannerSettings {
   horizonVisibility: HorizonVisibility;
   atShortcutSettings: AtShortcutSettings;
   quickAdd: QuickAddSettings;
+  followUp: FollowUpSettings;
 }
 
 export const DEFAULT_SETTINGS: TaskPlannerSettings = {
-  version: 3,
+  version: 4,
   ignoredFolders: [],
   ignoreArchivedTodos: true,
   defaultDailyWipLimit: 5,
@@ -120,5 +127,10 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     templaterDelay: 300,
     taskPattern: "- [ ] {task}",
     locationRegex: "",
+  },
+  followUp: {
+    textPrefix: "Follow up: ",
+    copyTags: true,
+    copyPriority: true,
   },
 };
