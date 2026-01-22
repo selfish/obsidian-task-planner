@@ -15,6 +15,17 @@ describe('TaskPlannerEvent', () => {
 
       expect(handler).toHaveBeenCalledWith('test');
     });
+
+    it('should accept deps with logger', async () => {
+      const mockLogger = { error: jest.fn() };
+      const event = new TaskPlannerEvent<string>(undefined, { logger: mockLogger });
+      expect(event).toBeInstanceOf(TaskPlannerEvent);
+    });
+
+    it('should accept deps without logger', () => {
+      const event = new TaskPlannerEvent<string>(undefined, {});
+      expect(event).toBeInstanceOf(TaskPlannerEvent);
+    });
   });
 
   describe('listen', () => {
@@ -66,6 +77,19 @@ describe('TaskPlannerEvent', () => {
       expect(handler1).not.toHaveBeenCalled();
       expect(handler2).toHaveBeenCalledWith('test');
     });
+
+    it('should handle calling unsubscribe twice (handler already removed)', async () => {
+      const event = new TaskPlannerEvent<string>();
+      const handler = jest.fn().mockResolvedValue(undefined);
+
+      const unsubscribe = event.listen(handler);
+      unsubscribe();
+      // Call unsubscribe again - handler is already removed, index will be -1
+      unsubscribe();
+
+      await event.fire('test');
+      expect(handler).not.toHaveBeenCalled();
+    });
   });
 
   describe('fire', () => {
@@ -115,6 +139,58 @@ describe('TaskPlannerEvent', () => {
       await event.fire('test');
 
       expect(successHandler).toHaveBeenCalled();
+    });
+
+    it('should log errors with logger when handler throws an Error', async () => {
+      const mockLogger = { error: jest.fn() };
+      const event = new TaskPlannerEvent<string>(undefined, { logger: mockLogger });
+
+      const failingHandler: EventHandler<string> = async () => {
+        throw new Error('Handler error');
+      };
+
+      event.listen(failingHandler);
+      await event.fire('test-data');
+
+      expect(mockLogger.error).toHaveBeenCalledTimes(1);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          handlerIndex: 0,
+          eventDetails: 'test-data',
+        })
+      );
+    });
+
+    it('should log errors with logger when handler throws a non-Error value', async () => {
+      const mockLogger = { error: jest.fn() };
+      const event = new TaskPlannerEvent<string>(undefined, { logger: mockLogger });
+
+      const failingHandler: EventHandler<string> = async () => {
+        throw 'string rejection';
+      };
+
+      event.listen(failingHandler);
+      await event.fire('test-data');
+
+      expect(mockLogger.error).toHaveBeenCalledTimes(1);
+      // Should wrap non-Error in Error object
+      const errorArg = mockLogger.error.mock.calls[0][0];
+      expect(errorArg).toBeInstanceOf(Error);
+      expect(errorArg.message).toBe('string rejection');
+    });
+
+    it('should not throw when logger is not provided and handler fails', async () => {
+      const event = new TaskPlannerEvent<string>();
+
+      const failingHandler: EventHandler<string> = async () => {
+        throw new Error('Handler error');
+      };
+
+      event.listen(failingHandler);
+
+      // Should not throw even without logger
+      await expect(event.fire('test')).resolves.toBeUndefined();
     });
 
     it('should work with no handlers', async () => {

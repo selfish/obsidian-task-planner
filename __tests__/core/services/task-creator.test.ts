@@ -284,6 +284,26 @@ describe("TaskCreator", () => {
       // The error message should indicate daily notes aren't configured
       await expect(taskCreator.createTask("Buy milk")).rejects.toThrow();
     });
+
+    it("should create task in daily note when configured", async () => {
+      // Tests line 150: successful return of file from getOrCreateDailyNote
+      const dailyNoteFile = new TFile("Journal/2026-01-19.md");
+      const { DailyNoteService } = jest.requireMock("../../../src/core/services/daily-note-service");
+      DailyNoteService.mockImplementation(() => ({
+        ensureDailyNoteExists: jest.fn().mockResolvedValue(dailyNoteFile),
+      }));
+
+      mockApp.vault.read = jest.fn().mockResolvedValue("# Daily Note\n");
+      mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);
+
+      settings.quickAdd.destination = "daily";
+      settings.quickAdd.placement = "append";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      await taskCreator.createTask("Buy milk");
+
+      expect(mockApp.vault.modify).toHaveBeenCalledWith(dailyNoteFile, "# Daily Note\n- [ ] Buy milk");
+    });
   });
 
   describe("getFrontmatterEndPosition", () => {

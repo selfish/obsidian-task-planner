@@ -1,6 +1,7 @@
 import { FileOperations } from '../../src/core/operations/file-operations';
 import { TodoItem, TodoStatus } from '../../src/types/todo';
 import { FileAdapter } from '../../src/types/file-adapter';
+import { FileOperationError } from '../../src/lib/errors';
 
 const createMockFileAdapter = (content: string): FileAdapter<unknown> => {
   let currentContent = content;
@@ -93,6 +94,50 @@ describe('FileOperations', () => {
 
       // Should silently skip - no file modification when line number is missing
       expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it('should throw FileOperationError when getContent fails', async () => {
+      const file = createMockFileAdapter('- [ ] Task');
+      const readError = new Error('Permission denied');
+      (file.getContent as jest.Mock).mockRejectedValue(readError);
+      const todo = createTodo('Task', 0, file);
+
+      await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toThrow(FileOperationError);
+      await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toMatchObject({
+        filePath: 'notes/todo.md',
+        operation: 'read',
+        tier: 'HIGH',
+      });
+    });
+
+    it('should throw FileOperationError when getContent fails with non-Error', async () => {
+      const file = createMockFileAdapter('- [ ] Task');
+      (file.getContent as jest.Mock).mockRejectedValue('String error');
+      const todo = createTodo('Task', 0, file);
+
+      await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should throw FileOperationError when setContent fails', async () => {
+      const file = createMockFileAdapter('- [ ] Task');
+      const writeError = new Error('Disk full');
+      (file.setContent as jest.Mock).mockRejectedValue(writeError);
+      const todo = createTodo('Task', 0, file);
+
+      await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toThrow(FileOperationError);
+      await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toMatchObject({
+        filePath: 'notes/todo.md',
+        operation: 'write',
+        tier: 'HIGH',
+      });
+    });
+
+    it('should throw FileOperationError when setContent fails with non-Error', async () => {
+      const file = createMockFileAdapter('- [ ] Task');
+      (file.setContent as jest.Mock).mockRejectedValue('String error');
+      const todo = createTodo('Task', 0, file);
+
+      await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toThrow(FileOperationError);
     });
   });
 
@@ -250,6 +295,92 @@ describe('FileOperations', () => {
 
       expect(file1.setContent).toHaveBeenCalledTimes(1);
       expect(file2.setContent).toHaveBeenCalledTimes(1);
+    });
+
+    it('should remove attribute when value is undefined in batch', async () => {
+      const fileContent = '- [ ] Task one [priority:: high]\n- [ ] Task two [priority:: high]';
+      const file = createMockFileAdapter(fileContent);
+      const todos = [
+        createTodo('Task one', 0, file),
+        createTodo('Task two', 1, file),
+      ];
+
+      await operations.batchUpdateAttribute(todos, 'priority', undefined);
+
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one\n- [ ] Task two');
+    });
+
+    it('should remove attribute when value is false in batch', async () => {
+      const fileContent = '- [ ] Task one [selected:: true]\n- [ ] Task two [selected:: true]';
+      const file = createMockFileAdapter(fileContent);
+      const todos = [
+        createTodo('Task one', 0, file),
+        createTodo('Task two', 1, file),
+      ];
+
+      await operations.batchUpdateAttribute(todos, 'selected', false);
+
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one\n- [ ] Task two');
+    });
+
+    it('should throw FileOperationError when getContent fails in batch', async () => {
+      const file = createMockFileAdapter('- [ ] Task one\n- [ ] Task two');
+      const readError = new Error('Permission denied');
+      (file.getContent as jest.Mock).mockRejectedValue(readError);
+      const todos = [
+        createTodo('Task one', 0, file),
+        createTodo('Task two', 1, file),
+      ];
+
+      await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toThrow(FileOperationError);
+      await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toMatchObject({
+        filePath: 'notes/todo.md',
+        operation: 'read',
+        tier: 'HIGH',
+      });
+    });
+
+    it('should throw FileOperationError when getContent fails with non-Error in batch', async () => {
+      const file = createMockFileAdapter('- [ ] Task one\n- [ ] Task two');
+      (file.getContent as jest.Mock).mockRejectedValue('String error');
+      const todos = [
+        createTodo('Task one', 0, file),
+        createTodo('Task two', 1, file),
+      ];
+
+      await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should throw FileOperationError when setContent fails in batch', async () => {
+      const file = createMockFileAdapter('- [ ] Task one\n- [ ] Task two');
+      const writeError = new Error('Disk full');
+      (file.setContent as jest.Mock).mockRejectedValue(writeError);
+      const todos = [
+        createTodo('Task one', 0, file),
+        createTodo('Task two', 1, file),
+      ];
+
+      await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toThrow(FileOperationError);
+      await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toMatchObject({
+        filePath: 'notes/todo.md',
+        operation: 'write',
+        tier: 'HIGH',
+      });
+    });
+
+    it('should throw FileOperationError when setContent fails with non-Error in batch', async () => {
+      const file = createMockFileAdapter('- [ ] Task one\n- [ ] Task two');
+      (file.setContent as jest.Mock).mockRejectedValue('String error');
+      const todos = [
+        createTodo('Task one', 0, file),
+        createTodo('Task two', 1, file),
+      ];
+
+      await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toThrow(FileOperationError);
     });
   });
 

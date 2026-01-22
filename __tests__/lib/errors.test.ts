@@ -45,6 +45,25 @@ describe('TaskPlannerError', () => {
     expect(error.stack).toBeDefined();
     expect(error.stack).toContain('TaskPlannerError');
   });
+
+  it('should handle environments without Error.captureStackTrace', () => {
+    // Save the original
+    const originalCaptureStackTrace = Error.captureStackTrace;
+
+    // Temporarily remove captureStackTrace to simulate non-V8 environment
+    // @ts-expect-error - intentionally setting to undefined for testing
+    Error.captureStackTrace = undefined;
+
+    try {
+      const error = new TaskPlannerError('Test error', 'HIGH');
+      // Error should still be created successfully
+      expect(error.message).toBe('Test error');
+      expect(error.tier).toBe('HIGH');
+    } finally {
+      // Restore the original
+      Error.captureStackTrace = originalCaptureStackTrace;
+    }
+  });
 });
 
 describe('FileOperationError', () => {

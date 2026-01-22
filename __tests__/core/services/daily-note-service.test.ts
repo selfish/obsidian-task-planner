@@ -32,6 +32,26 @@ describe("DailyNoteService", () => {
       expect(result).toBeNull();
     });
 
+    it("should return null when plugins property is undefined", () => {
+      // Tests line 43: this.app.plugins?.plugins branch when plugins is undefined
+      (mockApp as unknown as { plugins: undefined }).plugins = undefined;
+      (mockApp as unknown as { internalPlugins: { plugins: Record<string, unknown> } }).internalPlugins = { plugins: {} };
+
+      const result = service.getDailyNoteSettings();
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when internalPlugins property is undefined", () => {
+      // Tests line 66: this.app.internalPlugins?.plugins branch when internalPlugins is undefined
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = { plugins: {} };
+      (mockApp as unknown as { internalPlugins: undefined }).internalPlugins = undefined;
+
+      const result = service.getDailyNoteSettings();
+
+      expect(result).toBeNull();
+    });
+
     it("should return periodic notes settings when available", () => {
       (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = {
         plugins: {
@@ -454,6 +474,50 @@ describe("DailyNoteService", () => {
 
       // Should not try to create existing folder
       expect(mockApp.vault.createFolder).not.toHaveBeenCalled();
+    });
+
+    it("should handle settings becoming null after path resolution", async () => {
+      // Tests line 112: settings?.template where settings is null
+      // First call to getDailyNoteSettings (via getTodayNotePath) returns valid settings
+      // Second call to getDailyNoteSettings (at line 108) returns null
+      (mockApp as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins = {
+        plugins: {
+          "periodic-notes": {
+            settings: {
+              daily: {
+                enabled: true,
+                folder: "Journal",
+                format: "YYYY-MM-DD",
+              },
+            },
+          },
+        },
+      };
+
+      const newFile = new TFile("Journal/2026-01-19.md");
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
+      mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
+      mockApp.vault.createFolder = jest.fn().mockResolvedValue(undefined);
+
+      // Spy on getDailyNoteSettings to return null on second call
+      let callCount = 0;
+      jest.spyOn(service, "getDailyNoteSettings").mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            folder: "Journal",
+            format: "YYYY-MM-DD",
+            template: undefined,
+          };
+        }
+        // Second call returns null to test settings?.template branch
+        return null;
+      });
+
+      await service.ensureDailyNoteExists(0);
+
+      // Should create file with empty content since settings is null on second call
+      expect(mockApp.vault.create).toHaveBeenCalledWith("Journal/2026-01-19.md", "");
     });
   });
 

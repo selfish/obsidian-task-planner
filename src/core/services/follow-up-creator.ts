@@ -91,8 +91,7 @@ export class FollowUpCreator<T> {
   }
 
   private getIndentation(line: string): number {
-    const match = line.match(/^(\s*)/);
-    return match ? match[1].length : 0;
+    return line.length - line.trimStart().length;
   }
 
   async insertAfterOriginal(todo: TodoItem<T>, taskLine: string): Promise<void> {

@@ -138,6 +138,19 @@ describe('TodoIndex', () => {
 
       expect(mockFolderTodoParser.parseFiles).toHaveBeenCalledWith([normalFile]);
     });
+
+    it('should log error when parsing files fails', async () => {
+      const file = createMockFileAdapter('file1');
+      const parseError = new Error('Parse error');
+
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockRejectedValue(parseError);
+
+      const index = new TodoIndex(deps, settings);
+
+      await index.filesLoaded([file]);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(`Failed to load files: ${parseError}`);
+    });
   });
 
   describe('fileUpdated', () => {
@@ -185,6 +198,19 @@ describe('TodoIndex', () => {
       index.fileUpdated(file);
 
       expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File updated: file1');
+    });
+
+    it('should log error when parsing file fails', async () => {
+      const file = createMockFileAdapter('file1');
+      const parseError = new Error('Parse error');
+      const index = new TodoIndex(deps, settings);
+      index.files = [{ file, todos: [] }];
+
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockRejectedValue(parseError);
+
+      await index.fileUpdated(file);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(`Failed to update file file1: ${parseError}`);
     });
   });
 
@@ -270,6 +296,19 @@ describe('TodoIndex', () => {
 
       expect(mockFileTodoParser.parseMdFile).not.toHaveBeenCalled();
     });
+
+    it('should log error when parsing created file fails', async () => {
+      const newFile = createMockFileAdapter('new');
+      const parseError = new Error('Parse error');
+      const index = new TodoIndex(deps, settings);
+      index.files = [];
+
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockRejectedValue(parseError);
+
+      await index.fileCreated(newFile);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(`Failed to parse created file new: ${parseError}`);
+    });
   });
 
   describe('fileRenamed', () => {
@@ -280,6 +319,28 @@ describe('TodoIndex', () => {
       index.fileRenamed('oldname', file);
 
       expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File renamed: oldname to newname');
+    });
+  });
+
+  describe('triggerUpdate error handling', () => {
+    it('should log error when update event listener throws', async () => {
+      const file = createMockFileAdapter('file1');
+      const todo = createTodo('Task 1', file);
+      const listenerError = new Error('Listener error');
+
+      const index = new TodoIndex(deps, settings);
+      index.files = [{ file, todos: [todo] }];
+
+      // Add a listener that throws an error
+      index.onUpdateEvent.listen(() => {
+        throw listenerError;
+      });
+
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([todo]);
+
+      await index.fileUpdated(file);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(`Failed to trigger update event: ${listenerError}`);
     });
   });
 });

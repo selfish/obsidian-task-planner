@@ -152,6 +152,19 @@ describe('withRetry', () => {
     expect(result).toEqual({ data: [1, 2, 3] });
   });
 
+  it('should throw with undefined lastError when maxAttempts is 0', async () => {
+    const operation = jest.fn().mockResolvedValue('success');
+
+    let thrownError: SettingsSaveError | null = null;
+    await withRetry(operation, { maxAttempts: 0 })
+      .catch((err) => { thrownError = err; });
+
+    // With maxAttempts of 0, the loop never runs, so lastError is undefined
+    expect(thrownError).not.toBeNull();
+    expect(thrownError!.message).toMatch(/Operation failed after 0 attempts: undefined/);
+    expect(operation).not.toHaveBeenCalled();
+  });
+
   it('should not delay after the last attempt', async () => {
     const operation = jest.fn().mockRejectedValue(new Error('Fail'));
 
