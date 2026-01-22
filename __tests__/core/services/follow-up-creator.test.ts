@@ -150,6 +150,34 @@ describe("FollowUpCreator", () => {
       const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
       expect(newContent).toContain("- [ ] Follow up: Following the plan");
     });
+
+    it("should handle whitespace-only prefix by returning text unchanged", async () => {
+      // Tests line 35: when trimmedPrefix is empty (prefix is all whitespace)
+      settings.followUp.textPrefix = "   ";
+      followUpCreator = new FollowUpCreator<string>(settings);
+      const todo = createMockTodo({ text: "Task with spaces prefix" });
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      // Whitespace-only prefix should result in just the task text (with the whitespace prefix)
+      expect(newContent).toContain("- [ ]    Task with spaces prefix");
+    });
+
+    it("should strip prefix without trailing space when text starts directly with prefix", async () => {
+      // Tests line 42: text.startsWith(trimmedPrefix) but NOT text.startsWith(trimmedPrefix + " ")
+      settings.followUp.textPrefix = "FU:";
+      followUpCreator = new FollowUpCreator<string>(settings);
+      // Text starts with "FU:" but directly followed by text without space
+      const todo = createMockTodo({ text: "FU:NoSpaceAfter" });
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      // Should strip the prefix and add it back with proper spacing
+      expect(newContent).toContain("- [ ] FU: NoSpaceAfter");
+      expect(newContent).not.toContain("FU: FU:");
+    });
   });
 
   describe("copy tags", () => {

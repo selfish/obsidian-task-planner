@@ -71,6 +71,18 @@ describe('LineParser', () => {
       });
     });
 
+    // Line 12: test branch where regex doesn't match (empty line)
+    it('should handle empty line', () => {
+      const result = parser.parseLine('');
+      expect(result).toEqual({
+        indentation: '',
+        listMarker: '',
+        checkbox: '',
+        date: '',
+        line: '',
+      });
+    });
+
     it('should handle short date format', () => {
       const result = parser.parseLine('- [ ] 01-15: Short date task');
       expect(result).toEqual({
@@ -433,6 +445,46 @@ describe('LineParser', () => {
       const result = parser.parseAttributes('Meeting with [[@alice]] and [[@bob]]');
       expect(result.textWithoutAttributes).toBe('Meeting with [[@alice]] and [[@bob]]');
       expect(result.attributes).toEqual({});
+    });
+
+    // Line 83: Edge cases that exercise the final return null in parseSingleAttribute
+    // This tests scenarios where attribute patterns might be malformed or unusual
+    it('should handle empty attribute key gracefully', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      // Dataview attribute with empty or whitespace-only key
+      const result = parser.parseAttributes('Task [ :: value]');
+      expect(result.textWithoutAttributes).toBe('Task [ :: value]');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should handle malformed dataview-like syntax', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      // Not a valid Dataview attribute (no double colon)
+      const result = parser.parseAttributes('Task [key: value]');
+      expect(result.textWithoutAttributes).toBe('Task [key: value]');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should handle @ followed by non-word characters', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Email: test@example.com');
+      expect(result.textWithoutAttributes).toBe('Email: test@example.com');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should not parse @ at end of string without keyword', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task ending with @');
+      // The @ without a word after it should not be matched
+      expect(result.textWithoutAttributes).toBe('Task ending with @');
+      expect(result.attributes).toEqual({});
+    });
+
+    it('should handle mixed valid and invalid patterns', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const result = parser.parseAttributes('Task [valid:: attr] [invalid: syntax] @high');
+      // Valid Dataview and @high should be parsed, invalid syntax ignored
+      expect(result.attributes).toEqual({ valid: 'attr', priority: 'high' });
     });
   });
 });

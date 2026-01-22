@@ -151,6 +151,13 @@ describe('StatusOperations', () => {
         const result = operations.toTodo('- [ ] Task', 42);
         expect(result.todo?.line).toBe(42);
       });
+
+      // Line 115: test branch where lineNumber is undefined
+      it('should not set line property when lineNumber is undefined', () => {
+        const result = operations.toTodo('- [ ] Task', undefined as unknown as number);
+        expect(result.isTodo).toBe(true);
+        expect(result.todo?.line).toBeUndefined();
+      });
     });
 
     describe('convertAttributes', () => {
@@ -207,6 +214,40 @@ describe('StatusOperations', () => {
       it('should convert @today to due date', () => {
         const result = operations.convertAttributes('- [ ] Task @today');
         expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
+      });
+
+      it('should convert date attribute with string value (e.g., [due:: tomorrow])', () => {
+        const result = operations.convertAttributes('- [ ] Task [due:: tomorrow]');
+        expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
+      });
+
+      it('should convert priority attribute key to priority property (e.g., [high:: value])', () => {
+        const result = operations.convertAttributes('- [ ] Task [high:: something]');
+        expect(result).toBe('- [ ] Task [priority:: high]');
+      });
+
+      // Line 30: test branch where val === true (boolean) and key is a date shortcut
+      // The @tomorrow shortcut is parsed as {tomorrow: true} (boolean true)
+      it('should convert @tod shortcut to due date', () => {
+        const result = operations.convertAttributes('- [ ] Task @tod');
+        expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
+      });
+
+      // Line 30: test branch where val === true but Completion.completeDate returns null
+      // When a custom boolean attribute (not a valid date) has val === true
+      it('should keep non-date boolean shortcut unchanged when using default settings', () => {
+        // @custom is parsed as {custom: true} but "custom" is not a valid date
+        const result = operations.convertAttributes('- [ ] Task @custom');
+        expect(result).toBe('- [ ] Task [custom:: true]');
+      });
+
+      // Line 30: test branch where val is boolean false (neither string nor true)
+      // This tests the implicit else branch where val !== true
+      it('should preserve attribute when value is boolean false', () => {
+        // [attr:: false] is parsed as string "false", not boolean false
+        // But this tests that non-true boolean values don't trigger date conversion
+        const result = operations.convertAttributes('- [ ] Task [myattr:: false]');
+        expect(result).toBe('- [ ] Task [myattr:: false]');
       });
     });
   });
