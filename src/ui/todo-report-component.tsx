@@ -189,19 +189,20 @@ function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, se
 function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; app: App; onOpenPlanning?: () => void }) {
   const { searchPhrase, statusFilter } = reportSettings;
 
-  const planningIconRef = React.useRef<HTMLButtonElement>(null);
-  const dropdownChevronRef = React.useRef<HTMLSpanElement>(null);
+  // Use callback refs to ensure icons render on mount
+  const setPlanningIconRef = React.useCallback((node: HTMLButtonElement | null) => {
+    if (node) {
+      node.replaceChildren();
+      setIcon(node, "calendar");
+    }
+  }, []);
 
-  React.useEffect(() => {
-    if (planningIconRef.current && app) {
-      planningIconRef.current.replaceChildren();
-      setIcon(planningIconRef.current, "calendar");
+  const setDropdownChevronRef = React.useCallback((node: HTMLSpanElement | null) => {
+    if (node) {
+      node.replaceChildren();
+      setIcon(node, "chevron-down");
     }
-    if (dropdownChevronRef.current) {
-      dropdownChevronRef.current.replaceChildren();
-      setIcon(dropdownChevronRef.current, "chevron-down");
-    }
-  }, [app]);
+  }, []);
 
   function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>) {
     setReportSettings({
@@ -237,28 +238,30 @@ function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPla
             <option value="completed">Completed</option>
             <option value="canceled">Canceled</option>
           </select>
-          <span ref={dropdownChevronRef} className="status-filter-chevron" />
+          <span ref={setDropdownChevronRef} className="status-filter-chevron" />
         </span>
-        {onOpenPlanning && <button ref={planningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" />}
+        {onOpenPlanning && <button ref={setPlanningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" />}
       </div>
     </div>
   );
 }
 
 function ReportSection({ container, deps, isCollapsed, onToggle }: { container: Container; deps: TodoReportComponentDeps; isCollapsed: boolean; onToggle: () => void }) {
-  const chevronRef = React.useRef<HTMLSpanElement>(null);
-
-  React.useEffect(() => {
-    if (chevronRef.current) {
-      chevronRef.current.replaceChildren();
-      setIcon(chevronRef.current, isCollapsed ? "chevron-right" : "chevron-down");
-    }
-  }, [isCollapsed]);
+  // Use callback ref to ensure icon renders on mount and updates on collapse change
+  const setChevronRef = React.useCallback(
+    (node: HTMLSpanElement | null) => {
+      if (node) {
+        node.replaceChildren();
+        setIcon(node, isCollapsed ? "chevron-right" : "chevron-down");
+      }
+    },
+    [isCollapsed]
+  );
 
   return (
     <div className={`report-section ${isCollapsed ? "collapsed" : ""}`}>
       <button className="section-header" onClick={onToggle}>
-        <span ref={chevronRef} className="chevron"></span>
+        <span ref={setChevronRef} className="chevron"></span>
         <span className="section-title">{container.title}</span>
         <span className="section-count">{container.todos.length}</span>
       </button>

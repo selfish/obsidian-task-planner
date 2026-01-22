@@ -122,6 +122,19 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     });
   }
 
+  function addChangeStatusMenuItem(menu: Menu, status: TodoStatus, label: string, icon: string): void {
+    if (status === todo.status) return;
+
+    menu.addItem((item) => {
+      item.setTitle(label);
+      item.setIcon(icon);
+      item.onClick(() => {
+        const updatedTodo = { ...todo, status };
+        void fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
+      });
+    });
+  }
+
   function onAuxClickContainer(evt: React.MouseEvent): void {
     if (evt.defaultPrevented) return;
 
@@ -138,6 +151,16 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
       item.onClick(() => void fileOperations.removeAttribute(todo, "priority"));
     });
     menu.addSeparator();
+
+    // Status change options
+    addChangeStatusMenuItem(menu, TodoStatus.Todo, "Set status: Todo", "circle");
+    addChangeStatusMenuItem(menu, TodoStatus.InProgress, "Set status: In Progress", "clock");
+    addChangeStatusMenuItem(menu, TodoStatus.Complete, "Set status: Complete", "check-circle");
+    addChangeStatusMenuItem(menu, TodoStatus.AttentionRequired, "Set status: Attention Required", "alert-circle");
+    addChangeStatusMenuItem(menu, TodoStatus.Delegated, "Set status: Delegated", "users");
+    addChangeStatusMenuItem(menu, TodoStatus.Canceled, "Set status: Cancelled", "x-circle");
+    menu.addSeparator();
+
     menu.addItem((item) => {
       item.setTitle("Toggle pinned");
       item.setIcon("pin");

@@ -26,7 +26,7 @@ export class TodoListView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Todo";
+    return "Today Focus";
   }
 
   getIcon(): string {
