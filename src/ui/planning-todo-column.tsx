@@ -43,14 +43,17 @@ export interface PlanningTodoColumnProps {
 
 export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
-  const iconRef = React.useRef<HTMLSpanElement>(null);
 
-  React.useEffect(() => {
-    if (iconRef.current && icon) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, icon);
-    }
-  }, [icon]);
+  // Use callback ref to ensure icon renders on mount (fixes Preact re-render issue)
+  const setIconRef = React.useCallback(
+    (node: HTMLSpanElement | null) => {
+      if (node && icon) {
+        node.replaceChildren();
+        setIcon(node, icon);
+      }
+    },
+    [icon]
+  );
 
   function onDragOver(ev: React.DragEvent): void {
     ev.preventDefault();
@@ -125,7 +128,7 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
   return (
     <div className={columnClasses} style={columnStyle}>
       <div className="header">
-        <span ref={iconRef} className="icon"></span>
+        <span ref={setIconRef} className="icon"></span>
         <span className="title">{title}</span>
       </div>
       <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>

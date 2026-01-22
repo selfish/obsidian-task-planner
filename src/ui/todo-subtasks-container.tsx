@@ -21,23 +21,17 @@ export interface TodoSubtasksContainerProps {
 
 export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: TodoSubtasksContainerProps) {
   const [isFolded, setIsFolded] = React.useState(false);
-  const iconRef = React.useRef<HTMLSpanElement>(null);
 
-  // Set icon on mount and when fold state changes
-  React.useEffect(() => {
-    if (iconRef.current) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, isFolded ? "chevron-right" : "chevron-down");
-    }
-  }, [isFolded]);
-
-  // Also set icon immediately after first render
-  React.useLayoutEffect(() => {
-    if (iconRef.current) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, "chevron-down");
-    }
-  }, []);
+  // Use callback ref to ensure icon renders on mount and updates on fold change
+  const setIconRef = React.useCallback(
+    (node: HTMLSpanElement | null) => {
+      if (node) {
+        node.replaceChildren();
+        setIcon(node, isFolded ? "chevron-right" : "chevron-down");
+      }
+    },
+    [isFolded]
+  );
 
   function onClickFoldButton(evt: React.MouseEvent) {
     if (evt.defaultPrevented) {
@@ -55,7 +49,7 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
   return (
     <div className="subtasks-container">
       <button className="subtasks-toggle" onClick={onClickFoldButton}>
-        <span ref={iconRef} className="icon"></span>
+        <span ref={setIconRef} className="icon"></span>
         <span className="count">
           {subtasks.length} subtask{subtasks.length !== 1 ? "s" : ""}
         </span>
