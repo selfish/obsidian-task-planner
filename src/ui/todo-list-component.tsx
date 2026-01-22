@@ -9,6 +9,38 @@ import { Logger } from "../types/logger";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 import { getFileDisplayName } from "../utils/file-utils";
 
+// Hook to get file display name with metadata cache updates
+function useFileDisplayName(file: TFile, app: App): string {
+  const [displayName, setDisplayName] = React.useState(() => getFileDisplayName(file, app));
+
+  React.useEffect(() => {
+    setDisplayName(getFileDisplayName(file, app));
+
+    const onCacheChanged = (changedFile: TFile) => {
+      if (changedFile.path === file.path) {
+        setDisplayName(getFileDisplayName(file, app));
+      }
+    };
+
+    const ref = app.metadataCache.on("changed", onCacheChanged as () => void);
+    return () => {
+      app.metadataCache.offref(ref);
+    };
+  }, [file.path, app]);
+
+  return displayName;
+}
+
+// Component for group header that properly handles metadata cache
+function GroupHeader({ file, app, onDragStart }: { file: TFile; app: App; onDragStart: (ev: React.DragEvent) => void }) {
+  const displayName = useFileDisplayName(file, app);
+  return (
+    <div className="header" draggable="true" onDragStart={onDragStart}>
+      {displayName}
+    </div>
+  );
+}
+
 function getPriorityValue(todo: TodoItem<TFile>): number {
   if (!todo.attributes || !todo.attributes["priority"]) {
     return 0;
@@ -98,13 +130,10 @@ export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListC
   return (
     <div>
       {Array.from(groupedTodos.entries()).map(([_fileName, fileTodos]) => {
-        const displayName = getFileDisplayName(fileTodos[0].file.file, deps.app);
         const fileKey = fileTodos[0].file.file.path;
         return (
           <div key={fileKey} className="group">
-            <div className="header" draggable="true" onDragStart={(ev) => onGroupDragStart(ev, fileTodos)}>
-              {displayName}
-            </div>
+            <GroupHeader file={fileTodos[0].file.file} app={deps.app} onDragStart={(ev) => onGroupDragStart(ev, fileTodos)} />
             {fileTodos.map((todo) => (
               <TodoItemComponent todo={todo} key={getTodoId(todo)} deps={deps} dontCrossCompleted={dontCrossCompleted} hideFileRef={true} />
             ))}

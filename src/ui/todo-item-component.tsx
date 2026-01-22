@@ -89,6 +89,27 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   const settings = deps.settings;
   const fileOperations = new FileOperations(settings);
 
+  // Use state for file display name to handle metadata cache updates
+  const [fileDisplayName, setFileDisplayName] = React.useState(() => getFileDisplayName(todo.file.file, app));
+
+  // Listen for metadata cache changes to update display name
+  React.useEffect(() => {
+    // Update immediately in case cache changed
+    setFileDisplayName(getFileDisplayName(todo.file.file, app));
+
+    // Listen for cache updates on this file
+    const onCacheChanged = (file: TFile) => {
+      if (file.path === todo.file.file.path) {
+        setFileDisplayName(getFileDisplayName(todo.file.file, app));
+      }
+    };
+
+    const ref = app.metadataCache.on("changed", onCacheChanged as () => void);
+    return () => {
+      app.metadataCache.offref(ref);
+    };
+  }, [todo.file.file.path, app]);
+
   async function openFileAsync(file: TFile, line: number, inOtherLeaf: boolean): Promise<void> {
     let leaf = app.workspace.getLeaf();
     if (inOtherLeaf) {
@@ -240,7 +261,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
         <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
         <div className="body">
           <MarkdownText text={todo.text} app={app} sourcePath={todo.file.file.path} className={textClasses} />
-          {!hideFileRef && <div className="file-ref">{getFileDisplayName(todo.file.file, app)}</div>}
+          {!hideFileRef && <div className="file-ref">{fileDisplayName}</div>}
           {(priority || isSelected) && (
             <div className="meta">
               {isSelected && <SelectedBadge />}
