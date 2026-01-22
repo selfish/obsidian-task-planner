@@ -13,7 +13,7 @@
  * See LICENSE file for full license text.
  */
 
-import { App, Plugin, PluginManifest, TFile } from "obsidian";
+import { App, Platform, Plugin, PluginManifest, TFile } from "obsidian";
 
 import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, ToggleOngoingTodoCommand, ToggleTodoCommand } from "./commands";
 import { FileTodoParser, FolderTodoParser, StatusOperations, TodoIndex } from "./core";
@@ -82,12 +82,14 @@ export default class TaskPlannerPlugin extends Plugin {
         return;
       }
 
-      try {
-        await this.app.workspace.getRightLeaf(false)?.setViewState({
-          type: TodoListView.viewType,
-        });
-      } catch (err) {
-        this.logger.error(`Failed to set view state: ${err}`);
+      if (!Platform.isMobile) {
+        try {
+          await this.app.workspace.getRightLeaf(false)?.setViewState({
+            type: TodoListView.viewType,
+          });
+        } catch (err) {
+          this.logger.error(`Failed to set view state: ${err}`);
+        }
       }
     });
 
@@ -195,7 +197,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
     // Open new planning view in a tab
     try {
-      const leaf = this.app.workspace.getLeaf("tab");
+      const leaf = this.app.workspace.getLeaf(Platform.isMobile ? false : "tab");
       await leaf.setViewState({ type: PlanningView.viewType });
       await this.app.workspace.revealLeaf(leaf);
     } catch (err) {

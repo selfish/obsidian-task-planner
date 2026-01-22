@@ -402,8 +402,8 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           const newFolder = folderSearchInput.getValue();
           if (!newFolder) return;
 
-          const exists = await this.app.vault.adapter.exists(newFolder, true);
-          if (!exists) {
+          const folder = this.app.vault.getAbstractFileByPath(newFolder);
+          if (folder === null) {
             this.showError(containerEl, `Folder doesn't exist: ${newFolder}`);
             return;
           }

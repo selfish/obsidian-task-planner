@@ -1,4 +1,4 @@
-import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Platform, TFile, WorkspaceLeaf } from "obsidian";
 
 import { TodoIndex } from "../core";
 import { TaskPlannerSettings } from "../settings";
@@ -61,7 +61,7 @@ export class PlanningView extends ItemView {
   }
 
   private async openReport(): Promise<void> {
-    const leaf = this.app.workspace.getLeaf("tab");
+    const leaf = this.app.workspace.getLeaf(Platform.isMobile ? false : "tab");
     try {
       await leaf.setViewState({ type: TodoReportView.viewType });
     } catch (err) {
