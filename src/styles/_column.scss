@@ -74,6 +74,12 @@
       .title {
         line-height: var(--leading-tight);
       }
+
+      .count {
+        font-weight: 500;
+        color: var(--text-faint);
+        font-size: var(--font-xs);
+      }
     }
 
     // Today horizon header styling (warm amber)
