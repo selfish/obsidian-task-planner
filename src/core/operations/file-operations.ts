@@ -101,9 +101,21 @@ export class FileOperations {
 
   async updateTodoStatus<T>(todo: TodoItem<T>, completedAttribute: string): Promise<void> {
     const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
-    await this.updateCheckbox(todo, statusToCheckbox(todo.status));
     const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
-    await this.updateAttribute(todo, completedAttribute, completedAttributeValue);
+
+    // Combined update: checkbox + completed attribute in a single file write
+    const updateLine = (line: LineStructure) => {
+      line.checkbox = statusToCheckbox(todo.status);
+
+      const attributes = this.lineParser.parseAttributes(line.line);
+      if (completedAttributeValue === undefined) {
+        delete attributes.attributes[completedAttribute];
+      } else {
+        attributes.attributes[completedAttribute] = completedAttributeValue;
+      }
+      line.line = this.lineParser.attributesToString(attributes);
+    };
+    await this.updateContentInFile(todo, updateLine);
   }
 
   private async updateContentInFile<T>(todo: TodoItem<T>, updateLine: (line: LineStructure) => void) {
