@@ -82,6 +82,7 @@ export interface TaskPlannerSettings {
   atShortcutSettings: AtShortcutSettings;
   quickAdd: QuickAddSettings;
   followUp: FollowUpSettings;
+  hasSeenOnboarding: boolean;
 }
 
 export const DEFAULT_SETTINGS: TaskPlannerSettings = {
@@ -133,4 +134,5 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     copyTags: true,
     copyPriority: true,
   },
+  hasSeenOnboarding: false,
 };

@@ -4,7 +4,6 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
-
 import { TodoListComponent } from "./todo-list-component";
 import { TodoIndex } from "../core/index/todo-index";
 import { TodoMatcher } from "../core/matchers/todo-matcher";
@@ -361,7 +360,7 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
       </div>
       <div className="report-content">
         {containers.length === 0 ? (
-          <div className="empty-state">
+          <div className="empty-state-content">
             <span>{reportSettings.statusFilter === "all" ? "No completed or canceled tasks found" : reportSettings.statusFilter === "completed" ? "No completed tasks found" : "No canceled tasks found"}</span>
           </div>
         ) : (

@@ -29,6 +29,8 @@ export interface PlanningTodoColumnDeps {
   logger: Logger;
 }
 
+export type ColumnType = "backlog" | "overdue" | "today-todo" | "today-in-progress" | "today-done" | "future";
+
 export interface PlanningTodoColumnProps {
   icon: string;
   title: string;
@@ -39,9 +41,28 @@ export interface PlanningTodoColumnProps {
   deps: PlanningTodoColumnDeps;
   substyle?: string;
   customColor?: HorizonColor;
+  columnType?: ColumnType;
 }
 
-export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor }: PlanningTodoColumnProps): React.ReactElement | null {
+function getEmptyStateMessage(columnType?: ColumnType): string {
+  switch (columnType) {
+    case "backlog":
+      return "Tasks without due dates live here";
+    case "overdue":
+      return "All caught up!";
+    case "today-todo":
+      return "Nothing scheduled for today";
+    case "today-in-progress":
+      return "Drag a task here to start working";
+    case "today-done":
+      return "Complete tasks to see them here";
+    case "future":
+    default:
+      return "No tasks scheduled";
+  }
+}
+
+export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
 
   // Use callback ref to ensure icon renders on mount (fixes Preact re-render issue)
@@ -132,7 +153,13 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
         <span className="title">{title}</span>
       </div>
       <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
-        <TodoListComponent deps={deps} todos={todos} />
+        {todos.length === 0 ? (
+          <div className="empty-state-content">
+            <span className="empty-state-text">{getEmptyStateMessage(columnType)}</span>
+          </div>
+        ) : (
+          <TodoListComponent deps={deps} todos={todos} />
+        )}
       </div>
     </div>
   );

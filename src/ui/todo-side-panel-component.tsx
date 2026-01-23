@@ -4,7 +4,6 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
-
 import { TodoItemComponent } from "./todo-item-component";
 import { TodoIndex } from "../core/index/todo-index";
 import { TaskPlannerSettings } from "../settings/types";
@@ -74,11 +73,7 @@ function Section({ icon, title, count, variant = "default", collapsed, onToggle,
         <span className="title">{title}</span>
         <span className="count">{count}</span>
       </button>
-      {!collapsed && count > 0 && (
-        <div className="sidebar-section-content">
-          {children}
-        </div>
-      )}
+      {!collapsed && count > 0 && <div className="sidebar-section-content">{children}</div>}
     </div>
   );
 }
@@ -127,13 +122,10 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   };
 
   // Filter functions
-  const isIncomplete = (todo: TodoItem<TFile>) =>
-    todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled;
+  const isIncomplete = (todo: TodoItem<TFile>) => todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled;
 
   const pinnedTodos = React.useMemo(() => {
-    return todos.filter(
-      (todo) => isIncomplete(todo) && !!todo.attributes?.[settings.selectedAttribute]
-    );
+    return todos.filter((todo) => isIncomplete(todo) && !!todo.attributes?.[settings.selectedAttribute]);
   }, [todos, settings.selectedAttribute]);
 
   const overdueTodos = React.useMemo(() => {
@@ -161,11 +153,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
 
   const startedTodos = React.useMemo(() => {
     return todos.filter((todo) => {
-      return (
-        todo.status === TodoStatus.InProgress ||
-        todo.status === TodoStatus.AttentionRequired ||
-        todo.status === TodoStatus.Delegated
-      );
+      return todo.status === TodoStatus.InProgress || todo.status === TodoStatus.AttentionRequired || todo.status === TodoStatus.Delegated;
     });
   }, [todos]);
 
@@ -191,94 +179,33 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
       </div>
 
       <div className="sidebar-content">
-        <Section
-          icon="pin"
-          title="Pinned"
-          count={pinnedTodos.length}
-          variant="accent"
-          collapsed={!!collapsed.pinned}
-          onToggle={() => toggleSection("pinned")}
-        >
+        <Section icon="pin" title="Pinned" count={pinnedTodos.length} variant="accent" collapsed={!!collapsed.pinned} onToggle={() => toggleSection("pinned")}>
           {pinnedTodos.map((todo) => (
-            <TodoItemComponent
-              key={`${todo.file.file.path}:${todo.line}`}
-              todo={todo}
-              deps={componentDeps}
-              hideFileRef={false}
-            />
+            <TodoItemComponent key={`${todo.file.file.path}:${todo.line}`} todo={todo} deps={componentDeps} hideFileRef={false} />
           ))}
         </Section>
 
-        <Section
-          icon="alert-triangle"
-          title="Overdue"
-          count={overdueTodos.length}
-          variant="warning"
-          collapsed={!!collapsed.overdue}
-          onToggle={() => toggleSection("overdue")}
-        >
+        <Section icon="alert-triangle" title="Overdue" count={overdueTodos.length} variant="warning" collapsed={!!collapsed.overdue} onToggle={() => toggleSection("overdue")}>
           {overdueTodos.map((todo) => (
-            <TodoItemComponent
-              key={`${todo.file.file.path}:${todo.line}`}
-              todo={todo}
-              deps={componentDeps}
-              hideFileRef={false}
-            />
+            <TodoItemComponent key={`${todo.file.file.path}:${todo.line}`} todo={todo} deps={componentDeps} hideFileRef={false} />
           ))}
         </Section>
 
-        <Section
-          icon="sun"
-          title="Today"
-          count={todayTodos.length}
-          variant="default"
-          collapsed={!!collapsed.today}
-          onToggle={() => toggleSection("today")}
-        >
+        <Section icon="sun" title="Today" count={todayTodos.length} variant="default" collapsed={!!collapsed.today} onToggle={() => toggleSection("today")}>
           {todayTodos.map((todo) => (
-            <TodoItemComponent
-              key={`${todo.file.file.path}:${todo.line}`}
-              todo={todo}
-              deps={componentDeps}
-              hideFileRef={false}
-            />
+            <TodoItemComponent key={`${todo.file.file.path}:${todo.line}`} todo={todo} deps={componentDeps} hideFileRef={false} />
           ))}
         </Section>
 
-        <Section
-          icon="clock"
-          title="Started"
-          count={startedTodos.length}
-          variant="progress"
-          collapsed={!!collapsed.started}
-          onToggle={() => toggleSection("started")}
-        >
+        <Section icon="clock" title="Started" count={startedTodos.length} variant="progress" collapsed={!!collapsed.started} onToggle={() => toggleSection("started")}>
           {startedTodos.map((todo) => (
-            <TodoItemComponent
-              key={`${todo.file.file.path}:${todo.line}`}
-              todo={todo}
-              deps={componentDeps}
-              hideFileRef={false}
-            />
+            <TodoItemComponent key={`${todo.file.file.path}:${todo.line}`} todo={todo} deps={componentDeps} hideFileRef={false} />
           ))}
         </Section>
 
-        <Section
-          icon="check-circle"
-          title="Done Today"
-          count={doneTodayTodos.length}
-          variant="success"
-          collapsed={!!collapsed.done}
-          onToggle={() => toggleSection("done")}
-        >
+        <Section icon="check-circle" title="Done Today" count={doneTodayTodos.length} variant="success" collapsed={!!collapsed.done} onToggle={() => toggleSection("done")}>
           {doneTodayTodos.map((todo) => (
-            <TodoItemComponent
-              key={`${todo.file.file.path}:${todo.line}`}
-              todo={todo}
-              deps={componentDeps}
-              hideFileRef={false}
-              dontCrossCompleted={true}
-            />
+            <TodoItemComponent key={`${todo.file.file.path}:${todo.line}`} todo={todo} deps={componentDeps} hideFileRef={false} dontCrossCompleted={true} />
           ))}
         </Section>
 

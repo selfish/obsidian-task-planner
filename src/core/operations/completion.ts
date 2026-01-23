@@ -6,29 +6,8 @@ import { moment, type Moment } from "../../utils";
  */
 export class Completion {
   private static readonly DAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-  private static readonly FULL_DAY_NAMES = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  private static readonly MONTH_NAMES = [
-    "jan",
-    "feb",
-    "mar",
-    "apr",
-    "may",
-    "jun",
-    "jul",
-    "aug",
-    "sep",
-    "oct",
-    "nov",
-    "dec",
-  ];
+  private static readonly FULL_DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  private static readonly MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
   public static completeDate(prompt: string): string | null {
     const input = prompt.toLowerCase().trim();

@@ -13,18 +13,13 @@ export enum LogLevel {
  * All methods intentionally do nothing.
  */
 export class ConsoleLogger implements Logger {
-   
   constructor(_logLevel: LogLevel) {}
 
-   
   debug(_msg: string, _context?: Record<string, unknown>): void {}
 
-   
   info(_msg: string, _context?: Record<string, unknown>): void {}
 
-   
   warn(_msg: string, _context?: Record<string, unknown>): void {}
 
-   
   error(_error: Error | string, _context?: Record<string, unknown>): void {}
 }

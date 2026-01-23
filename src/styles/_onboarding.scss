@@ -1,0 +1,201 @@
+// Onboarding modal styles
+// Target the modal container to control sizing
+.modal:has(.onboarding-modal) {
+  width: 420px;
+  max-width: 90vw;
+}
+
+// contentEl gets the .onboarding-modal class
+.onboarding-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--size-4-6) var(--size-4-4);
+  text-align: center;
+}
+
+.onboarding-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--size-4-4);
+  border-radius: var(--radius-l);
+  background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
+  color: var(--interactive-accent);
+
+  svg {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.onboarding-title {
+  margin: 0 0 var(--size-4-2) 0;
+  font-size: var(--font-ui-large);
+  font-weight: var(--font-semibold);
+  color: var(--text-normal);
+}
+
+.onboarding-description {
+  margin: 0 0 var(--size-4-4) 0;
+  font-size: var(--font-ui-medium);
+  color: var(--text-muted);
+  line-height: var(--line-height-normal);
+
+  p {
+    margin: 0;
+  }
+}
+
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  width: 100%;
+  margin-bottom: var(--size-4-4);
+  text-align: left;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-3);
+  padding: var(--size-4-2) var(--size-4-3);
+  background: var(--background-secondary);
+  border-radius: var(--radius-m);
+}
+
+.onboarding-step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+  border-radius: 50%;
+}
+
+.onboarding-step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.onboarding-step-text {
+  flex: 1;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  line-height: var(--line-height-tight);
+}
+
+.onboarding-note {
+  width: 100%;
+  margin-bottom: var(--size-4-4);
+  padding: var(--size-4-2) var(--size-4-3);
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border-radius: var(--radius-m);
+  border-left: 3px solid var(--interactive-accent);
+  text-align: left;
+}
+
+.onboarding-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-1);
+  width: 100%;
+  margin-bottom: var(--size-4-4);
+  padding: var(--size-4-2);
+  background: var(--background-secondary);
+  border-radius: var(--radius-m);
+  text-align: left;
+}
+
+.onboarding-preview-item {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-1) var(--size-4-2);
+  font-size: var(--font-ui-small);
+  background: var(--background-primary);
+  border-radius: var(--radius-s);
+}
+
+.onboarding-preview-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.onboarding-preview-text {
+  flex: 1;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.onboarding-preview-tag {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
+  border-radius: var(--radius-s);
+}
+
+.onboarding-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  width: 100%;
+
+  button {
+    width: 100%;
+    padding: var(--size-4-2) var(--size-4-4);
+    font-size: var(--font-ui-medium);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &.mod-cta {
+      font-weight: var(--font-medium);
+    }
+  }
+}
+
+.onboarding-secondary-btn {
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+
+  &:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+}

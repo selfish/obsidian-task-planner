@@ -195,6 +195,20 @@
           background: var(--background-modifier-border-hover);
         }
       }
+
+      // Empty state - shows at top of column
+      .empty-state-content {
+        padding: var(--space-md);
+        pointer-events: none;
+
+        .empty-state-text {
+          font-size: var(--font-xs);
+          color: var(--text-faint);
+          text-align: center;
+          line-height: var(--leading-normal);
+          font-style: italic;
+        }
+      }
     }
   }
 }
