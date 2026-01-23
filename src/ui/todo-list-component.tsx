@@ -26,7 +26,7 @@ function useFileDisplayName(file: TFile, app: App): string {
     return () => {
       app.metadataCache.offref(ref);
     };
-  }, [file.path, app]);
+  }, [file, app]);
 
   return displayName;
 }

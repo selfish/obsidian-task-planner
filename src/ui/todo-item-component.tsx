@@ -98,8 +98,8 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     setFileDisplayName(getFileDisplayName(todo.file.file, app));
 
     // Listen for cache updates on this file
-    const onCacheChanged = (file: TFile) => {
-      if (file.path === todo.file.file.path) {
+    const onCacheChanged = (changedFile: TFile) => {
+      if (changedFile.path === todo.file.file.path) {
         setFileDisplayName(getFileDisplayName(todo.file.file, app));
       }
     };
@@ -108,7 +108,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     return () => {
       app.metadataCache.offref(ref);
     };
-  }, [todo.file.file.path, app]);
+  }, [todo.file.file, app]);
 
   async function openFileAsync(file: TFile, line: number, inOtherLeaf: boolean): Promise<void> {
     let leaf = app.workspace.getLeaf();
@@ -204,25 +204,25 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     };
 
     menu.addItem((item) => {
-      item.setTitle("Follow-up → Today");
+      item.setTitle("Follow-up → today");
       item.setIcon("calendar-check");
       item.onClick(() => void createFollowUp(moment().format("YYYY-MM-DD")));
     });
 
     menu.addItem((item) => {
-      item.setTitle("Follow-up → Tomorrow");
+      item.setTitle("Follow-up → tomorrow");
       item.setIcon("calendar-plus");
       item.onClick(() => void createFollowUp(moment().add(1, "day").format("YYYY-MM-DD")));
     });
 
     menu.addItem((item) => {
-      item.setTitle("Follow-up → Next week");
+      item.setTitle("Follow-up → next week");
       item.setIcon("calendar-range");
       item.onClick(() => void createFollowUp(moment().add(1, "week").format("YYYY-MM-DD")));
     });
 
     menu.addItem((item) => {
-      item.setTitle("Follow-up → Backlog");
+      item.setTitle("Follow-up → backlog");
       item.setIcon("inbox");
       item.onClick(() => void createFollowUp(null));
     });

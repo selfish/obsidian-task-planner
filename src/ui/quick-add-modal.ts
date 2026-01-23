@@ -1,9 +1,9 @@
 import { App, Modal } from "obsidian";
 
+import { WikilinkSuggest } from "./wikilink-suggest";
 import { StatusOperations } from "../core/operations/status-operations";
 import { TaskCreator } from "../core/services/task-creator";
 import { TaskPlannerSettings } from "../settings/types";
-import { WikilinkSuggest } from "./wikilink-suggest";
 
 /**
  * Modal for quick task entry with styled link support.

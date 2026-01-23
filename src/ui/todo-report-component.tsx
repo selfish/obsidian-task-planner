@@ -1,8 +1,9 @@
+import { createRoot } from "react-dom/client";
+
 import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
-import { createRoot } from "react-dom/client";
 
 import { TodoListComponent } from "./todo-list-component";
 import { TodoIndex } from "../core/index/todo-index";
@@ -186,7 +187,7 @@ function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, se
   return groupTodos(todos, containers, settings);
 }
 
-function ReportHeader({ reportSettings, setReportSettings, stats, app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; app: App; onOpenPlanning?: () => void }) {
+function ReportHeader({ reportSettings, setReportSettings, stats, _app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; _app: App; onOpenPlanning?: () => void }) {
   const { searchPhrase, statusFilter } = reportSettings;
 
   // Use callback refs to ensure icons render on mount
@@ -349,7 +350,7 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
 
   return (
     <div className="report-container">
-      <ReportHeader reportSettings={reportSettings} setReportSettings={setReportSettings} stats={stats} app={deps.app} onOpenPlanning={onOpenPlanning} />
+      <ReportHeader reportSettings={reportSettings} setReportSettings={setReportSettings} stats={stats} _app={deps.app} onOpenPlanning={onOpenPlanning} />
       <div className="report-actions">
         <button className="action-btn" onClick={allCollapsed ? expandAll : collapseAll}>
           {allCollapsed ? "Expand all" : "Collapse all"}

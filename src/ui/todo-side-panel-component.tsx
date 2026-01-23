@@ -1,8 +1,9 @@
+import { createRoot } from "react-dom/client";
+
 import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
-import { createRoot } from "react-dom/client";
 
 import { TodoItemComponent } from "./todo-item-component";
 import { TodoIndex } from "../core/index/todo-index";
@@ -84,18 +85,18 @@ function Section({ icon, title, count, variant = "default", collapsed, onToggle,
 
 const STORAGE_KEY = "task-planner-sidebar-collapsed";
 
-function loadCollapsedState(): Record<string, boolean> {
+function loadCollapsedState(app: App): Record<string, boolean> {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = app.loadLocalStorage(STORAGE_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch {
     return {};
   }
 }
 
-function saveCollapsedState(state: Record<string, boolean>): void {
+function saveCollapsedState(app: App, state: Record<string, boolean>): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    app.saveLocalStorage(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Ignore storage errors
   }
@@ -104,7 +105,7 @@ function saveCollapsedState(state: Record<string, boolean>): void {
 export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const { settings, app, logger } = deps;
   const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
-  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>(() => loadCollapsedState());
+  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>(() => loadCollapsedState(app));
 
   React.useEffect(() => {
     const unsubscribe = deps.todoIndex.onUpdateEvent.listen((updatedTodos: TodoItem<TFile>[]) => {
@@ -120,7 +121,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const toggleSection = (section: string) => {
     setCollapsed((prev) => {
       const next = { ...prev, [section]: !prev[section] };
-      saveCollapsedState(next);
+      saveCollapsedState(app, next);
       return next;
     });
   };

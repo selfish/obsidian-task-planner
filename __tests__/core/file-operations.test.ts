@@ -162,9 +162,9 @@ describe('FileOperations', () => {
 
       await operations.updateTodoStatus(todo, 'completed');
 
-      // First call updates checkbox, second call updates completed attribute
+      // Single call updates both checkbox and completed attribute
       const calls = (file.setContent as jest.Mock).mock.calls;
-      expect(calls.length).toBe(2);
+      expect(calls.length).toBe(1);
       expect(calls[0][0]).toContain('[x]');
     });
 
@@ -231,8 +231,8 @@ describe('FileOperations', () => {
       await operations.updateTodoStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
-      // Second call adds the completed attribute
-      expect(calls[1][0]).toMatch(/\[completed:: \d{4}-\d{2}-\d{2}\]/);
+      // Single call includes both checkbox and completed attribute
+      expect(calls[0][0]).toMatch(/\[completed:: \d{4}-\d{2}-\d{2}\]/);
     });
 
     it('should remove completed date when uncompleting', async () => {
@@ -243,7 +243,8 @@ describe('FileOperations', () => {
       await operations.updateTodoStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
-      expect(calls[1][0]).not.toContain('[completed::');
+      // Single call handles both checkbox and completed attribute removal
+      expect(calls[0][0]).not.toContain('[completed::');
     });
 
     it('should handle unknown status with empty checkbox', async () => {
