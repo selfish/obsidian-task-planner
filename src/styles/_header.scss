@@ -115,6 +115,11 @@
       color: var(--text-normal);
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--interactive-accent);
+      outline-offset: 2px;
+    }
+
     .icon {
       display: flex;
       align-items: center;
@@ -163,6 +168,11 @@
     &:hover {
       background: var(--background-modifier-hover);
       color: var(--text-normal);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--interactive-accent);
+      outline-offset: 2px;
     }
 
     svg {
