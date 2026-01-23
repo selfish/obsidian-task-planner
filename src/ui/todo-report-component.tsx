@@ -240,7 +240,7 @@ function ReportHeader({ reportSettings, setReportSettings, stats, _app, onOpenPl
           </select>
           <span ref={setDropdownChevronRef} className="status-filter-chevron" />
         </span>
-        {onOpenPlanning && <button ref={setPlanningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" />}
+        {onOpenPlanning && <button ref={setPlanningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" title="Open planning board" />}
       </div>
     </div>
   );
