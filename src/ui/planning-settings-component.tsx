@@ -130,28 +130,28 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
       <div className="controls">
         <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
         <span className={"spacer"}></span>
-        {onQuickAdd && <button ref={quickAddIconRef} className="settings-btn" onClick={onQuickAdd} aria-label="Quick add task" />}
-        <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty horizons">
+        {onQuickAdd && <button ref={quickAddIconRef} className="settings-btn" onClick={onQuickAdd} aria-label="Quick add task" title="Quick add task" />}
+        <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty horizons" title="Hide empty horizons">
           <span ref={hideEmptyIconRef} className="icon" />
           <span className="led" />
         </button>
-        <button className={`toggle-btn ${hideDone ? "active" : ""}`} onClick={toggleHideDone} aria-label="Hide completed tasks">
+        <button className={`toggle-btn ${hideDone ? "active" : ""}`} onClick={toggleHideDone} aria-label="Hide completed tasks" title="Hide completed tasks">
           <span ref={hideDoneIconRef} className="icon" />
           <span className="led" />
         </button>
         <span className={"spacer"}></span>
-        <button className={`toggle-btn ${viewMode === "today" ? "active" : ""}`} onClick={toggleTodayFocus} aria-label="Today focus">
+        <button className={`toggle-btn ${viewMode === "today" ? "active" : ""}`} onClick={toggleTodayFocus} aria-label="Today focus" title="Today focus">
           <span ref={todayFocusIconRef} className="icon" />
           <span className="led" />
         </button>
-        <button className={`toggle-btn ${viewMode === "future" ? "active" : ""}`} onClick={toggleFutureFocus} aria-label="Future focus">
+        <button className={`toggle-btn ${viewMode === "future" ? "active" : ""}`} onClick={toggleFutureFocus} aria-label="Future focus" title="Future focus">
           <span ref={futureFocusIconRef} className="icon" />
           <span className="led" />
         </button>
         <span className={"spacer"}></span>
-        {onOpenReport && <button ref={reportIconRef} className="settings-btn" onClick={onOpenReport} aria-label="Open report" />}
-        {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh planning board" />}
-        <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Open plugin settings" />
+        {onOpenReport && <button ref={reportIconRef} className="settings-btn" onClick={onOpenReport} aria-label="Open report" title="Open report" />}
+        {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh" title="Refresh" />}
+        <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Settings" title="Settings" />
       </div>
     </div>
   );
