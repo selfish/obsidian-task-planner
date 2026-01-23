@@ -100,7 +100,7 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
 
     const groupIds = ev.dataTransfer.getData(Consts.TodoGroupDragType);
     if (groupIds) {
-      const todoIds = groupIds.split(",");
+      const todoIds = groupIds.split(Consts.TodoIdDelimiter);
 
       if (onBatchTodoDropped) {
         void onBatchTodoDropped(todoIds);

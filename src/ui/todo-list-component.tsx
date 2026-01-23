@@ -124,7 +124,7 @@ export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListC
       }
       return sortedTodoIds.has(getTodoId(todo));
     });
-    const todoIds = visibleIncompleteTodos.map((todo) => getTodoId(todo)).join(",");
+    const todoIds = visibleIncompleteTodos.map((todo) => getTodoId(todo)).join(Consts.TodoIdDelimiter);
     ev.dataTransfer.setData(Consts.TodoGroupDragType, todoIds);
   }
 
