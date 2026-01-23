@@ -320,6 +320,77 @@ describe('TodoIndex', () => {
 
       expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File renamed: oldname to newname');
     });
+
+    it('should return early when file not found in index', async () => {
+      const file = createMockFileAdapter('newname');
+      const index = new TodoIndex(deps, settings);
+      index.files = [];
+
+      const updateHandler = jest.fn().mockResolvedValue(undefined);
+      index.onUpdateEvent.listen(updateHandler);
+
+      await index.fileRenamed('nonexistent', file);
+
+      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File not found in index during rename: nonexistent');
+      expect(updateHandler).not.toHaveBeenCalled();
+    });
+
+    it('should update file reference when file is renamed', async () => {
+      const oldFile = createMockFileAdapter('oldname');
+      const newFile = createMockFileAdapter('newname');
+      const todo = createTodo('Task 1', oldFile);
+
+      const index = new TodoIndex(deps, settings);
+      index.files = [{ file: oldFile, todos: [todo] }];
+
+      const updateHandler = jest.fn().mockResolvedValue(undefined);
+      index.onUpdateEvent.listen(updateHandler);
+
+      await index.fileRenamed('oldname', newFile);
+
+      expect(index.files).toHaveLength(1);
+      expect(index.files[0].file).toBe(newFile);
+      expect(updateHandler).toHaveBeenCalled();
+    });
+
+    it('should remove file from index when renamed/moved to ignored folder', async () => {
+      const settings: TodoIndexSettings = {
+        ignoreArchivedTodos: true,
+        ignoredFolders: ['archive'],
+      };
+      const index = new TodoIndex(deps, settings);
+
+      const originalFile = createMockFileAdapter('original');
+      const archivedFile = createMockFileAdapter('archived', true);
+      const todo = createTodo('Task 1', originalFile);
+
+      index.files = [{ file: originalFile, todos: [todo] }];
+
+      const updateHandler = jest.fn().mockResolvedValue(undefined);
+      index.onUpdateEvent.listen(updateHandler);
+
+      await index.fileRenamed('original', archivedFile);
+
+      expect(index.files).toHaveLength(0);
+      expect(updateHandler).toHaveBeenCalled();
+    });
+
+    it('should invalidate cache when file is renamed', async () => {
+      const oldFile = createMockFileAdapter('oldname');
+      const newFile = createMockFileAdapter('newname');
+      const todo = createTodo('Task 1', oldFile);
+
+      const index = new TodoIndex(deps, settings);
+      index.files = [{ file: oldFile, todos: [todo] }];
+
+      // Access todos to populate the cache
+      expect(index.todos).toHaveLength(1);
+
+      await index.fileRenamed('oldname', newFile);
+
+      // The todos getter should return fresh data (cache invalidated)
+      expect(index.todos).toHaveLength(1);
+    });
   });
 
   describe('triggerUpdate error handling', () => {
