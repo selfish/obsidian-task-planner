@@ -1,8 +1,9 @@
+import { createRoot } from "react-dom/client";
+
 import { App, TFile } from "obsidian";
 
 import * as React from "react";
 
-import { createRoot } from "react-dom/client";
 
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";

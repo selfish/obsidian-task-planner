@@ -164,7 +164,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
         if (file instanceof TFile && file.extension === "md") {
-          this.todoIndex.fileRenamed(oldPath, new ObsidianFile(this.app, file));
+          void this.todoIndex.fileRenamed(oldPath, new ObsidianFile(this.app, file));
         }
       })
     );

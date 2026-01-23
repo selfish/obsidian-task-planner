@@ -53,6 +53,13 @@ export default [
       react: {
         version: "19",
       },
+      // Tell eslint-plugin-import that react/react-dom are resolved via aliasing
+      "import/resolver": {
+        node: {
+          extensions: [".js", ".jsx", ".ts", ".tsx"],
+        },
+      },
+      "import/core-modules": ["react", "react-dom", "react-dom/client", "react/jsx-runtime"],
     },
     rules: {
       ...tseslint.configs.recommended.rules,
@@ -115,10 +122,11 @@ export default [
       "@microsoft/sdl/no-inner-html": "error",
 
       // Import rules
+      // Note: react/react-dom are listed in "import/core-modules" above since they're
+      // aliased to preact/compat at build time via esbuild
       "import/no-extraneous-dependencies": [
         "error",
         {
-          // @codemirror packages are bundled with Obsidian
           devDependencies: false,
           peerDependencies: true,
           optionalDependencies: false,
