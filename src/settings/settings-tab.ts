@@ -20,6 +20,9 @@ const HORIZON_COLORS: { value: HorizonColor; cssVar: string }[] = [
   { value: "error", cssVar: "var(--text-error)" },
 ];
 
+// Track collapsed state for Advanced section across renders
+let advancedSectionCollapsed = true;
+
 export class TaskPlannerSettingsTab extends PluginSettingTab {
   plugin: TaskPlannerPlugin;
 
@@ -28,16 +31,164 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  /**
+   * Creates a subsection with a subtle label - NOT a Setting element
+   */
+  private createSubsection(containerEl: HTMLElement, title: string): HTMLElement {
+    const subsection = containerEl.createDiv({ cls: "th-subsection" });
+    subsection.createDiv({ cls: "th-subsection-label", text: title });
+    return subsection;
+  }
+
+  /**
+   * Creates a collapsible settings section with a header
+   */
+  private createCollapsibleSection(
+    containerEl: HTMLElement,
+    title: string,
+    collapsed: boolean,
+    onToggle: (collapsed: boolean) => void
+  ): HTMLElement {
+    const sectionEl = containerEl.createDiv({ cls: "th-collapsible" });
+
+    // Create header that acts as toggle
+    const headerEl = sectionEl.createDiv({
+      cls: `th-collapsible-header ${collapsed ? "is-collapsed" : ""}`,
+    });
+
+    const chevronEl = headerEl.createSpan({ cls: "th-collapsible-chevron" });
+    setIcon(chevronEl, "chevron-down");
+
+    headerEl.createSpan({ cls: "th-collapsible-title", text: title });
+
+    // Create content container
+    const contentEl = sectionEl.createDiv({
+      cls: `th-collapsible-content ${collapsed ? "is-collapsed" : ""}`,
+    });
+
+    // Toggle handler
+    const toggle = () => {
+      const isCollapsed = headerEl.hasClass("is-collapsed");
+      if (isCollapsed) {
+        headerEl.removeClass("is-collapsed");
+        contentEl.removeClass("is-collapsed");
+      } else {
+        headerEl.addClass("is-collapsed");
+        contentEl.addClass("is-collapsed");
+      }
+      onToggle(!isCollapsed);
+    };
+
+    headerEl.addEventListener("click", toggle);
+    headerEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggle();
+      }
+    });
+
+    return contentEl;
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.addClass("th-settings-tab");
 
-    new Setting(containerEl).setName("Basic horizons").setHeading();
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ESSENTIAL SETTINGS
+    // ═══════════════════════════════════════════════════════════════════════════
+    new Setting(containerEl).setName("Essential").setHeading();
 
-    const basicDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    basicDesc.setText("Choose which special-purpose columns to display in your planning board.");
+    // --- Quick add settings ---
+    const quickAddSection = this.createSubsection(containerEl, "Quick Add");
 
-    new Setting(containerEl)
+    new Setting(quickAddSection)
+      .setName("Destination")
+      .setDesc("Where to save new tasks created from the planning board")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("inbox", "Inbox file");
+        dropdown.addOption("daily", "Daily note");
+        dropdown.setValue(this.plugin.settings.quickAdd.destination);
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.quickAdd.destination = value as "inbox" | "daily";
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+
+    if (this.plugin.settings.quickAdd.destination === "inbox") {
+      new Setting(quickAddSection)
+        .setName("Inbox file")
+        .setDesc("Path to the file where tasks will be saved")
+        .addSearch((search) => {
+          new FileSuggest(search.inputEl, this.app);
+          search.setPlaceholder("Example: inbox.md");
+          search.setValue(this.plugin.settings.quickAdd.inboxFilePath);
+          search.onChange(async (value) => {
+            this.plugin.settings.quickAdd.inboxFilePath = value;
+            await this.plugin.saveSettings();
+          });
+        });
+    }
+
+    // --- Task attributes ---
+    const attributesSection = this.createSubsection(containerEl, "Task Attributes");
+
+    new Setting(attributesSection)
+      .setName("Due date")
+      .setDesc("Attribute name for task due dates")
+      .addText((text) =>
+        text
+          .setPlaceholder("Due")
+          .setValue(this.plugin.settings.dueDateAttribute)
+          .onChange(async (value) => {
+            if (value && !value.contains(" ")) {
+              this.plugin.settings.dueDateAttribute = value;
+              await this.plugin.saveSettings();
+            }
+          })
+      );
+
+    new Setting(attributesSection)
+      .setName("Completed date")
+      .setDesc("Attribute name for task completion dates")
+      .addText((text) =>
+        text
+          .setPlaceholder("Completed")
+          .setValue(this.plugin.settings.completedDateAttribute)
+          .onChange(async (value) => {
+            if (value && !value.contains(" ")) {
+              this.plugin.settings.completedDateAttribute = value;
+              await this.plugin.saveSettings();
+            }
+          })
+      );
+
+    new Setting(attributesSection)
+      .setName("Pinned")
+      .setDesc("Attribute name for pinning tasks to the top")
+      .addText((text) =>
+        text
+          .setPlaceholder("Pinned")
+          .setValue(this.plugin.settings.selectedAttribute)
+          .onChange(async (value) => {
+            if (value && !value.contains(" ")) {
+              this.plugin.settings.selectedAttribute = value;
+              await this.plugin.saveSettings();
+            }
+          })
+      );
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HORIZONS SETTINGS
+    // ═══════════════════════════════════════════════════════════════════════════
+    new Setting(containerEl).setName("Horizons").setHeading();
+
+    // --- Special columns ---
+    const specialSection = this.createSubsection(containerEl, "Special Columns");
+
+    new Setting(specialSection)
       .setName("Backlog")
       .setDesc("Tasks without a due date")
       .addToggle((toggle) =>
@@ -48,9 +199,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl)
+    new Setting(specialSection)
       .setName("Overdue")
-      .setDesc("Tasks past their due date that aren't completed")
+      .setDesc("Tasks past their due date")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.horizonVisibility.showOverdue).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showOverdue = value;
@@ -59,9 +210,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl)
+    new Setting(specialSection)
       .setName("Later")
-      .setDesc("Tasks scheduled beyond your visible time horizons")
+      .setDesc("Tasks beyond visible horizons")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.horizonVisibility.showLater).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showLater = value;
@@ -70,17 +221,15 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl).setName("Near-term planning").setHeading();
-
-    const nearTermDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    nearTermDesc.setText("Individual days give you detailed control over the current week. Choose which days to show as separate columns.");
+    // --- This week ---
+    const thisWeekSection = this.createSubsection(containerEl, "This Week");
 
     // LED-style weekday selector
-    const weekdaySection = containerEl.createDiv({ cls: "th-weekday-selector" });
-    const weekdayLabel = weekdaySection.createDiv({ cls: "th-weekday-label" });
-    weekdayLabel.setText("Visible weekdays");
+    const weekdaySelector = thisWeekSection.createDiv({ cls: "th-weekday-selector" });
+    const weekdayLabel = weekdaySelector.createDiv({ cls: "th-weekday-label" });
+    weekdayLabel.setText("Visible days");
 
-    const weekdayGrid = weekdaySection.createDiv({ cls: "th-weekday-grid" });
+    const weekdayGrid = weekdaySelector.createDiv({ cls: "th-weekday-grid" });
 
     const allWeekdays = [
       { key: "showMonday", label: "Mon", full: "Monday", dayNum: 1 },
@@ -116,7 +265,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       });
     });
 
-    new Setting(containerEl)
+    new Setting(thisWeekSection)
       .setName("Week starts on")
       .setDesc("First day of your work week")
       .addDropdown((dropDown) => {
@@ -133,14 +282,12 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         });
       });
 
-    new Setting(containerEl).setName("Future horizons").setHeading();
+    // --- Future horizons ---
+    const futureSection = this.createSubsection(containerEl, "Future Horizons");
 
-    const futureDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    futureDesc.setText("Weeks and months provide broader planning horizons. Configure how far ahead you want to plan.");
-
-    new Setting(containerEl)
-      .setName("Weeks")
-      .setDesc("Show upcoming weeks as individual columns")
+    new Setting(futureSection)
+      .setName("Weeks ahead")
+      .setDesc("Show upcoming weeks as columns")
       .addDropdown((dropdown) => {
         dropdown.addOption("0", "None");
         dropdown.addOption("1", "1 week");
@@ -155,9 +302,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         });
       });
 
-    new Setting(containerEl)
-      .setName("Months")
-      .setDesc("Show upcoming months for long-term planning")
+    new Setting(futureSection)
+      .setName("Months ahead")
+      .setDesc("Show upcoming months")
       .addDropdown((dropdown) => {
         dropdown.addOption("0", "None");
         dropdown.addOption("1", "1 month");
@@ -171,9 +318,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         });
       });
 
-    new Setting(containerEl)
+    new Setting(futureSection)
       .setName("Quarters")
-      .setDesc("Show remaining quarters of the current year")
+      .setDesc("Show remaining quarters of the year")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.horizonVisibility.showQuarters).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showQuarters = value;
@@ -182,9 +329,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl)
+    new Setting(futureSection)
       .setName("Next year")
-      .setDesc("Show a column for next calendar year")
+      .setDesc("Show a column for next year")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.horizonVisibility.showNextYear).onChange(async (value) => {
           this.plugin.settings.horizonVisibility.showNextYear = value;
@@ -193,34 +340,16 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl).setName("Work limits").setHeading();
+    // --- Custom horizons ---
+    const customSection = this.createSubsection(containerEl, "Custom Horizons");
 
-    const limitsDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    limitsDesc.setText("Set limits to avoid overcommitting and maintain sustainable workload.");
-
-    new Setting(containerEl)
-      .setName("Daily work in progress limit")
-      .setDesc("Maximum tasks in progress per day (0 = unlimited). Columns turn red when exceeded.")
-      .addText((txt) =>
-        txt.setValue(this.plugin.settings.defaultDailyWipLimit.toString()).onChange(async (txtValue) => {
-          const value = Number.parseInt(txtValue);
-          this.plugin.settings.defaultDailyWipLimit = Number.isNaN(value) ? 0 : value;
-          await this.plugin.saveSettings();
-        })
-      );
-
-    new Setting(containerEl).setName("Custom horizons").setHeading();
-
-    const horizonDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    horizonDesc.setText("Create custom date horizons. Optionally stamp a tag when tasks are dropped here.");
-
-    const horizonsContainer = containerEl.createDiv({ cls: "th-horizons-container" });
+    const horizonsContainer = customSection.createDiv({ cls: "th-horizons-container" });
 
     this.plugin.settings.customHorizons.forEach((horizon, index) => {
       this.renderHorizonCard(horizonsContainer, horizon, index);
     });
 
-    new Setting(containerEl).addButton((button) => {
+    new Setting(customSection).addButton((button) => {
       button.setButtonText("Add custom horizon");
       button.setCta();
       button.onClick(async () => {
@@ -240,244 +369,36 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       });
     });
 
-    new Setting(containerEl).setName("Task attributes").setHeading();
-
-    const attributesDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    attributesDesc.setText("Configure how tasks are tagged and tracked in your Markdown files.");
-
-    new Setting(containerEl)
-      .setName("Due date attribute")
-      .setDesc("Attribute name for task due dates (no spaces)")
-      .addText((text) =>
-        text
-          .setPlaceholder("Due")
-          .setValue(this.plugin.settings.dueDateAttribute)
-          .onChange(async (value) => {
-            if (value && !value.contains(" ")) {
-              this.plugin.settings.dueDateAttribute = value;
-              await this.plugin.saveSettings();
-            }
-          })
-      );
-
-    new Setting(containerEl)
-      .setName("Completed date attribute")
-      .setDesc("Attribute name for task completion dates (no spaces)")
-      .addText((text) =>
-        text
-          .setPlaceholder("Completed")
-          .setValue(this.plugin.settings.completedDateAttribute)
-          .onChange(async (value) => {
-            if (value && !value.contains(" ")) {
-              this.plugin.settings.completedDateAttribute = value;
-              await this.plugin.saveSettings();
-            }
-          })
-      );
-
-    new Setting(containerEl)
-      .setName("Pinned attribute")
-      .setDesc("Attribute name for pinning/selecting important tasks (no spaces)")
-      .addText((text) =>
-        text
-          .setPlaceholder("Selected")
-          .setValue(this.plugin.settings.selectedAttribute)
-          .onChange(async (value) => {
-            if (value && !value.contains(" ")) {
-              this.plugin.settings.selectedAttribute = value;
-              await this.plugin.saveSettings();
-            }
-          })
-      );
-
-    new Setting(containerEl)
-      .setName("Auto-convert attributes")
-      .setDesc("Automatically convert shorthand attributes (like @high, @today) to dataview format when leaving a line")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.autoConvertAttributes).onChange(async (value) => {
-          this.plugin.settings.autoConvertAttributes = value;
-          await this.plugin.saveSettings();
-        })
-      );
-
-    new Setting(containerEl).setName("Attribute shorthand").setHeading();
-
-    const shortcutDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    shortcutDesc.setText("Type @today, @high, or custom shorthand to quickly add task attributes. Unrecognized @ patterns are ignored.");
-
-    const atSettings = this.plugin.settings.atShortcutSettings;
-
-    new Setting(containerEl).setName("Enable @ shorthand").addToggle((toggle) =>
-      toggle.setValue(atSettings.enableAtShortcuts).onChange(async (value) => {
-        this.plugin.settings.atShortcutSettings.enableAtShortcuts = value;
-        await this.plugin.saveSettings();
-        this.display();
-      })
-    );
-
-    if (atSettings.enableAtShortcuts) {
-      new Setting(containerEl)
-        .setName("Dates")
-        .setDesc("@today, @tomorrow, @monday, @next week, etc.")
-        .setClass("th-sub-setting")
-        .addToggle((toggle) =>
-          toggle.setValue(atSettings.enableDateShortcuts).onChange(async (value) => {
-            this.plugin.settings.atShortcutSettings.enableDateShortcuts = value;
-            await this.plugin.saveSettings();
-          })
-        );
-
-      new Setting(containerEl)
-        .setName("Priority")
-        .setDesc("@critical, @high, @medium, @low, @lowest")
-        .setClass("th-sub-setting")
-        .addToggle((toggle) =>
-          toggle.setValue(atSettings.enablePriorityShortcuts).onChange(async (value) => {
-            this.plugin.settings.atShortcutSettings.enablePriorityShortcuts = value;
-            await this.plugin.saveSettings();
-          })
-        );
-
-      new Setting(containerEl)
-        .setName("Pinned")
-        .setDesc("@selected for pinning tasks")
-        .setClass("th-sub-setting")
-        .addToggle((toggle) =>
-          toggle.setValue(atSettings.enableBuiltinShortcuts).onChange(async (value) => {
-            this.plugin.settings.atShortcutSettings.enableBuiltinShortcuts = value;
-            await this.plugin.saveSettings();
-          })
-        );
-
-      // Custom shorthand section
-      const customSetting = new Setting(containerEl).setName("Custom").setDesc("Define your own, like @home → [context:: home]").setClass("th-sub-setting");
-
-      customSetting.addButton((button) => {
-        button.setButtonText("Add");
-        button.setCta();
-        button.onClick(async () => {
-          this.plugin.settings.atShortcutSettings.customShortcuts.push({
-            keyword: "",
-            targetAttribute: "",
-            value: true,
-          });
-          await this.plugin.saveSettings();
-          this.display();
-        });
-      });
-
-      if (atSettings.customShortcuts.length > 0) {
-        const shortcutsContainer = containerEl.createDiv({ cls: "th-shortcuts-container" });
-        atSettings.customShortcuts.forEach((shortcut, index) => {
-          this.renderShortcutCard(shortcutsContainer, shortcut, index);
-        });
-      }
-    }
-
-    new Setting(containerEl).setName("Filtering & indexing").setHeading();
-
-    const filteringDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    filteringDesc.setText("Control which folders and files are included when scanning for tasks.");
-
-    let folderSearchInput: SearchComponent | undefined;
-    new Setting(containerEl)
-      .setName("Ignored folders")
-      .setDesc("Folders from which you don't want todos to be indexed")
-      .addSearch((search) => {
-        folderSearchInput = search;
-        new FolderSuggest(search.inputEl, this.app);
-        search.setPlaceholder("Example: archive");
-      })
-      .addButton((button) => {
-        button.setIcon("plus");
-        button.setTooltip("Add folder");
-        button.onClick(async () => {
-          if (folderSearchInput === undefined) return;
-
-          const newFolder = folderSearchInput.getValue();
-          if (!newFolder) return;
-
-          const folder = this.app.vault.getAbstractFileByPath(newFolder);
-          if (folder === null) {
-            this.showError(containerEl, `Folder doesn't exist: ${newFolder}`);
-            return;
-          }
-
-          if (!this.plugin.settings.ignoredFolders.includes(newFolder)) {
-            this.plugin.settings.ignoredFolders.push(newFolder);
-            await this.plugin.saveSettings();
-            folderSearchInput?.setValue("");
-            this.display();
-          }
-        });
-      });
-
-    this.plugin.settings.ignoredFolders.forEach((folder) => {
-      new Setting(containerEl).setName(folder).addButton((button) =>
-        button.setButtonText("Remove").onClick(async () => {
-          this.plugin.settings.ignoredFolders = this.plugin.settings.ignoredFolders.filter((f) => f !== folder);
-          await this.plugin.saveSettings();
-          this.display();
-        })
-      );
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ADVANCED SETTINGS (Collapsible)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const advancedContent = this.createCollapsibleSection(containerEl, "Advanced Settings", advancedSectionCollapsed, (collapsed) => {
+      advancedSectionCollapsed = collapsed;
     });
 
-    new Setting(containerEl)
-      .setName("Ignore archived todos")
-      .setDesc("Skip todos in files within the archive folder")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.ignoreArchivedTodos).onChange(async (value) => {
-          this.plugin.settings.ignoreArchivedTodos = value;
+    // --- Work limits ---
+    const wipSection = this.createSubsection(advancedContent, "Work Limits");
+
+    const wipSetting = new Setting(wipSection)
+      .setName("Daily work-in-progress limit")
+      .setDesc("Maximum tasks in progress per day (0 = unlimited)")
+      .addText((txt) =>
+        txt.setValue(this.plugin.settings.defaultDailyWipLimit.toString()).onChange(async (txtValue) => {
+          const value = Number.parseInt(txtValue);
+          this.plugin.settings.defaultDailyWipLimit = Number.isNaN(value) ? 0 : value;
           await this.plugin.saveSettings();
         })
       );
 
-    new Setting(containerEl)
-      .setName("Fuzzy search")
-      .setDesc("Enable fuzzy matching when searching for tasks (matches partial words and typos)")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.fuzzySearch).onChange(async (value) => {
-          this.plugin.settings.fuzzySearch = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        })
-      );
+    // Add WIP tooltip
+    const wipTooltip = wipSetting.nameEl.createSpan({ cls: "th-tooltip-icon" });
+    wipTooltip.setAttribute("aria-label", "Work-in-progress limits help maintain focus by preventing overcommitment.");
+    setIcon(wipTooltip, "help-circle");
 
-    new Setting(containerEl).setName("Quick add").setHeading();
+    // --- Quick add advanced ---
+    const quickAddAdvanced = this.createSubsection(advancedContent, "Quick Add Options");
 
-    const quickAddDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    quickAddDesc.setText("Quickly add tasks from the planning board header using the + button or keyboard shortcut.");
-
-    new Setting(containerEl)
-      .setName("Destination")
-      .setDesc("Where to save new tasks")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("inbox", "Inbox file");
-        dropdown.addOption("daily", "Daily note");
-        dropdown.setValue(this.plugin.settings.quickAdd.destination);
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.quickAdd.destination = value as "inbox" | "daily";
-          await this.plugin.saveSettings();
-          this.display();
-        });
-      });
-
-    if (this.plugin.settings.quickAdd.destination === "inbox") {
-      new Setting(containerEl)
-        .setName("Inbox file")
-        .setDesc("Path to the file where tasks will be saved")
-        .addSearch((search) => {
-          new FileSuggest(search.inputEl, this.app);
-          search.setPlaceholder("Example: inbox.md");
-          search.setValue(this.plugin.settings.quickAdd.inboxFilePath);
-          search.onChange(async (value) => {
-            this.plugin.settings.quickAdd.inboxFilePath = value;
-            await this.plugin.saveSettings();
-          });
-        });
-    }
-
-    new Setting(containerEl)
+    new Setting(quickAddAdvanced)
       .setName("Placement")
       .setDesc("Where to add new tasks in the file")
       .addDropdown((dropdown) => {
@@ -496,10 +417,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     const usesRegex = this.plugin.settings.quickAdd.placement === "before-regex" || this.plugin.settings.quickAdd.placement === "after-regex";
 
     if (usesRegex) {
-      new Setting(containerEl)
+      new Setting(quickAddAdvanced)
         .setName("Location regex")
-        .setDesc("Regex pattern to find insertion point (frontmatter is excluded from search)")
-        .setClass("th-sub-setting")
+        .setDesc("Regex pattern to find insertion point")
         .addText((text) =>
           text
             .setPlaceholder("^## .*")
@@ -512,9 +432,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     }
 
     if (this.plugin.settings.quickAdd.destination === "daily") {
-      new Setting(containerEl)
+      new Setting(quickAddAdvanced)
         .setName("Templater delay")
-        .setDesc("Wait time for templater to process new daily notes (ms)")
+        .setDesc("Wait time for templater (ms)")
         .addText((text) =>
           text.setValue(this.plugin.settings.quickAdd.templaterDelay.toString()).onChange(async (value) => {
             const numValue = parseInt(value);
@@ -526,9 +446,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         );
     }
 
-    new Setting(containerEl)
+    new Setting(quickAddAdvanced)
       .setName("Task pattern")
-      .setDesc("Template for the task. Use {task}, {time}, {date}, {datetime}, and \\n for newlines")
+      .setDesc("Template for new tasks. Use {task}, {time}, {date}")
       .addText((text) =>
         text
           .setPlaceholder("- [ ] {task}")
@@ -539,14 +459,163 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           })
       );
 
-    new Setting(containerEl).setName("Follow-up tasks").setHeading();
+    // --- Attribute shorthand ---
+    const shorthandSection = this.createSubsection(advancedContent, "@ Shortcuts");
 
-    const followUpDesc = containerEl.createDiv({ cls: "setting-item-description th-settings-desc" });
-    followUpDesc.setText("Create follow-up tasks from existing tasks via right-click menu.");
+    const atSettings = this.plugin.settings.atShortcutSettings;
 
-    new Setting(containerEl)
+    new Setting(shorthandSection)
+      .setName("Enable @-shortcuts")
+      .setDesc("Converts shortcuts like @today to attributes")
+      .addToggle((toggle) =>
+        toggle.setValue(atSettings.enableAtShortcuts).onChange(async (value) => {
+          this.plugin.settings.atShortcutSettings.enableAtShortcuts = value;
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+
+    if (atSettings.enableAtShortcuts) {
+      new Setting(shorthandSection)
+        .setName("Auto-convert")
+        .setDesc("Convert when leaving a line")
+        .addToggle((toggle) =>
+          toggle.setValue(this.plugin.settings.autoConvertAttributes).onChange(async (value) => {
+            this.plugin.settings.autoConvertAttributes = value;
+            await this.plugin.saveSettings();
+          })
+        );
+
+      new Setting(shorthandSection)
+        .setName("Date shortcuts")
+        .setDesc("@today, @tomorrow, @monday, etc.")
+        .addToggle((toggle) =>
+          toggle.setValue(atSettings.enableDateShortcuts).onChange(async (value) => {
+            this.plugin.settings.atShortcutSettings.enableDateShortcuts = value;
+            await this.plugin.saveSettings();
+          })
+        );
+
+      new Setting(shorthandSection)
+        .setName("Priority shortcuts")
+        .setDesc("@critical, @high, @medium, @low")
+        .addToggle((toggle) =>
+          toggle.setValue(atSettings.enablePriorityShortcuts).onChange(async (value) => {
+            this.plugin.settings.atShortcutSettings.enablePriorityShortcuts = value;
+            await this.plugin.saveSettings();
+          })
+        );
+
+      new Setting(shorthandSection)
+        .setName("Pinned shortcut")
+        .setDesc("@pinned to pin tasks")
+        .addToggle((toggle) =>
+          toggle.setValue(atSettings.enableBuiltinShortcuts).onChange(async (value) => {
+            this.plugin.settings.atShortcutSettings.enableBuiltinShortcuts = value;
+            await this.plugin.saveSettings();
+          })
+        );
+
+      // Custom shortcuts
+      const customShortcutSetting = new Setting(shorthandSection).setName("Custom shortcuts").setDesc("Define your own @shortcuts");
+
+      customShortcutSetting.addButton((button) => {
+        button.setButtonText("Add");
+        button.setCta();
+        button.onClick(async () => {
+          this.plugin.settings.atShortcutSettings.customShortcuts.push({
+            keyword: "",
+            targetAttribute: "",
+            value: true,
+          });
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+
+      if (atSettings.customShortcuts.length > 0) {
+        const shortcutsContainer = shorthandSection.createDiv({ cls: "th-shortcuts-container" });
+        atSettings.customShortcuts.forEach((shortcut, index) => {
+          this.renderShortcutCard(shortcutsContainer, shortcut, index);
+        });
+      }
+    }
+
+    // --- Filtering & indexing ---
+    const indexingSection = this.createSubsection(advancedContent, "Indexing");
+
+    let folderSearchInput: SearchComponent | undefined;
+    new Setting(indexingSection)
+      .setName("Ignored folders")
+      .setDesc("Folders to exclude from indexing")
+      .addSearch((search) => {
+        folderSearchInput = search;
+        new FolderSuggest(search.inputEl, this.app);
+        search.setPlaceholder("Example: archive");
+      })
+      .addButton((button) => {
+        button.setIcon("plus");
+        button.setTooltip("Add folder");
+        button.onClick(async () => {
+          if (folderSearchInput === undefined) return;
+
+          const newFolder = folderSearchInput.getValue();
+          if (!newFolder) return;
+
+          const folder = this.app.vault.getAbstractFileByPath(newFolder);
+          if (folder === null) {
+            this.showError(indexingSection, `Folder doesn't exist: ${newFolder}`);
+            return;
+          }
+
+          if (!this.plugin.settings.ignoredFolders.includes(newFolder)) {
+            this.plugin.settings.ignoredFolders.push(newFolder);
+            await this.plugin.saveSettings();
+            folderSearchInput?.setValue("");
+            this.display();
+          }
+        });
+      });
+
+    this.plugin.settings.ignoredFolders.forEach((folder) => {
+      new Setting(indexingSection)
+        .setName(folder)
+        .addButton((button) =>
+          button.setButtonText("Remove").onClick(async () => {
+            this.plugin.settings.ignoredFolders = this.plugin.settings.ignoredFolders.filter((f) => f !== folder);
+            await this.plugin.saveSettings();
+            this.display();
+          })
+        );
+    });
+
+    new Setting(indexingSection)
+      .setName("Ignore archived")
+      .setDesc("Skip todos in archive folder")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.ignoreArchivedTodos).onChange(async (value) => {
+          this.plugin.settings.ignoreArchivedTodos = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(indexingSection)
+      .setName("Fuzzy search")
+      .setDesc("Match partial words and typos")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.fuzzySearch).onChange(async (value) => {
+          this.plugin.settings.fuzzySearch = value;
+          await this.plugin.saveSettings();
+          this.plugin.refreshPlanningViews();
+        })
+      );
+
+    // --- Follow-up tasks ---
+    const followUpSection = this.createSubsection(advancedContent, "Follow-up Tasks");
+
+    new Setting(followUpSection)
       .setName("Text prefix")
-      .setDesc("Prefix added to follow-up task text. A space is added automatically if needed.")
+      .setDesc("Prefix for follow-up tasks")
       .addText((text) =>
         text
           .setPlaceholder("Follow up: ")
@@ -557,9 +626,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           })
       );
 
-    new Setting(containerEl)
+    new Setting(followUpSection)
       .setName("Copy tags")
-      .setDesc("Include tags from the original task")
+      .setDesc("Include tags from original task")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.followUp.copyTags).onChange(async (value) => {
           this.plugin.settings.followUp.copyTags = value;
@@ -567,9 +636,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl)
+    new Setting(followUpSection)
       .setName("Copy priority")
-      .setDesc("Include priority from the original task")
+      .setDesc("Include priority from original task")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.followUp.copyPriority).onChange(async (value) => {
           this.plugin.settings.followUp.copyPriority = value;
