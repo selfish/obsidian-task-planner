@@ -44,10 +44,7 @@ export class FollowUpCreator<T> {
     return text;
   }
 
-  private buildFollowUpAttributes(
-    todo: TodoItem<T>,
-    dueDate: string | null
-  ): Record<string, string | boolean> {
+  private buildFollowUpAttributes(todo: TodoItem<T>, dueDate: string | null): Record<string, string | boolean> {
     const attributes: Record<string, string | boolean> = {};
 
     // Set due date if provided
@@ -70,11 +67,7 @@ export class FollowUpCreator<T> {
     return [...todo.tags];
   }
 
-  formatTaskLine(
-    text: string,
-    attributes: Record<string, string | boolean>,
-    tags: string[]
-  ): string {
+  formatTaskLine(text: string, attributes: Record<string, string | boolean>, tags: string[]): string {
     let line = `- [ ] ${text}`;
 
     // Add tags

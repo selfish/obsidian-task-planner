@@ -191,7 +191,7 @@ describe("QuickAddModal", () => {
       modal.onOpen();
 
       const editor = modal.contentEl.querySelector(".quick-add-editor") as HTMLElement;
-      expect(editor?.getAttribute("data-placeholder")).toBe("Enter task... (use [[ for links)");
+      expect(editor?.getAttribute("data-placeholder")).toBe("Add task... (use [[ for links, @today, @tomorrow, @week)");
     });
 
     it("should create cancel and submit buttons", () => {

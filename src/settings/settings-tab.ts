@@ -307,15 +307,13 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     const atSettings = this.plugin.settings.atShortcutSettings;
 
-    new Setting(containerEl)
-      .setName("Enable @ shorthand")
-      .addToggle((toggle) =>
-        toggle.setValue(atSettings.enableAtShortcuts).onChange(async (value) => {
-          this.plugin.settings.atShortcutSettings.enableAtShortcuts = value;
-          await this.plugin.saveSettings();
-          this.display();
-        })
-      );
+    new Setting(containerEl).setName("Enable @ shorthand").addToggle((toggle) =>
+      toggle.setValue(atSettings.enableAtShortcuts).onChange(async (value) => {
+        this.plugin.settings.atShortcutSettings.enableAtShortcuts = value;
+        await this.plugin.saveSettings();
+        this.display();
+      })
+    );
 
     if (atSettings.enableAtShortcuts) {
       new Setting(containerEl)
@@ -352,10 +350,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         );
 
       // Custom shorthand section
-      const customSetting = new Setting(containerEl)
-        .setName("Custom")
-        .setDesc("Define your own, like @home → [context:: home]")
-        .setClass("th-sub-setting");
+      const customSetting = new Setting(containerEl).setName("Custom").setDesc("Define your own, like @home → [context:: home]").setClass("th-sub-setting");
 
       customSetting.addButton((button) => {
         button.setButtonText("Add");

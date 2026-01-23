@@ -159,6 +159,94 @@ describe('FileTodoParser', () => {
         expect(error).toHaveProperty('context.originalError', 'String error message');
       }
     });
+
+    it('should ignore tasks inside fenced code blocks', async () => {
+      const content = [
+        '- [ ] Real task before code',
+        '```',
+        '- [ ] Fake task inside code block',
+        '- [x] Another fake task',
+        '```',
+        '- [ ] Real task after code',
+      ].join('\n');
+      const file = createMockFileAdapter(content);
+
+      const todos = await parser.parseMdFile(file);
+
+      expect(todos).toHaveLength(2);
+      expect(todos[0].text).toBe('Real task before code');
+      expect(todos[1].text).toBe('Real task after code');
+    });
+
+    it('should ignore tasks inside code blocks with language specifier', async () => {
+      const content = [
+        '- [ ] Real task',
+        '```markdown',
+        '- [ ] Example task in docs',
+        '```',
+        '- [ ] Another real task',
+      ].join('\n');
+      const file = createMockFileAdapter(content);
+
+      const todos = await parser.parseMdFile(file);
+
+      expect(todos).toHaveLength(2);
+      expect(todos[0].text).toBe('Real task');
+      expect(todos[1].text).toBe('Another real task');
+    });
+
+    it('should handle multiple code blocks', async () => {
+      const content = [
+        '- [ ] Task 1',
+        '```',
+        '- [ ] Code task 1',
+        '```',
+        '- [ ] Task 2',
+        '```js',
+        '- [ ] Code task 2',
+        '```',
+        '- [ ] Task 3',
+      ].join('\n');
+      const file = createMockFileAdapter(content);
+
+      const todos = await parser.parseMdFile(file);
+
+      expect(todos).toHaveLength(3);
+      expect(todos[0].text).toBe('Task 1');
+      expect(todos[1].text).toBe('Task 2');
+      expect(todos[2].text).toBe('Task 3');
+    });
+
+    it('should handle indented code blocks', async () => {
+      const content = [
+        '- [ ] Real task',
+        '  ```',
+        '  - [ ] Indented code task',
+        '  ```',
+        '- [ ] Another real task',
+      ].join('\n');
+      const file = createMockFileAdapter(content);
+
+      const todos = await parser.parseMdFile(file);
+
+      expect(todos).toHaveLength(2);
+      expect(todos[0].text).toBe('Real task');
+      expect(todos[1].text).toBe('Another real task');
+    });
+
+    it('should handle unclosed code block at end of file', async () => {
+      const content = [
+        '- [ ] Real task',
+        '```',
+        '- [ ] Task inside unclosed block',
+      ].join('\n');
+      const file = createMockFileAdapter(content);
+
+      const todos = await parser.parseMdFile(file);
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Real task');
+    });
   });
 
   describe('subtask tree structure', () => {

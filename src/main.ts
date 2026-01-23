@@ -21,6 +21,7 @@ import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice } from "./lib";
 import { DEFAULT_SETTINGS, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
 import { Logger } from "./types";
+import { OnboardingModal } from "./ui/onboarding-modal";
 import { QuickAddModal } from "./ui/quick-add-modal";
 import { PlanningView, TodoListView, TodoReportView } from "./views";
 
@@ -77,6 +78,11 @@ export default class TaskPlannerPlugin extends Plugin {
 
     this.app.workspace.onLayoutReady(async () => {
       this.loadFiles();
+
+      // Show onboarding modal for first-time users
+      if (!this.settings.hasSeenOnboarding) {
+        this.showOnboardingModal();
+      }
 
       if (this.app.workspace.getLeavesOfType(TodoListView.viewType).length) {
         return;
@@ -209,6 +215,19 @@ export default class TaskPlannerPlugin extends Plugin {
     const modal = new QuickAddModal(this.app, this.settings);
     modal.setOnTaskCreated(() => {
       this.refreshPlanningViews();
+    });
+    modal.open();
+  }
+
+  private showOnboardingModal(): void {
+    const modal = new OnboardingModal(this.app, this.settings, (addedExamples: boolean) => {
+      this.settings.hasSeenOnboarding = true;
+      void this.saveSettings().then(() => {
+        if (addedExamples) {
+          // Refresh planning views to show the newly added example tasks
+          this.refreshPlanningViews();
+        }
+      });
     });
     modal.open();
   }

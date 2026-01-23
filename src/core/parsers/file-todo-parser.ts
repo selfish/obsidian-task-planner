@@ -59,6 +59,10 @@ export class FileTodoParser<TFile> {
     }
   }
 
+  private isCodeBlockFence(line: string): boolean {
+    return /^\s*```/.test(line);
+  }
+
   async parseMdFile(file: FileAdapter<TFile>): Promise<TodoItem<TFile>[]> {
     let content: string;
     try {
@@ -68,7 +72,27 @@ export class FileTodoParser<TFile> {
     }
 
     const lines = content.split("\n");
-    const parsingResults = lines.map((line, number) => this.statusOperations.toTodo<TFile>(line, number));
+
+    // Track code block state to skip tasks inside fenced code blocks
+    let insideCodeBlock = false;
+
+    const parsingResults = lines.map((line, number) => {
+      // Check for code block fence (``` with optional language specifier)
+      if (this.isCodeBlockFence(line)) {
+        insideCodeBlock = !insideCodeBlock;
+      }
+
+      // Skip parsing tasks inside code blocks
+      if (insideCodeBlock && !this.isCodeBlockFence(line)) {
+        return {
+          lineNumber: number,
+          isTodo: false,
+          indentLevel: 0,
+        };
+      }
+
+      return this.statusOperations.toTodo<TFile>(line, number);
+    });
 
     const todoParsingResults = parsingResults.filter((result) => result.isTodo);
     this.createTodoTreeStructure(lines, todoParsingResults);

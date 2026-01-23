@@ -33,9 +33,7 @@ export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
     if (linkQuery.includes("]]")) return [];
 
     const files = this.app.vault.getMarkdownFiles();
-    return files
-      .filter((file) => file.basename.toLowerCase().includes(linkQuery) || file.path.toLowerCase().includes(linkQuery))
-      .slice(0, 20);
+    return files.filter((file) => file.basename.toLowerCase().includes(linkQuery) || file.path.toLowerCase().includes(linkQuery)).slice(0, 20);
   }
 
   renderSuggestion(file: TFile, el: HTMLElement): void {

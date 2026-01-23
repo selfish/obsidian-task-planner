@@ -33,7 +33,7 @@ export class QuickAddModal extends Modal {
       cls: "quick-add-editor",
       attr: {
         contenteditable: "true",
-        "data-placeholder": "Enter task... (use [[ for links)",
+        "data-placeholder": "Add task... (use [[ for links, @today, @tomorrow, @week)",
       },
     });
 
@@ -52,8 +52,7 @@ export class QuickAddModal extends Modal {
     const footer = contentEl.createDiv({ cls: "quick-add-footer" });
 
     const hint = footer.createDiv({ cls: "quick-add-hint" });
-    const destination =
-      this.settings.quickAdd.destination === "daily" ? "daily note" : this.settings.quickAdd.inboxFilePath;
+    const destination = this.settings.quickAdd.destination === "daily" ? "daily note" : this.settings.quickAdd.inboxFilePath;
     hint.setText(`Saving to ${destination}`);
 
     const buttonContainer = footer.createDiv({ cls: "quick-add-buttons" });

@@ -117,11 +117,12 @@ export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListC
   const groupedTodos = React.useMemo(() => groupTodosByFile(sortedTodos), [sortedTodos]);
 
   function onGroupDragStart(ev: React.DragEvent, fileTodos: TodoItem<TFile>[]): void {
+    const sortedTodoIds = new Set(sortedTodos.map(getTodoId));
     const visibleIncompleteTodos = fileTodos.filter((todo) => {
       if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
         return false;
       }
-      return sortedTodos.includes(todo);
+      return sortedTodoIds.has(getTodoId(todo));
     });
     const todoIds = visibleIncompleteTodos.map((todo) => getTodoId(todo)).join(",");
     ev.dataTransfer.setData(Consts.TodoGroupDragType, todoIds);

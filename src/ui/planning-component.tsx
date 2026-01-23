@@ -4,10 +4,9 @@ import { App, TFile } from "obsidian";
 
 import * as React from "react";
 
-
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
-import { PlanningTodoColumn } from "./planning-todo-column";
+import { PlanningTodoColumn, ColumnType } from "./planning-todo-column";
 import { TodoIndex } from "../core/index/todo-index";
 import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { FileOperations } from "../core/operations/file-operations";
@@ -202,7 +201,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return todos.filter((todo) => status.includes(todo.status));
   }
 
-  function todoColumn(icon: string, title: string, todos: TodoItem<TFile>[], hideIfEmpty = hideEmpty, onTodoDropped: ((todoId: string) => void) | null = null, onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null, substyle?: string, customColor?: string) {
+  function todoColumn(icon: string, title: string, todos: TodoItem<TFile>[], hideIfEmpty = hideEmpty, onTodoDropped: ((todoId: string) => void) | null = null, onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null, substyle?: string, customColor?: string, columnType?: ColumnType) {
     return (
       <PlanningTodoColumn
         hideIfEmpty={hideIfEmpty}
@@ -219,6 +218,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         }}
         substyle={substyle}
         customColor={customColor as Parameters<typeof PlanningTodoColumn>[0]["customColor"]}
+        columnType={columnType}
       />
     );
   }
@@ -228,7 +228,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     const tomorrow = today.clone().add(1, "day");
     const columnCount = hideDone ? 2 : 3;
 
-    yield todoColumn("circle", "Todo", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Todo]), false, moveToDateAndStatus(today, TodoStatus.Todo), batchMoveToDateAndStatus(today, TodoStatus.Todo), `today cols-${columnCount}`);
+    yield todoColumn("circle", "Todo", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Todo]), false, moveToDateAndStatus(today, TodoStatus.Todo), batchMoveToDateAndStatus(today, TodoStatus.Todo), `today cols-${columnCount}`, undefined, "today-todo");
 
     yield todoColumn(
       "clock",
@@ -237,11 +237,23 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       false,
       moveToDateAndStatus(today, TodoStatus.InProgress),
       batchMoveToDateAndStatus(today, TodoStatus.InProgress),
-      `today cols-${columnCount}`
+      `today cols-${columnCount}`,
+      undefined,
+      "today-in-progress"
     );
 
     if (!hideDone) {
-      yield todoColumn("check-circle", "Done", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Canceled, TodoStatus.Complete]), false, moveToDateAndStatus(today, TodoStatus.Complete), batchMoveToDateAndStatus(today, TodoStatus.Complete), `today cols-${columnCount} done`);
+      yield todoColumn(
+        "check-circle",
+        "Done",
+        getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Canceled, TodoStatus.Complete]),
+        false,
+        moveToDateAndStatus(today, TodoStatus.Complete),
+        batchMoveToDateAndStatus(today, TodoStatus.Complete),
+        `today cols-${columnCount} done`,
+        undefined,
+        "today-done"
+      );
     }
   }
 
@@ -355,16 +367,16 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const horizonDate = moment(horizon.date);
         const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
         const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
-        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color, "future");
       }
     }
 
     if (horizonVisibility.showBacklog) {
-      yield todoColumn("inbox", "Backlog", getTodosWithNoDate(), false, removeDate(), batchRemoveDate(), "backlog");
+      yield todoColumn("inbox", "Backlog", getTodosWithNoDate(), false, removeDate(), batchRemoveDate(), "backlog", undefined, "backlog");
     }
 
     if (horizonVisibility.showOverdue || horizonVisibility.showPast) {
-      yield todoColumn("alert-triangle", "Overdue", getOverdueTodos(), true, null, null, "overdue");
+      yield todoColumn("alert-triangle", "Overdue", getOverdueTodos(), true, null, null, "overdue", undefined, "overdue");
     }
 
     if (viewMode === "future") {
@@ -374,7 +386,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const dueDate = findTodoDate(todo, settings.dueDateAttribute);
         return dueDate && dueDate.isSameOrAfter(today) && dueDate.isBefore(tomorrow);
       });
-      yield todoColumn("sunrise", "Today", todayTodos, false, moveToDate(today), batchMoveToDate(today), "today-horizon");
+      yield todoColumn("sunrise", "Today", todayTodos, false, moveToDate(today), batchMoveToDate(today), "today-horizon", undefined, "future");
     }
 
     if (customHorizons) {
@@ -382,7 +394,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const horizonDate = moment(horizon.date);
         const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
         const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
-        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color, "future");
       }
     }
 
@@ -413,7 +425,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const style = getWipStyle(todos);
         const label = isFirstDay ? "Tomorrow" : currentDate.format("dddd DD/MM");
 
-        yield todoColumn(isFirstDay ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style);
+        yield todoColumn(isFirstDay ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future");
 
         isFirstDay = false;
       }
@@ -431,7 +443,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const label = `Week +${i} (${weekStart.format("DD/MM")} - ${weekEnd.clone().subtract(1, "days").format("DD/MM")})`;
           const todos = getTodosByDate(weekStart, weekEnd);
           const style = getWipStyle(todos);
-          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style);
+          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style, undefined, "future");
         }
         weekStart = weekEnd;
       }
@@ -453,7 +465,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const label = `Month +${i} (${monthStart.format("MMM DD")} - ${monthEnd.clone().subtract(1, "days").format("MMM DD")})`;
           const todos = getTodosByDate(monthStart, monthEnd);
           const style = getWipStyle(todos);
-          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style);
+          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style, undefined, "future");
         }
         monthStart = monthEnd;
       }
@@ -476,7 +488,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const label = `Q${quarterNum} ${quarterStart.year()} (${quarterStart.format("MMM DD")} - ${quarterEnd.clone().subtract(1, "days").format("MMM DD")})`;
           const todos = getTodosByDate(quarterStart, quarterEnd);
           const style = getWipStyle(todos);
-          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(quarterStart), batchMoveToDate(quarterStart), style);
+          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(quarterStart), batchMoveToDate(quarterStart), style, undefined, "future");
         }
         quarterStart = quarterEnd;
       }
@@ -488,12 +500,12 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const nextYearEnd = nextYearStart.clone().add(1, "years");
       const label = `${nextYearStart.year()}`;
       const todos = getTodosByDate(nextYearStart, nextYearEnd);
-      yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextYearStart), batchMoveToDate(nextYearStart));
+      yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextYearStart), batchMoveToDate(nextYearStart), undefined, undefined, "future");
       currentDate = nextYearEnd;
     }
 
     if (horizonVisibility.showLater) {
-      yield todoColumn("calendar-plus", "Later", getTodosByDate(currentDate, null), hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate));
+      yield todoColumn("calendar-plus", "Later", getTodosByDate(currentDate, null), hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), undefined, undefined, "future");
     }
 
     if (customHorizons) {
@@ -501,7 +513,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const horizonDate = moment(horizon.date);
         const onDrop = horizon.tag ? moveToDateAndTag(horizonDate, horizon.tag) : moveToDate(horizonDate);
         const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
-        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color);
+        yield todoColumn("calendar-days", horizon.label, getCustomDateHorizonTodos(horizon.date), hideEmpty, onDrop, onBatchDrop, undefined, horizon.color, "future");
       }
     }
   }
