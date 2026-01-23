@@ -1,22 +1,160 @@
-// Settings tab styles (outside main .task-planner wrapper)
+// Settings tab styles
 
 // Utility class for hiding elements
 .th-hidden {
   display: none !important;
 }
 
-.th-settings-desc {
-  margin-bottom: var(--size-4-4);
+// Settings tab container
+.th-settings-tab {
+  // Remove default top padding on first heading
+  > .setting-item:first-child {
+    padding-top: 0;
+  }
 }
 
-// LED-style weekday selector
+// ============================================================================
+// SUBSECTIONS - Groups of related settings with a subtle label
+// ============================================================================
+.th-subsection {
+  margin-top: var(--size-4-4);
+  margin-bottom: var(--size-4-2);
+  padding: var(--size-4-3);
+  background: var(--background-secondary);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--background-modifier-border);
+
+  // First setting inside subsection has no top border
+  .setting-item:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+.th-subsection-label {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--size-4-3);
+  padding-bottom: var(--size-4-2);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+// ============================================================================
+// COLLAPSIBLE SECTIONS - For Advanced settings
+// ============================================================================
+.th-collapsible {
+  margin-top: var(--size-4-6);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+}
+
+.th-collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-3) var(--size-4-4);
+  background: var(--background-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--background-modifier-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: -2px;
+  }
+
+  &.is-collapsed {
+    .th-collapsible-chevron {
+      transform: rotate(-90deg);
+    }
+  }
+}
+
+.th-collapsible-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.th-collapsible-title {
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.th-collapsible-content {
+  padding: var(--size-4-4);
+  border-top: 1px solid var(--background-modifier-border);
+
+  &.is-collapsed {
+    display: none;
+  }
+
+  // Remove background from subsections inside collapsible
+  .th-subsection {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-top: var(--size-4-4);
+    margin-bottom: 0;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  .th-subsection-label {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: var(--size-4-2);
+  }
+}
+
+// ============================================================================
+// TOOLTIP ICONS
+// ============================================================================
+.th-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--size-4-1);
+  color: var(--text-faint);
+  cursor: help;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    color: var(--text-muted);
+  }
+}
+
+// ============================================================================
+// WEEKDAY SELECTOR
+// ============================================================================
 .th-weekday-selector {
-  margin: var(--size-4-4) 0 var(--size-4-6) 0;
+  margin: var(--size-4-2) 0 var(--size-4-3) 0;
 }
 
 .th-weekday-label {
-  font-size: var(--font-ui-small);
-  font-weight: 500;
+  font-size: var(--font-ui-smaller);
   color: var(--text-muted);
   margin-bottom: var(--size-4-2);
 }
@@ -27,19 +165,18 @@
   flex-wrap: wrap;
 }
 
-// Weekday buttons use the same LED toggle pattern as planning view controls
 .th-weekday-btn {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
+  min-width: 40px;
+  height: 40px;
   padding: 0;
   border: none;
   border-radius: var(--radius-s);
-  background: transparent;
+  background: var(--background-primary);
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -55,10 +192,9 @@
     line-height: 1;
   }
 
-  // LED indicator - matches .toggle-btn .led in _header.scss
   &-led {
     position: absolute;
-    bottom: 2px;
+    bottom: 4px;
     left: 50%;
     transform: translateX(-50%);
     width: 12px;
@@ -78,12 +214,14 @@
   }
 }
 
-// Horizon cards
+// ============================================================================
+// CUSTOM HORIZON CARDS
+// ============================================================================
 .th-horizons-container {
   display: flex;
   flex-direction: column;
   gap: var(--size-4-3);
-  margin-bottom: var(--size-4-4);
+  margin-bottom: var(--size-4-3);
 }
 
 .th-horizon-card {
@@ -91,7 +229,7 @@
   flex-direction: column;
   gap: var(--size-4-2);
   padding: var(--size-4-3);
-  background: var(--background-secondary);
+  background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
 }
@@ -102,9 +240,8 @@
   gap: var(--size-4-2);
 
   &--details {
-    padding-left: 32px; // Align with label (color picker width + gap)
+    padding-left: 32px;
 
-    // Ensure consistent height for all inputs in the details row
     > input,
     > select,
     > .th-horizon-tag-wrapper {
@@ -128,7 +265,6 @@
   &:focus {
     outline: none;
     border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
   }
 }
 
@@ -139,7 +275,6 @@
   border: none;
   border-radius: var(--radius-s);
   cursor: pointer;
-  transition: all 0.15s ease;
 
   &:hover {
     color: var(--text-error);
@@ -163,7 +298,6 @@
   &:focus {
     outline: none;
     border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
     color: var(--text-normal);
   }
 }
@@ -177,7 +311,7 @@
   overflow: hidden;
 
   &:focus-within {
-    box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+    border-color: var(--interactive-accent);
   }
 }
 
@@ -204,28 +338,25 @@
     border: none !important;
     color: var(--text-normal);
   }
-
-  &::placeholder {
-    color: var(--text-faint);
-  }
 }
 
 .th-horizon-position {
   font-size: var(--font-ui-small);
 }
 
-// Custom shortcuts cards
+// ============================================================================
+// CUSTOM SHORTCUT CARDS
+// ============================================================================
 .th-shortcuts-container {
   display: flex;
   flex-direction: column;
   gap: var(--size-4-2);
-  margin-bottom: var(--size-4-3);
-  margin-left: var(--size-4-6); // Indent under @ shortcuts section
+  margin-top: var(--size-4-2);
 }
 
 .th-shortcut-card {
   padding: var(--size-4-2) var(--size-4-3);
-  background: var(--background-secondary);
+  background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
 }
@@ -258,10 +389,6 @@
     outline: none;
     border-color: var(--interactive-accent);
   }
-
-  &::placeholder {
-    color: var(--text-faint);
-  }
 }
 
 .th-shortcut-arrow {
@@ -281,10 +408,6 @@
   &:focus {
     outline: none;
     border-color: var(--interactive-accent);
-  }
-
-  &::placeholder {
-    color: var(--text-faint);
   }
 }
 
@@ -306,10 +429,6 @@
     outline: none;
     border-color: var(--interactive-accent);
   }
-
-  &::placeholder {
-    color: var(--text-faint);
-  }
 }
 
 .th-shortcut-delete {
@@ -327,7 +446,9 @@
   }
 }
 
-// Color picker for custom horizons
+// ============================================================================
+// COLOR PICKER
+// ============================================================================
 .th-color-picker {
   position: relative;
   display: inline-flex;
@@ -387,7 +508,6 @@
   width: max-content;
   max-width: 142px;
 
-  // Invisible bridge to prevent hover gap
   &::before {
     content: "";
     position: absolute;
@@ -397,7 +517,6 @@
     height: 8px;
   }
 
-  // Show on hover
   .th-color-picker:hover &,
   .th-color-picker:focus-within & {
     display: flex;
@@ -457,84 +576,11 @@
   }
 }
 
-.task-planner {
-  .weekday-selector {
-    margin: var(--size-4-4) 0 var(--size-4-6) 0;
-
-    .label {
-      font-size: var(--font-ui-small);
-      font-weight: 500;
-      color: var(--text-muted);
-      margin-bottom: var(--size-4-2);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: var(--size-4-1);
-      max-width: 400px;
-    }
-
-    .day {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--size-4-2) var(--size-4-1);
-      background: var(--background-primary);
-      border: 1.5px solid var(--background-modifier-border);
-      border-radius: var(--radius-s);
-      font-size: var(--font-ui-smaller);
-      font-weight: 500;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.15s ease;
-      user-select: none;
-      min-height: 32px;
-
-      &:hover {
-        background: var(--background-modifier-hover);
-        border-color: var(--background-modifier-border-hover);
-        color: var(--text-normal);
-      }
-
-      &.active {
-        background: var(--interactive-accent);
-        border-color: var(--interactive-accent);
-        color: var(--text-on-accent);
-        font-weight: 600;
-
-        &:hover {
-          background: var(--interactive-accent-hover);
-          border-color: var(--interactive-accent-hover);
-        }
-      }
-    }
-  }
-
-  .horizon-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: var(--space-md);
-    margin: var(--space-lg) 0;
-
-    .checkbox {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      font-size: var(--font-sm);
-
-      input[type="checkbox"] {
-        margin: 0;
-      }
-    }
-  }
-
-  .horizon-input {
-    margin: var(--space-md) 0;
-  }
-
-  .horizon-count {
-    font-weight: 600;
-    color: var(--text-accent);
-  }
+// ============================================================================
+// ERROR MESSAGE
+// ============================================================================
+.th-error {
+  color: var(--text-error);
+  font-size: var(--font-ui-small);
+  margin-left: var(--size-4-2);
 }
