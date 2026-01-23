@@ -151,6 +151,7 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
       <div className="header">
         <span ref={setIconRef} className="icon"></span>
         <span className="title">{title}</span>
+        {todos.length > 0 && <span className="count">({todos.length})</span>}
       </div>
       <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
         {todos.length === 0 ? (
