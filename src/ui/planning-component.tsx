@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 
-import { App, TFile } from "obsidian";
+import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
@@ -595,7 +595,15 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       {viewMode !== "future" && (
         <div className="today-section">
           <div className="header">
-            <span className="icon">☀️</span>
+            <span
+              className="icon"
+              ref={(node) => {
+                if (node) {
+                  node.replaceChildren();
+                  setIcon(node, "sun");
+                }
+              }}
+            />
             <span>Today</span>
           </div>
           <div className="columns">{Array.from(getTodayColumns())}</div>
