@@ -16,6 +16,12 @@
       box-shadow: var(--shadow-sm);
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--interactive-accent);
+      outline-offset: 1px;
+      background: var(--background-modifier-hover);
+    }
+
     &:last-child {
       margin-bottom: 0;
     }
@@ -201,6 +207,11 @@
       &:hover {
         background: var(--background-modifier-hover);
         color: var(--text-normal);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--interactive-accent);
+        outline-offset: 1px;
       }
 
       .icon {
