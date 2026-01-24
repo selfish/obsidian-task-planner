@@ -80,6 +80,61 @@
         color: var(--text-faint);
         font-size: var(--font-xs);
       }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+        margin-left: auto;
+      }
+
+      .header-action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: var(--transition);
+
+        &:hover {
+          background: var(--background-modifier-hover);
+          color: var(--text-normal);
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--interactive-accent);
+          outline-offset: 1px;
+        }
+
+        .icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 14px;
+          height: 14px;
+
+          svg {
+            width: 100%;
+            height: 100%;
+          }
+        }
+      }
+    }
+
+    // Overdue column header action buttons styling
+    &:has(> .content.overdue) > .header .header-action-btn {
+      color: color-mix(in srgb, var(--text-error) 70%, var(--text-muted));
+
+      &:hover {
+        background: color-mix(in srgb, var(--text-error) 15%, var(--background-modifier-hover));
+        color: var(--text-error);
+      }
     }
 
     // Today horizon header styling (warm amber)
