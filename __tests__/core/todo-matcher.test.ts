@@ -52,17 +52,29 @@ describe('TodoMatcher', () => {
       expect(matcher.matches(todo)).toBe(true);
     });
 
-    it('should handle multi-word search terms with spaces removed', () => {
+    it('should match multi-word search terms with spaces preserved', () => {
+      const matcher = new TodoMatcher('buy groceries');
+      const todo = createTodo('Buy groceries from the store');
+      expect(matcher.matches(todo)).toBe(true);
+    });
+
+    it('should not match when spaces do not align', () => {
       const matcher = new TodoMatcher('buy groceries');
       const todo = createTodo('buygroceries and more');
-      expect(matcher.matches(todo)).toBe(true);
+      expect(matcher.matches(todo)).toBe(false);
     });
   });
 
   describe('fuzzy match', () => {
-    it('should match when characters appear in order', () => {
+    it('should match word initials', () => {
       const matcher = new TodoMatcher('bgr', true);
       const todo = createTodo('Buy groceries');
+      expect(matcher.matches(todo)).toBe(true);
+    });
+
+    it('should match multi-word initials', () => {
+      const matcher = new TodoMatcher('nst', true);
+      const todo = createTodo('Next Staff Talk');
       expect(matcher.matches(todo)).toBe(true);
     });
 
@@ -78,9 +90,16 @@ describe('TodoMatcher', () => {
       expect(matcher.matches(todo)).toBe(true);
     });
 
-    it('should match when all characters are present in sequence', () => {
+    it('should require first char at word boundary', () => {
       const matcher = new TodoMatcher('bc', true);
       const todo = createTodo('abcd');
+      // 'b' is not at a word start (it's after 'a'), so no match
+      expect(matcher.matches(todo)).toBe(false);
+    });
+
+    it('should match when first char is at word start', () => {
+      const matcher = new TodoMatcher('bc', true);
+      const todo = createTodo('bc def');
       expect(matcher.matches(todo)).toBe(true);
     });
 
@@ -96,15 +115,37 @@ describe('TodoMatcher', () => {
       expect(matcher.matches(todo)).toBe(true);
     });
 
-    it('should handle consecutive matching characters', () => {
+    it('should match consecutive characters at word start', () => {
       const matcher = new TodoMatcher('abc', true);
       const todo = createTodo('abc');
       expect(matcher.matches(todo)).toBe(true);
     });
 
-    it('should handle spaced out matching characters', () => {
+    it('should match characters at word boundaries separated by punctuation', () => {
       const matcher = new TodoMatcher('abc', true);
       const todo = createTodo('a---b---c');
+      // Each char is at a word boundary (after punctuation)
+      expect(matcher.matches(todo)).toBe(true);
+    });
+
+    it('should match word prefix plus word initial', () => {
+      const matcher = new TodoMatcher('nexst', true);
+      const todo = createTodo('Next Staff Talk');
+      // 'nex' consecutive at word start, 's' at word start of Staff, 't' consecutive
+      expect(matcher.matches(todo)).toBe(true);
+    });
+
+    it('should not match arbitrary characters in middle of words', () => {
+      const matcher = new TodoMatcher('xt', true);
+      const todo = createTodo('Next');
+      // 'x' is not at word start
+      expect(matcher.matches(todo)).toBe(false);
+    });
+
+    it('should match word followed by initials', () => {
+      const matcher = new TodoMatcher('buyg', true);
+      const todo = createTodo('Buy groceries');
+      // 'buy' consecutive at word start, 'g' at word start of groceries
       expect(matcher.matches(todo)).toBe(true);
     });
   });
