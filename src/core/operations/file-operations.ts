@@ -190,6 +190,20 @@ export class FileOperations {
     }
   }
 
+  async batchRemoveTag<T>(todos: TodoItem<T>[], tag: string): Promise<void> {
+    const todosWithTag = todos.filter((t) => t.tags?.includes(tag));
+    if (todosWithTag.length === 0) return;
+
+    const todosByFile = groupTodosByFile(todosWithTag);
+    for (const [, fileTodos] of todosByFile) {
+      await this.batchUpdateFile(fileTodos, (line) => {
+        const attributes = this.lineParser.parseAttributes(line.line);
+        attributes.textWithoutAttributes = attributes.textWithoutAttributes.replace(new RegExp(`\\s*#${tag}\\b`, "g"), "").trim();
+        line.line = this.lineParser.attributesToString(attributes);
+      });
+    }
+  }
+
   async batchUpdateTodoStatus<T>(todos: TodoItem<T>[], completedAttribute: string): Promise<void> {
     if (todos.length === 0) return;
 

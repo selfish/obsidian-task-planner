@@ -103,7 +103,7 @@ export class UndoManager {
   popForUndo(): UndoOperation | null {
     if (!this.canUndo()) return null;
 
-    const operation = this.history.pop()!;
+    const operation = this.history.pop();
     this.redoStack.push(operation);
     void this.onUndoPerformed.fire(operation);
     return operation;
@@ -117,7 +117,7 @@ export class UndoManager {
   popForRedo(): UndoOperation | null {
     if (!this.canRedo()) return null;
 
-    const operation = this.redoStack.pop()!;
+    const operation = this.redoStack.pop();
     this.history.push(operation);
     void this.onRedoPerformed.fire(operation);
     return operation;
@@ -156,7 +156,7 @@ export class UndoManager {
    * Generate a unique ID for an operation
    */
   static generateOperationId(): string {
-    return `undo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `undo-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
 
   /**

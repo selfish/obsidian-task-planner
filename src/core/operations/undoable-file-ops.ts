@@ -1,8 +1,8 @@
-import { TaskPlannerSettings } from "../../settings";
-import { FileAdapter, TodoItem, TodoStatus, getTodoId } from "../../types";
-import { moment } from "../../utils";
 import { FileOperations } from "./file-operations";
 import { UndoManager, UndoOperation, TaskChange, StatusChange, TagChange } from "./undo-manager";
+import { TaskPlannerSettings } from "../../settings";
+import { TodoItem, TodoStatus, getTodoId } from "../../types";
+import { moment } from "../../utils";
 
 export interface UndoableFileOperationsDeps {
   settings: TaskPlannerSettings;
@@ -27,12 +27,7 @@ export class UndoableFileOperations {
   /**
    * Update attribute with undo tracking
    */
-  async updateAttributeWithUndo<T>(
-    todo: TodoItem<T>,
-    attributeName: string,
-    attributeValue: string | boolean | undefined,
-    description: string
-  ): Promise<void> {
+  async updateAttributeWithUndo<T>(todo: TodoItem<T>, attributeName: string, attributeValue: string | boolean | undefined, description: string): Promise<void> {
     if (!this.undoManager.isEnabled()) {
       await this.fileOperations.updateAttribute(todo, attributeName, attributeValue);
       return;
@@ -183,12 +178,7 @@ export class UndoableFileOperations {
   /**
    * Batch update attribute with undo tracking for multiple todos
    */
-  async batchUpdateAttributeWithUndo<T>(
-    todos: TodoItem<T>[],
-    attributeName: string,
-    attributeValue: string | boolean | undefined,
-    description: string
-  ): Promise<void> {
+  async batchUpdateAttributeWithUndo<T>(todos: TodoItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, description: string): Promise<void> {
     if (todos.length === 0) return;
 
     if (!this.undoManager.isEnabled()) {
@@ -339,7 +329,7 @@ export class UndoableFileOperations {
   }
 
   /**
-   * Combined operation: update attribute, append tag, and update status
+   * Combined operation: update attribute, append tag, remove tags, and update status
    * This is commonly used for drag-and-drop operations
    */
   async combinedMoveWithUndo<T>(
@@ -348,7 +338,8 @@ export class UndoableFileOperations {
     attributeValue: string | boolean | undefined,
     tag?: string,
     newStatus?: TodoStatus,
-    description?: string
+    description?: string,
+    tagsToRemove?: string[]
   ): Promise<void> {
     if (todos.length === 0) return;
 
@@ -358,6 +349,11 @@ export class UndoableFileOperations {
       await this.fileOperations.batchUpdateAttribute(todos, attributeName, attributeValue);
       if (tag) {
         await this.fileOperations.batchAppendTag(todos, tag);
+      }
+      if (tagsToRemove && tagsToRemove.length > 0) {
+        for (const tagToRemove of tagsToRemove) {
+          await this.fileOperations.batchRemoveTag(todos, tagToRemove);
+        }
       }
       if (newStatus !== undefined) {
         todos.forEach((t) => (t.status = newStatus));
@@ -390,6 +386,22 @@ export class UndoableFileOperations {
       }
     }
 
+    // Record tag removals
+    if (tagsToRemove && tagsToRemove.length > 0) {
+      for (const tagToRemove of tagsToRemove) {
+        const todosWithTag = todos.filter((t) => t.tags?.includes(tagToRemove));
+        for (const todo of todosWithTag) {
+          tagChanges.push({
+            todoId: getTodoId(todo),
+            filePath: todo.file.path,
+            lineNumber: todo.line ?? 0,
+            tag: tagToRemove,
+            action: "removed",
+          });
+        }
+      }
+    }
+
     const statusChanges: StatusChange[] = [];
     if (newStatus !== undefined) {
       for (const todo of todos) {
@@ -416,6 +428,11 @@ export class UndoableFileOperations {
     await this.fileOperations.batchUpdateAttribute(todos, attributeName, attributeValue);
     if (tag) {
       await this.fileOperations.batchAppendTag(todos, tag);
+    }
+    if (tagsToRemove && tagsToRemove.length > 0) {
+      for (const tagToRemove of tagsToRemove) {
+        await this.fileOperations.batchRemoveTag(todos, tagToRemove);
+      }
     }
     if (newStatus !== undefined) {
       todos.forEach((t) => (t.status = newStatus));

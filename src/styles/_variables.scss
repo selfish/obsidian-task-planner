@@ -29,8 +29,8 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
-  // Transitions
-  --transition: all 0.15s ease;
+  // Transitions - avoid 'all' to prevent layout shift from height/width changes
+  --transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, color 0.15s ease;
 
   // Priority Colors - use theme variables for consistency
   --priority-critical: var(--text-error);

@@ -17,6 +17,7 @@ jest.mock('../../src/core/operations/file-operations', () => {
       batchRemoveAttribute: jest.fn().mockResolvedValue(undefined),
       batchUpdateTodoStatus: jest.fn().mockResolvedValue(undefined),
       batchAppendTag: jest.fn().mockResolvedValue(undefined),
+      batchRemoveTag: jest.fn().mockResolvedValue(undefined),
     })),
   };
 });
@@ -394,6 +395,66 @@ describe('UndoableFileOperations', () => {
       await undoableOps.combinedMoveWithUndo(todos, 'due', '2025-01-15', 'tag', TodoStatus.Complete);
 
       expect(undoManager.getHistorySize()).toBe(0);
+    });
+
+    it('should remove specified tags', async () => {
+      const todos = [createTodo('1', 'Task with tag', 1, { due: '2025-01-10' }, ['event', 'work'])];
+
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        undefined,
+        undefined,
+        'Move task',
+        ['event'] // Tags to remove
+      );
+
+      expect(undoManager.getHistorySize()).toBe(1);
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.tagChanges).toHaveLength(1);
+      expect(lastOp?.tagChanges[0].tag).toBe('event');
+      expect(lastOp?.tagChanges[0].action).toBe('removed');
+    });
+
+    it('should skip removing tags not on todo', async () => {
+      const todos = [createTodo('1', 'Task without tag', 1, {}, ['other'])];
+
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        undefined,
+        undefined,
+        'Move task',
+        ['event'] // This tag is not on the todo
+      );
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.tagChanges).toHaveLength(0);
+    });
+
+    it('should handle both adding and removing tags', async () => {
+      const todos = [createTodo('1', 'Task', 1, {}, ['oldtag'])];
+
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        'newtag', // Add this tag
+        undefined,
+        'Move task',
+        ['oldtag'] // Remove this tag
+      );
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.tagChanges).toHaveLength(2);
+
+      const addedTag = lastOp?.tagChanges.find(c => c.action === 'added');
+      const removedTag = lastOp?.tagChanges.find(c => c.action === 'removed');
+
+      expect(addedTag?.tag).toBe('newtag');
+      expect(removedTag?.tag).toBe('oldtag');
     });
   });
 
