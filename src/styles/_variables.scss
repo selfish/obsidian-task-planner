@@ -26,8 +26,8 @@
   --radius-lg: 0.5rem;
 
   // Shadows
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-sm: var(--shadow-s);
+  --shadow-md: var(--shadow-m);
 
   // Transitions - avoid 'all' to prevent layout shift from height/width changes
   --transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, color 0.15s ease;
