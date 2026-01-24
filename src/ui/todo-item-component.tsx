@@ -255,8 +255,25 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   const cardClasses = ["card", isCompleted && "completed"].filter(Boolean).join(" ");
   const textClasses = ["text", !dontCrossCompleted && isCompleted && "completed"].filter(Boolean).join(" ");
 
+  function onKeyDown(ev: React.KeyboardEvent<HTMLDivElement>): void {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      void openFileAsync(todo.file.file, todo.line || 0, ev.altKey || ev.ctrlKey || ev.metaKey);
+    }
+  }
+
   return (
-    <div className={cardClasses} draggable="true" onDragStart={onDragStart} onClick={onClickContainer} onAuxClick={onAuxClickContainer}>
+    <div
+      className={cardClasses}
+      draggable="true"
+      onDragStart={onDragStart}
+      onClick={onClickContainer}
+      onAuxClick={onAuxClickContainer}
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={`Task: ${todo.text}`}
+    >
       <div className="content">
         <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
         <div className="body">

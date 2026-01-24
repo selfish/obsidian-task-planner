@@ -10,7 +10,7 @@
     flex-grow: 3;
     min-height: calc(50% - 4px);
 
-    // Column in today section
+    // Column in today section - cohesive with future columns but refined
     &.today {
       flex: 1 1 0;
       width: auto;
@@ -22,6 +22,43 @@
 
       > .header {
         flex-shrink: 0;
+        margin-bottom: var(--space-sm);
+
+        display: flex;
+        flex-direction: row;
+        gap: var(--space-lg);
+        align-items: flex-end;
+        justify-content: space-between;
+
+        // Use same two-row structure but with refined proportions
+        .header-row {
+          &.primary {
+            gap: var(--space-sm);
+
+            .icon {
+              width: 14px;
+              height: 14px;
+            }
+
+            .title {
+              font-size: var(--font-sm);
+              font-weight: 600;
+            }
+          }
+
+          &.secondary {
+
+            .subtitle {
+              font-size: var(--font-xs);
+              color: var(--text-faint);
+            }
+
+            .count {
+              font-size: var(--font-xs);
+              color: var(--text-faint);
+            }
+          }
+        }
       }
 
       > .content {
@@ -45,87 +82,71 @@
       }
     }
 
-    // Visual divider before first next-week column
-    &.next-week-start {
-      position: relative;
-      margin-left: calc(var(--column-gap) + 6px);
-
-      &::before {
-        content: "";
-        position: absolute;
-        left: calc(-1 * var(--column-gap) / 2 - 4px);
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: var(--background-modifier-border);
-        opacity: 0.5;
-        border-radius: 1px;
-      }
-    }
-
     > .header {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: var(--space-md);
+      gap: 2px;
       padding: var(--space-xs) var(--space-sm);
       margin-bottom: var(--space-md);
       font-size: var(--font-sm);
       font-weight: 600;
       color: var(--text-muted);
       text-align: center;
+      position: relative;
 
-      .icon {
+      .header-row {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: var(--icon-size);
-        height: var(--icon-size);
-        flex-shrink: 0;
+        gap: var(--space-sm);
 
-        svg {
-          width: 100%;
-          height: 100%;
-        }
-      }
+        &.primary {
+          .icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: var(--icon-size);
+            height: var(--icon-size);
+            flex-shrink: 0;
 
-      .title {
-        line-height: var(--leading-tight);
-      }
+            svg {
+              width: 100%;
+              height: 100%;
+            }
+          }
 
-      // Title group for two-line labels (e.g., "Tomorrow" + "Jan 25")
-      .title-group {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0;
-        line-height: 1.2;
-
-        .title {
-          font-size: var(--font-sm);
-          font-weight: 600;
-          color: var(--text-muted);
+          .title {
+            font-size: var(--font-sm);
+            font-weight: 600;
+            color: var(--text-muted);
+            line-height: var(--leading-tight);
+          }
         }
 
-        .subtitle {
-          font-size: var(--font-xs);
-          font-weight: 400;
-          color: var(--text-faint);
-          margin-top: 2px;
-        }
-      }
+        &.secondary {
+          .subtitle {
+            font-size: var(--font-xs);
+            font-weight: 400;
+            color: var(--text-faint);
+            min-height: 1em;
+          }
 
-      .count {
-        font-weight: 500;
-        color: var(--text-faint);
-        font-size: var(--font-xs);
+          .count {
+            font-weight: 500;
+            color: var(--text-faint);
+            font-size: var(--font-xs);
+          }
+        }
       }
 
       .header-actions {
+        position: absolute;
+        bottom: var(--space-xs);
+        right: var(--space-xs);
         display: flex;
         align-items: center;
         gap: var(--space-xs);
-        margin-left: auto;
       }
 
       .header-action-btn {
@@ -167,13 +188,21 @@
       }
     }
 
-    // Overdue column header action buttons styling
-    &:has(> .content.overdue) > .header .header-action-btn {
-      color: color-mix(in srgb, var(--text-error) 70%, var(--text-muted));
+    // Overdue column header - left aligned because of action buttons
+    &:has(> .content.overdue) > .header {
+      align-items: flex-start;
 
-      &:hover {
-        background: color-mix(in srgb, var(--text-error) 15%, var(--background-modifier-hover));
-        color: var(--text-error);
+      .header-row {
+        justify-content: flex-start;
+      }
+
+      .header-action-btn {
+        color: color-mix(in srgb, var(--text-error) 70%, var(--text-muted));
+
+        &:hover {
+          background: color-mix(in srgb, var(--text-error) 15%, var(--background-modifier-hover));
+          color: var(--text-error);
+        }
       }
     }
 
@@ -181,7 +210,8 @@
     &:has(> .content.today-horizon) > .header {
       color: var(--text-warning);
 
-      .icon {
+      .header-row.primary .icon,
+      .header-row.primary .title {
         color: var(--text-warning);
       }
     }
@@ -190,7 +220,8 @@
     &:has(> .content.custom-horizon) > .header {
       color: var(--custom-horizon-color, var(--text-muted));
 
-      .icon {
+      .header-row.primary .icon,
+      .header-row.primary .title {
         color: var(--custom-horizon-color, var(--text-muted));
       }
     }
@@ -206,12 +237,19 @@
       border-radius: var(--radius-md);
       transition: var(--transition);
 
-      // Today column content is transparent
+      // Today column content - refined with subtle structure
       &.today {
-        background: transparent;
+        background: var(--background-primary);
+        border: 1px solid color-mix(in srgb, var(--background-modifier-border) 60%, transparent);
+        border-radius: var(--radius-md);
+        min-height: 0;
+        padding: var(--space-xs);
 
-        &.cols-3 {
-          min-height: 100px;
+        // Elevated hover state for drag
+        &.hover {
+          background: color-mix(in srgb, var(--interactive-accent) 6%, var(--background-primary));
+          border-color: var(--interactive-accent);
+          box-shadow: var(--shadow-sm);
         }
       }
 

@@ -287,14 +287,14 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
 
     new Setting(nextWeekSection)
       .setName("Display mode")
-      .setDesc("How to show next week's horizons")
+      .setDesc("How to display days in the next week section")
       .addDropdown((dropdown) => {
-        dropdown.addOption("same-as-this-week", "Same days as this week");
-        dropdown.addOption("all-days", "All days (Mon-Sun)");
-        dropdown.addOption("collapsed", "Single column");
+        dropdown.addOption("same-as-this-week", "Selected days (same as this week)");
+        dropdown.addOption("rolling-week", "Rolling 7 days from today");
+        dropdown.addOption("collapsed", "Single column (all of next week)");
         dropdown.setValue(this.plugin.settings.horizonVisibility.nextWeekMode ?? "same-as-this-week");
         dropdown.onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.nextWeekMode = value as "collapsed" | "same-as-this-week" | "all-days";
+          this.plugin.settings.horizonVisibility.nextWeekMode = value as "collapsed" | "same-as-this-week" | "rolling-week";
           await this.plugin.saveSettings();
           this.plugin.refreshPlanningViews();
         });

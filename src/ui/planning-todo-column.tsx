@@ -169,20 +169,19 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
   const contentClasses = ["content", ...contentModifiers].join(" ");
 
   const columnStyle: React.CSSProperties | undefined = customColor ? ({ "--custom-horizon-color": HORIZON_COLOR_CSS_VAR[customColor] } as React.CSSProperties) : undefined;
-
-  // Check if this is a next-week column for divider styling
-  const isNextWeekStart = substyle?.includes("next-week-start");
-  const columnClassList = [columnClasses, isNextWeekStart && "next-week-start"].filter(Boolean).join(" ");
+  const columnClassList = [columnClasses].filter(Boolean).join(" ");
 
   return (
     <div className={columnClassList} style={columnStyle}>
       <div className="header">
-        <span ref={setIconRef} className="icon"></span>
-        <div className="title-group">
+        <div className="header-row primary">
+          <span ref={setIconRef} className="icon"></span>
           <span className="title">{mainTitle}</span>
-          {subtitle && <span className="subtitle">{subtitle}</span>}
         </div>
-        {todos.length > 0 && <span className="count">({todos.length})</span>}
+        <div className="header-row secondary">
+          <span className="subtitle">{subtitle || "\u00A0"}</span>
+          {todos.length > 0 && <span className="count">({todos.length})</span>}
+        </div>
         {headerActions && headerActions.length > 0 && todos.length > 0 && (
           <div className="header-actions">
             {headerActions.map((action, index) => (
