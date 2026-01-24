@@ -39,10 +39,46 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const { searchParameters, hideEmpty, hideDone, wipLimit, viewMode } = planningSettings;
   const fileOperations = new FileOperations(settings);
 
+  // Flatten todos to include subtasks with their own due dates as independent items
+  const flattenedTodos = React.useMemo(() => {
+    const result: TodoItem<TFile>[] = [];
+    const subtasksWithDates = new Set<TodoItem<TFile>>();
+
+    // First pass: identify subtasks that have their own due dates
+    function collectDatedSubtasks(todo: TodoItem<TFile>) {
+      if (todo.subtasks) {
+        for (const subtask of todo.subtasks) {
+          const subtaskDate = findTodoDate(subtask, settings.dueDateAttribute);
+          if (subtaskDate) {
+            subtasksWithDates.add(subtask);
+          }
+          collectDatedSubtasks(subtask);
+        }
+      }
+    }
+
+    for (const todo of todos) {
+      collectDatedSubtasks(todo);
+      result.push(todo);
+    }
+
+    // Add subtasks with dates as independent items
+    for (const subtask of subtasksWithDates) {
+      result.push(subtask);
+    }
+
+    return { todos: result, subtasksWithDates };
+  }, [todos, settings.dueDateAttribute]);
+
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
-    return todos.filter((todo) => filter.matches(todo));
-  }, [todos, searchParameters.searchPhrase, settings.fuzzySearch]);
+    return flattenedTodos.todos.filter((todo) => filter.matches(todo));
+  }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch]);
+
+  // Set of subtask IDs that have their own dates (to hide from parent's subtask list)
+  const promotedSubtaskIds = React.useMemo(() => {
+    return new Set(Array.from(flattenedTodos.subtasksWithDates).map((t) => getTodoId(t)));
+  }, [flattenedTodos.subtasksWithDates]);
 
   React.useEffect(() => {
     const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos) => {
@@ -82,7 +118,20 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function findTodo(todoId: string): TodoItem<TFile> | undefined {
-    return todos.find((todo) => getTodoId(todo) === todoId);
+    // Recursively search through todos and their subtasks
+    function searchRecursive(items: TodoItem<TFile>[]): TodoItem<TFile> | undefined {
+      for (const todo of items) {
+        if (getTodoId(todo) === todoId) {
+          return todo;
+        }
+        if (todo.subtasks && todo.subtasks.length > 0) {
+          const found = searchRecursive(todo.subtasks);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    }
+    return searchRecursive(todos);
   }
 
   // Helper to un-complete a task if it's currently done
@@ -222,7 +271,18 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return todos.filter((todo) => status.includes(todo.status));
   }
 
-  function todoColumn(icon: string, title: string, todos: TodoItem<TFile>[], hideIfEmpty = hideEmpty, onTodoDropped: ((todoId: string) => void) | null = null, onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null, substyle?: string, customColor?: string, columnType?: ColumnType, headerActions?: ColumnHeaderAction[]) {
+  function todoColumn(
+    icon: string,
+    title: string,
+    todos: TodoItem<TFile>[],
+    hideIfEmpty = hideEmpty,
+    onTodoDropped: ((todoId: string) => void) | null = null,
+    onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null,
+    substyle?: string,
+    customColor?: string,
+    columnType?: ColumnType,
+    headerActions?: ColumnHeaderAction[]
+  ) {
     return (
       <PlanningTodoColumn
         hideIfEmpty={hideIfEmpty}
@@ -236,6 +296,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           app,
           settings,
           logger: deps.logger,
+          promotedSubtaskIds,
         }}
         substyle={substyle}
         customColor={customColor as Parameters<typeof PlanningTodoColumn>[0]["customColor"]}
@@ -506,7 +567,6 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     } else {
       // Individual days for next week
       let nextWeekDate = endOfWeek.clone();
-      let isFirstNextWeekDay = true;
 
       while (nextWeekDate.isBefore(endOfNextWeek)) {
         const weekday = nextWeekDate.isoWeekday();
@@ -522,12 +582,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         if (showThisDay) {
           const nextDay = nextWeekDate.clone().add(1, "days");
           const todos = getTodosByDate(nextWeekDate, nextDay);
-          const style = getWipStyle(todos);
           const label = `${nextWeekDate.format("dddd")}\n${nextWeekDate.format("MMM D")}`;
 
           yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), undefined, undefined, "future");
-
-          isFirstNextWeekDay = false;
         }
 
         nextWeekDate = nextWeekDate.clone().add(1, "days");

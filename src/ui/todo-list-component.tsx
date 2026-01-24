@@ -44,15 +44,7 @@ function GroupHeader({ file, app, onDragStart }: { file: TFile; app: App; onDrag
   };
 
   return (
-    <div
-      className="header"
-      draggable="true"
-      onDragStart={onDragStart}
-      onKeyDown={onKeyDown}
-      tabIndex={0}
-      role="group"
-      aria-label={`File group: ${displayName}. Drag to move all tasks from this file.`}
-    >
+    <div className="header" draggable="true" onDragStart={onDragStart} onKeyDown={onKeyDown} tabIndex={0} role="group" aria-label={`File group: ${displayName}. Drag to move all tasks from this file.`}>
       {displayName}
     </div>
   );

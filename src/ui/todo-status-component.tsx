@@ -100,19 +100,8 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
     }
   };
 
-  const statusLabel = todo.status === TodoStatus.Complete ? "completed" : todo.status === TodoStatus.Canceled ? "canceled" : todo.status === TodoStatus.InProgress ? "in progress" : todo.status === TodoStatus.Delegated ? "delegated" : todo.status === TodoStatus.AttentionRequired ? "attention required" : "todo";
+  const statusLabel =
+    todo.status === TodoStatus.Complete ? "completed" : todo.status === TodoStatus.Canceled ? "canceled" : todo.status === TodoStatus.InProgress ? "in progress" : todo.status === TodoStatus.Delegated ? "delegated" : todo.status === TodoStatus.AttentionRequired ? "attention required" : "todo";
 
-  return (
-    <div
-      ref={iconRef}
-      className="checkbox"
-      onClick={onclick}
-      onAuxClick={onauxclick}
-      onKeyDown={onKeyDown}
-      tabIndex={0}
-      role="checkbox"
-      aria-checked={todo.status === TodoStatus.Complete}
-      aria-label={`Task status: ${statusLabel}. Press to toggle.`}
-    />
-  );
+  return <div ref={iconRef} className="checkbox" onClick={onclick} onAuxClick={onauxclick} onKeyDown={onKeyDown} tabIndex={0} role="checkbox" aria-checked={todo.status === TodoStatus.Complete} aria-label={`Task status: ${statusLabel}. Press to toggle.`} />;
 }

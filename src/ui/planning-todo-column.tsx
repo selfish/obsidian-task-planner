@@ -1,11 +1,11 @@
-import { App, TFile, setIcon } from "obsidian";
+import { TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { StandardDependencies } from "./standard-dependencies";
 import { TodoListComponent } from "./todo-list-component";
-import { TaskPlannerSettings, HorizonColor } from "../settings/types";
+import { HorizonColor } from "../settings/types";
 import { Consts } from "../types/constants";
-import { Logger } from "../types/logger";
 import { TodoItem } from "../types/todo";
 
 const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
@@ -23,11 +23,7 @@ const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
   error: "var(--text-error)",
 };
 
-export interface PlanningTodoColumnDeps {
-  app: App;
-  settings: TaskPlannerSettings;
-  logger: Logger;
-}
+export type PlanningTodoColumnDeps = StandardDependencies;
 
 export type ColumnType = "backlog" | "overdue" | "today-todo" | "today-in-progress" | "today-done" | "future";
 

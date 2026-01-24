@@ -7,4 +7,6 @@ export interface StandardDependencies {
   logger: Logger;
   app: App;
   settings: TaskPlannerSettings;
+  /** IDs of subtasks that have been promoted to their own columns (have their own due dates) */
+  promotedSubtaskIds?: Set<string>;
 }

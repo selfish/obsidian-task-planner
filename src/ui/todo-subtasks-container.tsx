@@ -1,29 +1,34 @@
-import { App, TFile, setIcon } from "obsidian";
+import { TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { StandardDependencies } from "./standard-dependencies";
 import { TodoItemComponent } from "./todo-item-component";
-import { TaskPlannerSettings } from "../settings/types";
-import { Logger } from "../types/logger";
-import { TodoItem } from "../types/todo";
-
-export interface TodoSubtasksContainerDeps {
-  logger: Logger;
-  app: App;
-  settings: TaskPlannerSettings;
-}
+import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
 
 export interface TodoSubtasksContainerProps {
   subtasks?: TodoItem<TFile>[];
-  deps: TodoSubtasksContainerDeps;
+  deps: StandardDependencies;
   dontCrossCompleted?: boolean;
 }
 
-export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: TodoSubtasksContainerProps) {
-  const [isFolded, setIsFolded] = React.useState(false);
+function countCompleted<T>(subtasks: TodoItem<T>[]): number {
+  return subtasks.filter((t) => t.status === TodoStatus.Complete || t.status === TodoStatus.Canceled).length;
+}
 
-  // Use callback ref to ensure icon renders on mount and updates on fold change
-  const setIconRef = React.useCallback(
+export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: TodoSubtasksContainerProps) {
+  const [isFolded, setIsFolded] = React.useState(true);
+
+  // Filter out subtasks that have been promoted (have their own due dates)
+  const visibleSubtasks = React.useMemo(() => {
+    if (!subtasks) return [];
+    const promoted = deps.promotedSubtaskIds;
+    if (!promoted || promoted.size === 0) return subtasks;
+    return subtasks.filter((t) => !promoted.has(getTodoId(t)));
+  }, [subtasks, deps.promotedSubtaskIds]);
+
+  // Use callback ref for chevron icon
+  const setChevronRef = React.useCallback(
     (node: HTMLSpanElement | null) => {
       if (node) {
         node.replaceChildren();
@@ -33,30 +38,36 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
     [isFolded]
   );
 
-  function onClickFoldButton(evt: React.MouseEvent) {
-    if (evt.defaultPrevented) {
-      return;
-    }
+  function onClickToggle(evt: React.MouseEvent) {
+    if (evt.defaultPrevented) return;
     evt.preventDefault();
+    evt.stopPropagation();
     setIsFolded(!isFolded);
   }
 
-  // Don't render anything if no subtasks
-  if (!subtasks || subtasks.length === 0) {
+  if (visibleSubtasks.length === 0) {
     return null;
   }
 
+  const completed = countCompleted(visibleSubtasks);
+  const total = visibleSubtasks.length;
+  const allDone = completed === total;
+  const progressPercent = (completed / total) * 100;
+
   return (
-    <div className="subtasks-container">
-      <button className="subtasks-toggle" onClick={onClickFoldButton}>
-        <span ref={setIconRef} className="icon"></span>
+    <div className={`subtasks-container ${isFolded ? "folded" : "expanded"} ${allDone ? "all-done" : ""}`}>
+      <button className="subtasks-toggle" onClick={onClickToggle} aria-expanded={!isFolded}>
+        <span ref={setChevronRef} className="chevron"></span>
+        <span className="progress">
+          <span className="bar" style={{ width: `${progressPercent}%` }}></span>
+        </span>
         <span className="count">
-          {subtasks.length} subtask{subtasks.length !== 1 ? "s" : ""}
+          {completed}/{total}
         </span>
       </button>
       {!isFolded && (
         <div className="subtasks">
-          {subtasks.map((task) => (
+          {visibleSubtasks.map((task) => (
             <TodoItemComponent key={task.text} todo={task} deps={deps} dontCrossCompleted={dontCrossCompleted} hideFileRef={true} />
           ))}
         </div>

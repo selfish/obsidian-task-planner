@@ -245,6 +245,8 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   }
 
   function onDragStart(ev: React.DragEvent): void {
+    // Stop propagation to prevent parent cards from overwriting drag data
+    ev.stopPropagation();
     const id = getTodoId(todo);
     ev.dataTransfer.setData(Consts.TodoItemDragType, id);
   }
@@ -263,17 +265,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   }
 
   return (
-    <div
-      className={cardClasses}
-      draggable="true"
-      onDragStart={onDragStart}
-      onClick={onClickContainer}
-      onAuxClick={onAuxClickContainer}
-      onKeyDown={onKeyDown}
-      tabIndex={0}
-      role="button"
-      aria-label={`Task: ${todo.text}`}
-    >
+    <div className={cardClasses} draggable="true" onDragStart={onDragStart} onClick={onClickContainer} onAuxClick={onAuxClickContainer} onKeyDown={onKeyDown} tabIndex={0} role="button" aria-label={`Task: ${todo.text}`}>
       <div className="content">
         <TodoStatusComponent todo={todo} deps={{ logger: deps.logger, app: app }} settings={settings} />
         <div className="body">

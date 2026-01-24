@@ -205,54 +205,164 @@
   }
 
   .subtasks-container {
-    margin-top: var(--space-sm);
-    position: relative;
+    margin-top: 4px;
 
     .subtasks-toggle {
+      // Reset all button styles
+      all: unset;
       display: inline-flex;
       align-items: center;
-      gap: var(--space-xs);
-      padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
-      font-size: var(--font-xs);
-      color: var(--text-muted);
-      background: var(--background-secondary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: var(--radius-sm);
+      gap: 4px;
+      font-size: 10px;
+      color: var(--text-faint);
       cursor: pointer;
-      transition: var(--transition);
-			height: max-content;
+      height: auto;
+      min-height: 0;
 
       &:hover {
-        background: var(--background-modifier-hover);
-        color: var(--text-normal);
+        color: var(--text-muted);
       }
 
       &:focus-visible {
-        outline: 2px solid var(--interactive-accent);
+        outline: 1px solid var(--interactive-accent);
         outline-offset: 1px;
+        border-radius: 2px;
       }
 
-      .icon {
+      .chevron {
         display: flex;
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
 
         svg {
-          width: 12px;
-          height: 12px;
+          width: 10px;
+          height: 10px;
+        }
+      }
+
+      .progress {
+        width: 28px;
+        height: 2px;
+        background: var(--background-modifier-border);
+        border-radius: 1px;
+        overflow: hidden;
+
+        .bar {
+          display: block;
+          height: 100%;
+          background: var(--text-accent);
+          border-radius: 1px;
         }
       }
 
       .count {
         font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
+    &.all-done .subtasks-toggle {
+      .progress .bar {
+        background: var(--text-success);
+      }
+
+      .count {
+        color: var(--text-success);
       }
     }
 
     .subtasks {
-      margin-top: var(--space-xs);
-      margin-left: 6px;
-      padding-left: var(--space-sm);
-      border-left: 2px solid var(--background-modifier-border);
+      margin-top: 4px;
+      margin-left: 2px;
+      padding-left: 10px;
+      border-left: 1px solid var(--background-modifier-border);
+
+      // Compact cards for subtasks
+      .card {
+        padding: 3px 6px;
+        margin: 0 0 2px 0;
+
+        > .content {
+          gap: 6px;
+        }
+
+        .checkbox {
+          width: 12px;
+          height: 12px;
+          margin-top: 2px;
+
+          svg {
+            width: 12px;
+            height: 12px;
+          }
+        }
+
+        .text {
+          font-size: 11px;
+          line-height: 1.35;
+        }
+
+        .meta {
+          margin-top: 2px;
+
+          .badge {
+            font-size: 9px;
+            padding: 0 3px;
+          }
+        }
+
+        .file-ref {
+          display: none;
+        }
+      }
+
+      // Nested subtasks
+      .subtasks-container {
+        margin-top: 2px;
+
+        .subtasks-toggle {
+          .chevron {
+            width: 10px;
+            height: 10px;
+
+            svg {
+              width: 10px;
+              height: 10px;
+            }
+          }
+
+          .progress {
+            width: 24px;
+            height: 2px;
+          }
+
+          .count {
+            font-size: 9px;
+          }
+        }
+
+        .subtasks {
+          padding-left: 8px;
+
+          .card {
+            padding: 2px 4px;
+
+            .checkbox {
+              width: 10px;
+              height: 10px;
+
+              svg {
+                width: 10px;
+                height: 10px;
+              }
+            }
+
+            .text {
+              font-size: 10px;
+            }
+          }
+        }
+      }
     }
   }
 }
