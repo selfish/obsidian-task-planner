@@ -177,6 +177,16 @@ export default class TaskPlannerPlugin extends Plugin {
         }
       })
     );
+
+    // Listen to metadata cache changes (e.g., frontmatter updates)
+    // This ensures shouldIgnore() reflects the latest frontmatter values
+    this.registerEvent(
+      this.app.metadataCache.on("changed", (file) => {
+        if (file instanceof TFile && file.extension === "md") {
+          void this.todoIndex.fileUpdated(new ObsidianFile(this.app, file));
+        }
+      })
+    );
   }
 
   private loadFiles(): void {
