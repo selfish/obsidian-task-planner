@@ -11,7 +11,7 @@ import { FollowUpCreator } from "../core/services/follow-up-creator";
 import { showSuccessNotice, showErrorNotice } from "../lib/user-notice";
 import { Consts } from "../types/constants";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
-import { getFileDisplayName, setFrontmatterProperty } from "../utils/file-utils";
+import { getFileDisplayName, setFrontmatterProperty, removeFrontmatterProperty } from "../utils/file-utils";
 import { moment } from "../utils/moment";
 
 interface PriorityBadgeProps {
@@ -59,6 +59,23 @@ function PinnedBadge(): React.ReactElement {
 
   return (
     <span className="badge pinned">
+      <span ref={iconRef} className="icon"></span>
+    </span>
+  );
+}
+
+function IgnoredBadge({ type }: { type: "task" | "file" }): React.ReactElement {
+  const iconRef = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    if (iconRef.current) {
+      iconRef.current.replaceChildren();
+      setIcon(iconRef.current, type === "file" ? "file-x" : "eye-off");
+    }
+  }, [type]);
+
+  return (
+    <span className="badge ignored" title={type === "file" ? "Note ignored" : "Task ignored"}>
       <span ref={iconRef} className="icon"></span>
     </span>
   );
@@ -293,35 +310,51 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     }
 
     // === Ignore options ===
-    menu.addSeparator();
-    const isIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+    // Show only relevant options based on current ignore state
+    const isTaskIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+    const isFileIgnored = todo.file.shouldIgnore?.() === true;
 
-    menu.addItem((item) => {
-      if (isIgnored) {
+    menu.addSeparator();
+
+    if (isFileIgnored) {
+      // File is ignored - only show option to un-ignore the note
+      menu.addItem((item) => {
+        item.setTitle("Stop ignoring this note");
+        item.setIcon("file-check");
+        item.onClick(async () => {
+          await removeFrontmatterProperty(app, todo.file.file, "task-planner-ignore");
+          showSuccessNotice("Note will now appear in planning views");
+        });
+      });
+    } else if (isTaskIgnored) {
+      // Task is ignored - only show option to un-ignore the task
+      menu.addItem((item) => {
         item.setTitle("Stop ignoring task");
         item.setIcon("eye");
         item.onClick(() => {
           void fileOperations.removeAttribute(todo, "ignore");
           showSuccessNotice("Task will now appear in planning views");
         });
-      } else {
+      });
+    } else {
+      // Nothing is ignored - show both ignore options
+      menu.addItem((item) => {
         item.setTitle("Ignore task");
         item.setIcon("eye-off");
         item.onClick(() => {
           void fileOperations.updateAttribute(todo, "ignore", true);
           showSuccessNotice("Task ignored");
         });
-      }
-    });
-
-    menu.addItem((item) => {
-      item.setTitle("Ignore this note");
-      item.setIcon("file-x");
-      item.onClick(async () => {
-        await setFrontmatterProperty(app, todo.file.file, "task-planner-ignore", true);
-        showSuccessNotice("Note ignored. Edit frontmatter to un-ignore.");
       });
-    });
+      menu.addItem((item) => {
+        item.setTitle("Ignore this note");
+        item.setIcon("file-x");
+        item.onClick(async () => {
+          await setFrontmatterProperty(app, todo.file.file, "task-planner-ignore", true);
+          showSuccessNotice("Note ignored");
+        });
+      });
+    }
 
     menu.showAtMouseEvent(evt.nativeEvent);
   }
@@ -336,6 +369,8 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   const isSelected = !!todo.attributes?.[settings.selectedAttribute];
   const priority = getPriority(todo.attributes);
   const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+  const isTaskIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+  const isFileIgnored = todo.file.shouldIgnore?.() === true;
   const cardClasses = ["card", isCompleted && "completed"].filter(Boolean).join(" ");
   const textClasses = ["text", !dontCrossCompleted && isCompleted && "completed"].filter(Boolean).join(" ");
 
@@ -353,9 +388,11 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
         <div className="body">
           <MarkdownText text={todo.text} app={app} sourcePath={todo.file.file.path} className={textClasses} />
           {!hideFileRef && <div className="file-ref">{fileDisplayName}</div>}
-          {(priority || isSelected) && (
+          {(priority || isSelected || isFileIgnored || isTaskIgnored) && (
             <div className="meta">
               {isSelected && <PinnedBadge />}
+              {isFileIgnored && <IgnoredBadge type="file" />}
+              {isTaskIgnored && <IgnoredBadge type="task" />}
               {priority && <PriorityBadge priority={priority} />}
             </div>
           )}
