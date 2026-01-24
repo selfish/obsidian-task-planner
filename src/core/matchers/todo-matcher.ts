@@ -61,14 +61,7 @@ export class TodoMatcher<T> {
    * - First character of search must match at a word boundary
    * - Subsequent characters must either be consecutive OR at a word boundary
    */
-  private fuzzyMatchFrom(
-    text: string,
-    search: string,
-    textIdx: number,
-    searchIdx: number,
-    wordStarts: Set<number>,
-    mustBeWordStart: boolean
-  ): boolean {
+  private fuzzyMatchFrom(text: string, search: string, textIdx: number, searchIdx: number, wordStarts: Set<number>, mustBeWordStart: boolean): boolean {
     // All search characters matched
     if (searchIdx >= search.length) return true;
 
@@ -90,9 +83,7 @@ export class TodoMatcher<T> {
 
       // Try matching rest of search from next position
       // Next char can be consecutive (i+1) or must be at word boundary
-      if (
-        this.fuzzyMatchFrom(text, search, i + 1, searchIdx + 1, wordStarts, false)
-      ) {
+      if (this.fuzzyMatchFrom(text, search, i + 1, searchIdx + 1, wordStarts, false)) {
         return true;
       }
     }

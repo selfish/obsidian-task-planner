@@ -56,6 +56,10 @@
             .count {
               font-size: var(--font-xs);
               color: var(--text-faint);
+
+              &.hidden {
+                visibility: hidden;
+              }
             }
           }
         }
@@ -69,7 +73,8 @@
     }
 
     &.empty {
-      flex-grow: 1;
+      // Keep same flex-grow as populated columns to prevent layout shift
+      // flex-grow: 3 is inherited from .column
 
       > .content {
         border: 1px dashed var(--text-faint);
@@ -136,6 +141,10 @@
             font-weight: 500;
             color: var(--text-faint);
             font-size: var(--font-xs);
+
+            &.hidden {
+              visibility: hidden;
+            }
           }
         }
       }
@@ -339,6 +348,10 @@
       .empty-state-content {
         padding: var(--space-md);
         pointer-events: none;
+        min-height: 48px; // Similar height to a task card to reduce layout shift
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         .empty-state-text {
           font-size: var(--font-xs);

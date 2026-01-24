@@ -19,7 +19,7 @@ export interface CustomHorizon {
   date: string; // ISO date (YYYY-MM-DD) - required
   tag?: string; // Tag to apply when dropping tasks to this horizon
   color?: HorizonColor; // Color tint for the column
-  position: "before" | "after" | "end"; // before = before backlog, after = after backlog, end = after time horizons
+  position: "before" | "after" | "end" | "inline"; // before = before backlog, after = after backlog, end = after time horizons, inline = at its date position
 }
 
 export type NextWeekMode = "collapsed" | "same-as-this-week" | "rolling-week";

@@ -176,7 +176,7 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
         </div>
         <div className="header-row secondary">
           <span className="subtitle">{subtitle || "\u00A0"}</span>
-          {todos.length > 0 && <span className="count">({todos.length})</span>}
+          <span className={`count ${todos.length === 0 ? "hidden" : ""}`}>({todos.length || 0})</span>
         </div>
         {headerActions && headerActions.length > 0 && todos.length > 0 && (
           <div className="header-actions">

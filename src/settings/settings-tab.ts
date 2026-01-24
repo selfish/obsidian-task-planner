@@ -904,6 +904,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     const positions = [
       { value: "before", label: "Before backlog" },
       { value: "after", label: "After backlog" },
+      { value: "inline", label: "On its date" },
       { value: "end", label: "End" },
     ];
     for (const pos of positions) {
@@ -911,7 +912,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       if (horizon.position === pos.value) option.selected = true;
     }
     positionSelect.addEventListener("change", () => {
-      this.plugin.settings.customHorizons[index].position = positionSelect.value as "before" | "after" | "end";
+      this.plugin.settings.customHorizons[index].position = positionSelect.value as "before" | "after" | "end" | "inline";
       void this.plugin.saveSettings().then(() => {
         this.plugin.refreshPlanningViews();
       });

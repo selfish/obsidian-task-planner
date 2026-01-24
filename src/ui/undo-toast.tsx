@@ -1,4 +1,5 @@
 import { setIcon } from "obsidian";
+
 import * as React from "react";
 
 export interface UndoToastProps {
@@ -57,11 +58,7 @@ export function UndoToast({ message, onUndo, onDismiss, durationMs, isUndone }: 
   if (!visible) return null;
 
   return (
-    <div
-      className={`th-undo-toast ${exiting ? "th-undo-toast--exiting" : ""} ${isUndone ? "th-undo-toast--undone" : ""}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
+    <div className={`th-undo-toast ${exiting ? "th-undo-toast--exiting" : ""} ${isUndone ? "th-undo-toast--undone" : ""}`} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
       <span
         className="th-undo-toast-icon"
         ref={(node) => {
