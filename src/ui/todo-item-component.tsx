@@ -11,7 +11,7 @@ import { FollowUpCreator } from "../core/services/follow-up-creator";
 import { showSuccessNotice, showErrorNotice } from "../lib/user-notice";
 import { Consts } from "../types/constants";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
-import { getFileDisplayName } from "../utils/file-utils";
+import { getFileDisplayName, setFrontmatterProperty } from "../utils/file-utils";
 import { moment } from "../utils/moment";
 
 interface PriorityBadgeProps {
@@ -291,6 +291,37 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
         });
       }
     }
+
+    // === Ignore options ===
+    menu.addSeparator();
+    const isIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+
+    menu.addItem((item) => {
+      if (isIgnored) {
+        item.setTitle("Stop ignoring task");
+        item.setIcon("eye");
+        item.onClick(() => {
+          void fileOperations.removeAttribute(todo, "ignore");
+          showSuccessNotice("Task will now appear in planning views");
+        });
+      } else {
+        item.setTitle("Ignore task");
+        item.setIcon("eye-off");
+        item.onClick(() => {
+          void fileOperations.updateAttribute(todo, "ignore", true);
+          showSuccessNotice("Task ignored");
+        });
+      }
+    });
+
+    menu.addItem((item) => {
+      item.setTitle("Ignore this note");
+      item.setIcon("file-x");
+      item.onClick(async () => {
+        await setFrontmatterProperty(app, todo.file.file, "task-planner-ignore", true);
+        showSuccessNotice("Note ignored. Edit frontmatter to un-ignore.");
+      });
+    });
 
     menu.showAtMouseEvent(evt.nativeEvent);
   }
