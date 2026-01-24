@@ -83,7 +83,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: previousValue }));
       }
     }
-  }, [showIgnored]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hideEmpty, showIgnored]);
 
   const fileOperations = new FileOperations(settings);
 

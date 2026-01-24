@@ -234,6 +234,14 @@ describe('UndoableFileOperations', () => {
   });
 
   describe('batchRemoveAttributeWithUndo', () => {
+    it('should skip recording when undo disabled', async () => {
+      undoManager.updateConfig({ enabled: false });
+      const todos = [createTodo('1', 'Task 1', 1, { due: '2025-01-15' })];
+
+      await undoableOps.batchRemoveAttributeWithUndo(todos, 'due', 'Cleared');
+
+      expect(undoManager.getHistorySize()).toBe(0);
+    });
     it('should remove attribute from multiple todos', async () => {
       const todos = [
         createTodo('1', 'Task 1', 1, { due: '2025-01-10' }),
@@ -278,9 +286,26 @@ describe('UndoableFileOperations', () => {
 
       expect(undoManager.getHistorySize()).toBe(0);
     });
+
+    it('should skip recording when undo disabled', async () => {
+      undoManager.updateConfig({ enabled: false });
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Complete)];
+
+      await undoableOps.batchUpdateTodoStatusWithUndo(todos, new Map(), 'Completed');
+
+      expect(undoManager.getHistorySize()).toBe(0);
+    });
   });
 
   describe('batchAppendTagWithUndo', () => {
+    it('should skip recording when undo disabled', async () => {
+      undoManager.updateConfig({ enabled: false });
+      const todos = [createTodo('1', 'Task 1')];
+
+      await undoableOps.batchAppendTagWithUndo(todos, 'urgent', 'Tagged');
+
+      expect(undoManager.getHistorySize()).toBe(0);
+    });
     it('should append tag to multiple todos', async () => {
       const todos = [
         createTodo('1', 'Task 1', 1, {}, []),
@@ -390,9 +415,17 @@ describe('UndoableFileOperations', () => {
 
     it('should skip recording when undo disabled', async () => {
       undoManager.updateConfig({ enabled: false });
-      const todos = [createTodo('1', 'Task 1')];
+      const todos = [createTodo('1', 'Task 1', 1, {}, ['oldtag'])];
 
-      await undoableOps.combinedMoveWithUndo(todos, 'due', '2025-01-15', 'tag', TodoStatus.Complete);
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        'newtag',
+        TodoStatus.Complete,
+        'Move task',
+        ['oldtag'] // Include tagsToRemove to cover lines 354-355
+      );
 
       expect(undoManager.getHistorySize()).toBe(0);
     });
@@ -638,6 +671,142 @@ describe('UndoableFileOperations', () => {
       expect(success).toBe(true);
       expect(findTodo).toHaveBeenCalledTimes(2);
     });
+
+    it('should return false when task change throws error', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      mockFileOps.updateAttribute.mockRejectedValueOnce(new Error('File write error'));
+
+      const todo = createTodo('1', 'Task 1');
+      const findTodo = jest.fn().mockReturnValue(todo);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [{
+          todoId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          attributeName: 'due',
+          previousValue: '2025-01-10',
+          newValue: '2025-01-15',
+        }],
+        statusChanges: [],
+        tagChanges: [],
+      };
+
+      const success = await undoableOps.applyUndo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when tag change throws error', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      mockFileOps.removeTag.mockRejectedValueOnce(new Error('Tag error'));
+
+      const todo = createTodo('1', 'Task 1', 1, {}, ['urgent']);
+      const findTodo = jest.fn().mockReturnValue(todo);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [],
+        tagChanges: [{
+          todoId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          tag: 'urgent',
+          action: 'added',
+        }],
+      };
+
+      const success = await undoableOps.applyUndo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when todo not found for tag change', async () => {
+      const findTodo = jest.fn().mockReturnValue(undefined);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [],
+        tagChanges: [{
+          todoId: 'missing',
+          filePath: 'notes/missing.md',
+          lineNumber: 1,
+          tag: 'urgent',
+          action: 'added',
+        }],
+      };
+
+      const success = await undoableOps.applyUndo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when status change throws error', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      mockFileOps.updateTodoStatus.mockRejectedValueOnce(new Error('Status error'));
+
+      const todo = createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Complete);
+      const findTodo = jest.fn().mockReturnValue(todo);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [{
+          todoId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          previousStatus: TodoStatus.Todo,
+          newStatus: TodoStatus.Complete,
+        }],
+        tagChanges: [],
+      };
+
+      const success = await undoableOps.applyUndo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when todo not found for status change', async () => {
+      const findTodo = jest.fn().mockReturnValue(undefined);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [{
+          todoId: 'missing',
+          filePath: 'notes/missing.md',
+          lineNumber: 1,
+          previousStatus: TodoStatus.Todo,
+          newStatus: TodoStatus.Complete,
+        }],
+        tagChanges: [],
+      };
+
+      const success = await undoableOps.applyUndo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
   });
 
   describe('applyRedo', () => {
@@ -786,6 +955,142 @@ describe('UndoableFileOperations', () => {
           newValue: '2025-01-15',
         }],
         statusChanges: [],
+        tagChanges: [],
+      };
+
+      const success = await undoableOps.applyRedo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when task change throws error', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      mockFileOps.updateAttribute.mockRejectedValueOnce(new Error('File write error'));
+
+      const todo = createTodo('1', 'Task 1');
+      const findTodo = jest.fn().mockReturnValue(todo);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [{
+          todoId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          attributeName: 'due',
+          previousValue: '2025-01-10',
+          newValue: '2025-01-15',
+        }],
+        statusChanges: [],
+        tagChanges: [],
+      };
+
+      const success = await undoableOps.applyRedo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when tag change throws error', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      mockFileOps.appendTag.mockRejectedValueOnce(new Error('Tag error'));
+
+      const todo = createTodo('1', 'Task 1');
+      const findTodo = jest.fn().mockReturnValue(todo);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [],
+        tagChanges: [{
+          todoId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          tag: 'urgent',
+          action: 'added',
+        }],
+      };
+
+      const success = await undoableOps.applyRedo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when todo not found for tag change', async () => {
+      const findTodo = jest.fn().mockReturnValue(undefined);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [],
+        tagChanges: [{
+          todoId: 'missing',
+          filePath: 'notes/missing.md',
+          lineNumber: 1,
+          tag: 'urgent',
+          action: 'added',
+        }],
+      };
+
+      const success = await undoableOps.applyRedo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when status change throws error', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      mockFileOps.updateTodoStatus.mockRejectedValueOnce(new Error('Status error'));
+
+      const todo = createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Todo);
+      const findTodo = jest.fn().mockReturnValue(todo);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [{
+          todoId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          previousStatus: TodoStatus.Todo,
+          newStatus: TodoStatus.Complete,
+        }],
+        tagChanges: [],
+      };
+
+      const success = await undoableOps.applyRedo(operation, findTodo);
+
+      expect(success).toBe(false);
+    });
+
+    it('should return false when todo not found for status change', async () => {
+      const findTodo = jest.fn().mockReturnValue(undefined);
+
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [{
+          todoId: 'missing',
+          filePath: 'notes/missing.md',
+          lineNumber: 1,
+          previousStatus: TodoStatus.Todo,
+          newStatus: TodoStatus.Complete,
+        }],
         tagChanges: [],
       };
 
