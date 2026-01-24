@@ -417,7 +417,11 @@ describe('TodoIndex', () => {
   });
 
   describe('frontmatter ignore (shouldIgnore)', () => {
-    it('should ignore files with shouldIgnore returning true during filesLoaded', async () => {
+    // Note: Frontmatter-based ignore (shouldIgnore) is now handled at display level,
+    // not at index level. This allows "show ignored" mode to display those tasks.
+    // Files with shouldIgnore are still included in the index.
+
+    it('should include files with shouldIgnore returning true during filesLoaded', async () => {
       const normalFile = createMockFileAdapter('normal', false, false);
       const ignoredFile = createMockFileAdapter('ignored', false, true);
 
@@ -426,38 +430,42 @@ describe('TodoIndex', () => {
       const index = new TodoIndex(deps, settings);
       await index.filesLoaded([normalFile, ignoredFile]);
 
-      expect(mockFolderTodoParser.parseFiles).toHaveBeenCalledWith([normalFile]);
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File ignored via frontmatter: ignored');
+      // Both files should be passed to parser (shouldIgnore is handled at display level)
+      expect(mockFolderTodoParser.parseFiles).toHaveBeenCalledWith([normalFile, ignoredFile]);
     });
 
-    it('should ignore files with shouldIgnore returning true during fileCreated', async () => {
+    it('should include files with shouldIgnore returning true during fileCreated', async () => {
       const ignoredFile = createMockFileAdapter('ignored', false, true);
-      const index = new TodoIndex(deps, settings);
+      const todo = createTodo('Task 1', ignoredFile);
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([todo]);
 
+      const index = new TodoIndex(deps, settings);
       await index.fileCreated(ignoredFile);
 
-      expect(mockFileTodoParser.parseMdFile).not.toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File ignored via frontmatter: ignored');
+      // File should be parsed and added (shouldIgnore is handled at display level)
+      expect(mockFileTodoParser.parseMdFile).toHaveBeenCalledWith(ignoredFile);
+      expect(index.files).toHaveLength(1);
     });
 
-    it('should remove file from index when frontmatter ignore is added during fileUpdated', async () => {
+    it('should keep file in index when frontmatter ignore is added during fileUpdated', async () => {
       const file = createMockFileAdapter('file1', false, false);
       const todo = createTodo('Task 1', file);
 
       const index = new TodoIndex(deps, settings);
       index.files = [{ file, todos: [todo] }];
 
-      // Now simulate frontmatter change - file should be ignored
+      // Simulate frontmatter change - shouldIgnore now returns true
       (file.shouldIgnore as jest.Mock).mockReturnValue(true);
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([todo]);
 
       const updateHandler = jest.fn().mockResolvedValue(undefined);
       index.onUpdateEvent.listen(updateHandler);
 
       await index.fileUpdated(file);
 
-      expect(index.files).toHaveLength(0);
+      // File should still be in index (shouldIgnore is handled at display level)
+      expect(index.files).toHaveLength(1);
       expect(updateHandler).toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File now ignored, removing from index: file1');
     });
 
     it('should add file to index when frontmatter ignore is removed during fileUpdated', async () => {

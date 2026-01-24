@@ -7,6 +7,8 @@ import { PlanningSettings } from "./planning-settings";
 export interface PlanningSettingsComponentProps {
   setPlanningSettings: (settings: PlanningSettings) => void;
   planningSettings: PlanningSettings;
+  showIgnored: boolean;
+  setShowIgnored: (value: boolean) => void;
   totalTasks?: number;
   completedToday?: number;
   app?: App;
@@ -15,8 +17,8 @@ export interface PlanningSettingsComponentProps {
   onQuickAdd?: () => void;
 }
 
-export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
-  const { hideEmpty, hideDone, showIgnored, searchParameters, viewMode } = planningSettings;
+export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
+  const { hideEmpty, hideDone, searchParameters, viewMode } = planningSettings;
   const { searchPhrase } = searchParameters;
 
   function toggleHideEmpty() {
@@ -34,10 +36,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   }
 
   function toggleShowIgnored() {
-    setPlanningSettings({
-      ...planningSettings,
-      showIgnored: !showIgnored,
-    });
+    setShowIgnored(!showIgnored);
   }
 
   function toggleTodayFocus() {
