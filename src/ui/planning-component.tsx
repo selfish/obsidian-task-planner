@@ -65,6 +65,26 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Show ignored is session-only state (not persisted)
   const [showIgnored, setShowIgnored] = React.useState(false);
+  const hideEmptyBeforeIgnoredRef = React.useRef<boolean | null>(null);
+
+  // Auto-toggle hideEmpty when entering/exiting show ignored mode
+  React.useEffect(() => {
+    if (showIgnored) {
+      // Entering show ignored mode - save current hideEmpty and force it on
+      hideEmptyBeforeIgnoredRef.current = hideEmpty;
+      if (!hideEmpty) {
+        setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: true }));
+      }
+    } else if (hideEmptyBeforeIgnoredRef.current !== null) {
+      // Exiting show ignored mode - restore previous hideEmpty
+      const previousValue = hideEmptyBeforeIgnoredRef.current;
+      hideEmptyBeforeIgnoredRef.current = null;
+      if (hideEmpty !== previousValue) {
+        setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: previousValue }));
+      }
+    }
+  }, [showIgnored]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const fileOperations = new FileOperations(settings);
 
   // Undo manager setup

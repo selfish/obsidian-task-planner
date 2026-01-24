@@ -56,5 +56,13 @@
       color: var(--text-on-accent);
       padding: 2px 4px;
     }
+
+    // Ignored badge
+    &.ignored {
+      background: var(--background-modifier-error);
+      color: var(--text-on-accent);
+      padding: 2px 4px;
+      opacity: 0.8;
+    }
   }
 }
