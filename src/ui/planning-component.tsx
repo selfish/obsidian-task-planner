@@ -161,7 +161,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
-    return flattenedTodos.todos.filter((todo) => filter.matches(todo));
+    return flattenedTodos.todos.filter((todo) => {
+      // Skip ignored tasks (task-level ignore via attribute)
+      const ignoreAttr = todo.attributes?.["ignore"];
+      if (ignoreAttr === true || ignoreAttr === "true") {
+        return false;
+      }
+      return filter.matches(todo);
+    });
   }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch]);
 
   // Set of subtask IDs that have their own dates (to hide from parent's subtask list)
@@ -684,7 +691,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           },
         },
       ];
-      yield todoColumn("alert-triangle", "Overdue\nPast due", overdueTodos, true, null, null, "overdue", undefined, "overdue", overdueHeaderActions);
+      yield todoColumn("alert-triangle", "Overdue\nBefore today", overdueTodos, true, null, null, "overdue", undefined, "overdue", overdueHeaderActions);
     }
 
     if (viewMode === "future") {
