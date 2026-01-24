@@ -31,6 +31,12 @@ export interface PlanningTodoColumnDeps {
 
 export type ColumnType = "backlog" | "overdue" | "today-todo" | "today-in-progress" | "today-done" | "future";
 
+export interface ColumnHeaderAction {
+  icon: string;
+  label: string;
+  onClick: () => void;
+}
+
 export interface PlanningTodoColumnProps {
   icon: string;
   title: string;
@@ -42,6 +48,7 @@ export interface PlanningTodoColumnProps {
   substyle?: string;
   customColor?: HorizonColor;
   columnType?: ColumnType;
+  headerActions?: ColumnHeaderAction[];
 }
 
 function getEmptyStateMessage(columnType?: ColumnType): string {
@@ -62,7 +69,7 @@ function getEmptyStateMessage(columnType?: ColumnType): string {
   }
 }
 
-export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType }: PlanningTodoColumnProps): React.ReactElement | null {
+export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType, headerActions }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
 
   // Use callback ref to ensure icon renders on mount (fixes Preact re-render issue)

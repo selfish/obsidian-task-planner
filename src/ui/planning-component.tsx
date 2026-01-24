@@ -6,7 +6,7 @@ import * as React from "react";
 
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
-import { PlanningTodoColumn, ColumnType } from "./planning-todo-column";
+import { PlanningTodoColumn, ColumnType, ColumnHeaderAction } from "./planning-todo-column";
 import { TodoIndex } from "../core/index/todo-index";
 import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { FileOperations } from "../core/operations/file-operations";
@@ -201,7 +201,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return todos.filter((todo) => status.includes(todo.status));
   }
 
-  function todoColumn(icon: string, title: string, todos: TodoItem<TFile>[], hideIfEmpty = hideEmpty, onTodoDropped: ((todoId: string) => void) | null = null, onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null, substyle?: string, customColor?: string, columnType?: ColumnType) {
+  function todoColumn(icon: string, title: string, todos: TodoItem<TFile>[], hideIfEmpty = hideEmpty, onTodoDropped: ((todoId: string) => void) | null = null, onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null, substyle?: string, customColor?: string, columnType?: ColumnType, headerActions?: ColumnHeaderAction[]) {
     return (
       <PlanningTodoColumn
         hideIfEmpty={hideIfEmpty}
@@ -219,6 +219,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         substyle={substyle}
         customColor={customColor as Parameters<typeof PlanningTodoColumn>[0]["customColor"]}
         columnType={columnType}
+        headerActions={headerActions}
       />
     );
   }
@@ -376,7 +377,26 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     }
 
     if (horizonVisibility.showOverdue || horizonVisibility.showPast) {
-      yield todoColumn("alert-triangle", "Overdue", getOverdueTodos(), true, null, null, "overdue", undefined, "overdue");
+      const overdueTodos = getOverdueTodos();
+      const overdueHeaderActions: ColumnHeaderAction[] = [
+        {
+          icon: "calendar-check",
+          label: "Reschedule all to Today",
+          onClick: () => {
+            const todoIds = overdueTodos.map((todo) => getTodoId(todo));
+            void batchMoveToDate(today)(todoIds);
+          },
+        },
+        {
+          icon: "inbox",
+          label: "Move all to Backlog",
+          onClick: () => {
+            const todoIds = overdueTodos.map((todo) => getTodoId(todo));
+            void batchRemoveDate()(todoIds);
+          },
+        },
+      ];
+      yield todoColumn("alert-triangle", "Overdue", overdueTodos, true, null, null, "overdue", undefined, "overdue", overdueHeaderActions);
     }
 
     if (viewMode === "future") {
