@@ -131,112 +131,163 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
     void openFileAsync(todo.file.file, todo.line || 0, ev.altKey || ev.ctrlKey || ev.metaKey);
   }
 
-  function addChangePriorityMenuItem(menu: Menu, name: string, icon: string, label: string): void {
-    if (name === todo.attributes?.["priority"]) return;
-
-    menu.addItem((item) => {
-      item.setTitle(`Change priority to ${label}`);
-      item.setIcon(icon);
-      item.onClick(() => {
-        void fileOperations.updateAttribute(todo, "priority", name);
-      });
-    });
-  }
-
-  function addChangeStatusMenuItem(menu: Menu, status: TodoStatus, label: string, icon: string): void {
-    if (status === todo.status) return;
-
-    menu.addItem((item) => {
-      item.setTitle(label);
-      item.setIcon(icon);
-      item.onClick(() => {
-        const updatedTodo = { ...todo, status };
-        void fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
-      });
-    });
-  }
-
   function onAuxClickContainer(evt: React.MouseEvent): void {
     if (evt.defaultPrevented) return;
 
     const menu = new Menu();
-    menu.setNoIcon();
-    addChangePriorityMenuItem(menu, "critical", "zap", "Critical");
-    addChangePriorityMenuItem(menu, "high", "arrow-up", "High");
-    addChangePriorityMenuItem(menu, "medium", "minus", "Medium");
-    addChangePriorityMenuItem(menu, "low", "arrow-down", "Low");
-    addChangePriorityMenuItem(menu, "lowest", "arrow-down-circle", "Lowest");
-    menu.addItem((item) => {
-      item.setTitle("Reset priority");
-      item.setIcon("reset");
-      item.onClick(() => void fileOperations.removeAttribute(todo, "priority"));
-    });
+    (menu as Menu & { dom: HTMLElement }).dom.addClass("task-planner-menu");
+    const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+    const isPinned = !!todo.attributes?.[settings.selectedAttribute];
+    const currentPriority = todo.attributes?.["priority"];
+
+    // Helper to create submenu using Obsidian's internal API (not public but widely used)
+    const addSubmenu = (item: unknown): Menu => (item as { setSubmenu: () => Menu }).setSubmenu();
+
+    // === Status options (inline) ===
+    const statuses = [
+      { status: TodoStatus.Todo, label: "Todo", icon: "circle" },
+      { status: TodoStatus.InProgress, label: "In progress", icon: "clock" },
+      { status: TodoStatus.Complete, label: "Complete", icon: "check-circle" },
+      { status: TodoStatus.AttentionRequired, label: "Needs attention", icon: "alert-circle" },
+      { status: TodoStatus.Delegated, label: "Delegated", icon: "users" },
+      { status: TodoStatus.Canceled, label: "Cancelled", icon: "x-circle" },
+    ];
+    for (const s of statuses) {
+      if (s.status !== todo.status) {
+        menu.addItem((item) => {
+          item.setTitle(s.label);
+          item.setIcon(s.icon);
+          item.onClick(() => {
+            const updatedTodo = { ...todo, status: s.status };
+            void fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
+          });
+        });
+      }
+    }
+
     menu.addSeparator();
 
-    // Status change options
-    addChangeStatusMenuItem(menu, TodoStatus.Todo, "Set status: Todo", "circle");
-    addChangeStatusMenuItem(menu, TodoStatus.InProgress, "Set status: In Progress", "clock");
-    addChangeStatusMenuItem(menu, TodoStatus.Complete, "Set status: Complete", "check-circle");
-    addChangeStatusMenuItem(menu, TodoStatus.AttentionRequired, "Set status: Attention Required", "alert-circle");
-    addChangeStatusMenuItem(menu, TodoStatus.Delegated, "Set status: Delegated", "users");
-    addChangeStatusMenuItem(menu, TodoStatus.Canceled, "Set status: Cancelled", "x-circle");
-    menu.addSeparator();
-
     menu.addItem((item) => {
-      item.setTitle("Toggle pinned");
+      item.setTitle(isPinned ? "Unpin" : "Pin to top");
       item.setIcon("pin");
       item.onClick(() => {
-        void fileOperations.updateAttribute(todo, settings.selectedAttribute, !todo.attributes?.[settings.selectedAttribute]);
+        void fileOperations.updateAttribute(todo, settings.selectedAttribute, !isPinned);
       });
     });
 
-    // Follow-up tasks
-    menu.addSeparator();
+    // === Priority options (inline) ===
+    if (!isCompleted) {
+      menu.addSeparator();
+      const priorities = [
+        { name: "critical", label: "Critical", icon: "zap" },
+        { name: "high", label: "High", icon: "chevron-up" },
+        { name: "medium", label: "Medium", icon: "minus" },
+        { name: "low", label: "Low", icon: "chevron-down" },
+        { name: "lowest", label: "Lowest", icon: "chevrons-down" },
+      ];
+      for (const p of priorities) {
+        if (p.name !== currentPriority) {
+          menu.addItem((item) => {
+            item.setTitle(p.label);
+            item.setIcon(p.icon);
+            item.onClick(() => void fileOperations.updateAttribute(todo, "priority", p.name));
+          });
+        }
+      }
+      if (currentPriority) {
+        menu.addItem((item) => {
+          item.setTitle("Clear priority");
+          item.setIcon("x");
+          item.onClick(() => void fileOperations.removeAttribute(todo, "priority"));
+        });
+      }
+    }
 
+    // === Reschedule Submenu ===
+    menu.addSeparator();
+    menu.addItem((item) => {
+      item.setTitle("Reschedule");
+      item.setIcon("calendar");
+      const sub = addSubmenu(item);
+      sub.addItem((i) => {
+        i.setTitle("Today");
+        i.setIcon("calendar-check");
+        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().format("YYYY-MM-DD")));
+      });
+      sub.addItem((i) => {
+        i.setTitle("Tomorrow");
+        i.setIcon("calendar-plus");
+        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().add(1, "day").format("YYYY-MM-DD")));
+      });
+      sub.addItem((i) => {
+        i.setTitle("Next week");
+        i.setIcon("calendar-range");
+        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().add(1, "week").format("YYYY-MM-DD")));
+      });
+      sub.addItem((i) => {
+        i.setTitle("Next month");
+        i.setIcon("calendar-days");
+        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().add(1, "month").format("YYYY-MM-DD")));
+      });
+      sub.addSeparator();
+      sub.addItem((i) => {
+        i.setTitle("Backlog (remove date)");
+        i.setIcon("calendar-off");
+        i.onClick(() => void fileOperations.removeAttribute(todo, settings.dueDateAttribute));
+      });
+    });
+
+    // === Follow-up Submenu ===
     const followUpCreator = new FollowUpCreator<TFile>(settings);
     const createFollowUp = async (dueDate: string | null) => {
       try {
         await followUpCreator.createFollowUp(todo, dueDate);
-        showSuccessNotice("Follow-up task created");
+        showSuccessNotice("Follow-up created");
       } catch (error) {
         showErrorNotice(error instanceof Error ? error : new Error(String(error)));
       }
     };
 
     menu.addItem((item) => {
-      item.setTitle("Follow-up → today");
-      item.setIcon("calendar-check");
-      item.onClick(() => void createFollowUp(moment().format("YYYY-MM-DD")));
+      item.setTitle("Follow-up");
+      item.setIcon("copy-plus");
+      const sub = addSubmenu(item);
+      sub.addItem((i) => {
+        i.setTitle("Today");
+        i.setIcon("calendar-check");
+        i.onClick(() => void createFollowUp(moment().format("YYYY-MM-DD")));
+      });
+      sub.addItem((i) => {
+        i.setTitle("Tomorrow");
+        i.setIcon("calendar-plus");
+        i.onClick(() => void createFollowUp(moment().add(1, "day").format("YYYY-MM-DD")));
+      });
+      sub.addItem((i) => {
+        i.setTitle("Next week");
+        i.setIcon("calendar-range");
+        i.onClick(() => void createFollowUp(moment().add(1, "week").format("YYYY-MM-DD")));
+      });
+      sub.addItem((i) => {
+        i.setTitle("Next month");
+        i.setIcon("calendar-days");
+        i.onClick(() => void createFollowUp(moment().add(1, "month").format("YYYY-MM-DD")));
+      });
+      sub.addSeparator();
+      sub.addItem((i) => {
+        i.setTitle("Backlog (no date)");
+        i.setIcon("calendar-off");
+        i.onClick(() => void createFollowUp(null));
+      });
     });
 
-    menu.addItem((item) => {
-      item.setTitle("Follow-up → tomorrow");
-      item.setIcon("calendar-plus");
-      item.onClick(() => void createFollowUp(moment().add(1, "day").format("YYYY-MM-DD")));
-    });
-
-    menu.addItem((item) => {
-      item.setTitle("Follow-up → next week");
-      item.setIcon("calendar-range");
-      item.onClick(() => void createFollowUp(moment().add(1, "week").format("YYYY-MM-DD")));
-    });
-
-    menu.addItem((item) => {
-      item.setTitle("Follow-up → backlog");
-      item.setIcon("inbox");
-      item.onClick(() => void createFollowUp(null));
-    });
-
-    // Tag management
+    // === Tags ===
     if (todo.tags && todo.tags.length > 0) {
       menu.addSeparator();
       for (const tag of todo.tags) {
         menu.addItem((item) => {
           item.setTitle(`Remove #${tag}`);
-          item.setIcon("x");
-          item.onClick(() => {
-            void fileOperations.removeTag(todo, tag);
-          });
+          item.setIcon("cross");
+          item.onClick(() => void fileOperations.removeTag(todo, tag));
         });
       }
     }
