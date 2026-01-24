@@ -50,8 +50,8 @@
       border: 1px solid var(--background-modifier-border);
     }
 
-    // Selected/Pinned badge
-    &.selected {
+    // Pinned badge
+    &.pinned {
       background: var(--interactive-accent);
       color: var(--text-on-accent);
       padding: 2px 4px;

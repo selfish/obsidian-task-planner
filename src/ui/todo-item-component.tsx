@@ -47,7 +47,7 @@ function PriorityBadge({ priority }: PriorityBadgeProps): React.ReactElement {
   );
 }
 
-function SelectedBadge(): React.ReactElement {
+function PinnedBadge(): React.ReactElement {
   const iconRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
@@ -58,7 +58,7 @@ function SelectedBadge(): React.ReactElement {
   }, []);
 
   return (
-    <span className="badge selected">
+    <span className="badge pinned">
       <span ref={iconRef} className="icon"></span>
     </span>
   );
@@ -324,7 +324,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
           {!hideFileRef && <div className="file-ref">{fileDisplayName}</div>}
           {(priority || isSelected) && (
             <div className="meta">
-              {isSelected && <SelectedBadge />}
+              {isSelected && <PinnedBadge />}
               {priority && <PriorityBadge priority={priority} />}
             </div>
           )}
