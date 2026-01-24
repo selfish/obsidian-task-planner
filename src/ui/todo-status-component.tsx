@@ -74,18 +74,45 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
     evt.preventDefault();
   };
 
-  const onclick = (evt: React.MouseEvent) => {
+  const toggleStatus = () => {
     const fileOperations: FileOperations = new FileOperations(settings);
-    if (evt.defaultPrevented) {
-      return;
-    }
     deps.logger.debug(`Changing status on ${getTodoId(todo)}`);
-    evt.preventDefault();
     const wasCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
     const newStatus = wasCompleted ? TodoStatus.Todo : TodoStatus.Complete;
     const updatedTodo = { ...todo, status: newStatus };
     void fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
   };
 
-  return <div ref={iconRef} className="checkbox" onClick={onclick} onAuxClick={onauxclick}></div>;
+  const onclick = (evt: React.MouseEvent) => {
+    if (evt.defaultPrevented) {
+      return;
+    }
+    evt.preventDefault();
+    evt.stopPropagation();
+    toggleStatus();
+  };
+
+  const onKeyDown = (evt: React.KeyboardEvent) => {
+    if (evt.key === "Enter" || evt.key === " ") {
+      evt.preventDefault();
+      evt.stopPropagation();
+      toggleStatus();
+    }
+  };
+
+  const statusLabel = todo.status === TodoStatus.Complete ? "completed" : todo.status === TodoStatus.Canceled ? "canceled" : todo.status === TodoStatus.InProgress ? "in progress" : todo.status === TodoStatus.Delegated ? "delegated" : todo.status === TodoStatus.AttentionRequired ? "attention required" : "todo";
+
+  return (
+    <div
+      ref={iconRef}
+      className="checkbox"
+      onClick={onclick}
+      onAuxClick={onauxclick}
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+      role="checkbox"
+      aria-checked={todo.status === TodoStatus.Complete}
+      aria-label={`Task status: ${statusLabel}. Press to toggle.`}
+    />
+  );
 }

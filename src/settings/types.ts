@@ -22,7 +22,7 @@ export interface CustomHorizon {
   position: "before" | "after" | "end"; // before = before backlog, after = after backlog, end = after time horizons
 }
 
-export type NextWeekMode = "collapsed" | "same-as-this-week" | "all-days";
+export type NextWeekMode = "collapsed" | "same-as-this-week" | "rolling-week";
 
 export interface HorizonVisibility {
   // Basic horizons

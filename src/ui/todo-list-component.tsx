@@ -34,8 +34,25 @@ function useFileDisplayName(file: TFile, app: App): string {
 // Component for group header that properly handles metadata cache
 function GroupHeader({ file, app, onDragStart }: { file: TFile; app: App; onDragStart: (ev: React.DragEvent) => void }) {
   const displayName = useFileDisplayName(file, app);
+
+  const onKeyDown = (evt: React.KeyboardEvent) => {
+    // Allow Enter or Space to initiate drag (or other future actions)
+    if (evt.key === "Enter" || evt.key === " ") {
+      evt.preventDefault();
+      // Group headers are primarily for drag - keyboard users can drag individual tasks
+    }
+  };
+
   return (
-    <div className="header" draggable="true" onDragStart={onDragStart}>
+    <div
+      className="header"
+      draggable="true"
+      onDragStart={onDragStart}
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+      role="group"
+      aria-label={`File group: ${displayName}. Drag to move all tasks from this file.`}
+    >
       {displayName}
     </div>
   );

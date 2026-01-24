@@ -86,7 +86,12 @@
     &:focus {
       outline: none;
       border-color: var(--interactive-accent);
-      box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.1);
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--interactive-accent);
+      box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
     }
 
     &::placeholder {
