@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidian";
 
 import TaskPlannerPlugin from "../main";
-import { HorizonColor, CustomHorizon, CustomAtShortcut, NextWeekMode } from "./types";
+import { HorizonColor, CustomHorizon, CustomAtShortcut } from "./types";
 import { FileSuggest } from "../ui/file-suggest";
 import { FolderSuggest } from "../ui/folder-suggest";
 
@@ -43,12 +43,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
   /**
    * Creates a collapsible settings section with a header
    */
-  private createCollapsibleSection(
-    containerEl: HTMLElement,
-    title: string,
-    collapsed: boolean,
-    onToggle: (collapsed: boolean) => void
-  ): HTMLElement {
+  private createCollapsibleSection(containerEl: HTMLElement, title: string, collapsed: boolean, onToggle: (collapsed: boolean) => void): HTMLElement {
     const sectionEl = containerEl.createDiv({ cls: "th-collapsible" });
 
     // Create header that acts as toggle
@@ -308,9 +303,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .setDesc("Additional weeks to show beyond next week")
       .addDropdown((dropdown) => {
         dropdown.addOption("0", "None");
-        dropdown.addOption("1", "1 week (In 2 weeks)");
-        dropdown.addOption("2", "2 weeks (In 2-3 weeks)");
-        dropdown.addOption("3", "3 weeks (In 2-4 weeks)");
+        dropdown.addOption("1", "1 week (in 2 weeks)");
+        dropdown.addOption("2", "2 weeks (in 2-3 weeks)");
+        dropdown.addOption("3", "3 weeks (in 2-4 weeks)");
         dropdown.setValue(this.plugin.settings.horizonVisibility.weeksToShow.toString());
         dropdown.onChange(async (value) => {
           this.plugin.settings.horizonVisibility.weeksToShow = parseInt(value);
@@ -595,15 +590,13 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       });
 
     this.plugin.settings.ignoredFolders.forEach((folder) => {
-      new Setting(indexingSection)
-        .setName(folder)
-        .addButton((button) =>
-          button.setButtonText("Remove").onClick(async () => {
-            this.plugin.settings.ignoredFolders = this.plugin.settings.ignoredFolders.filter((f) => f !== folder);
-            await this.plugin.saveSettings();
-            this.display();
-          })
-        );
+      new Setting(indexingSection).setName(folder).addButton((button) =>
+        button.setButtonText("Remove").onClick(async () => {
+          this.plugin.settings.ignoredFolders = this.plugin.settings.ignoredFolders.filter((f) => f !== folder);
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
     });
 
     new Setting(indexingSection)

@@ -44,6 +44,15 @@ export class FileTodoParser<TFile> {
     });
   }
 
+  private setFileOnSubtasks(todo: TodoItem<TFile>, file: FileAdapter<TFile>): void {
+    if (todo.subtasks) {
+      for (const subtask of todo.subtasks) {
+        subtask.file = file;
+        this.setFileOnSubtasks(subtask, file);
+      }
+    }
+  }
+
   private removeSubtasksFromTree(todos: TodoItem<TFile>[]): void {
     const toRemove: TodoItem<TFile>[] = [];
     for (const todo of todos) {
@@ -101,6 +110,8 @@ export class FileTodoParser<TFile> {
     for (const result of todoParsingResults) {
       if (result.todo) {
         result.todo.file = file;
+        // Also set file on subtasks recursively
+        this.setFileOnSubtasks(result.todo, file);
         todos.push(result.todo);
       }
     }
