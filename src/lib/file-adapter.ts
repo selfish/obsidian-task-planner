@@ -24,6 +24,11 @@ export class ObsidianFile implements FileAdapter<TFile> {
     return this.file.path.toLowerCase().startsWith(folder.toLowerCase());
   }
 
+  shouldIgnore(): boolean {
+    const cache = this.app.metadataCache.getFileCache(this.file);
+    return cache?.frontmatter?.["task-planner-ignore"] === true;
+  }
+
   async getContent(): Promise<string> {
     return await this.app.vault.cachedRead(this.file);
   }

@@ -44,6 +44,11 @@ export class TodoIndex<T> {
         return true;
       }
     }
+    // Check for file-level ignore via frontmatter
+    if (file.shouldIgnore?.()) {
+      this.deps.logger.debug(`TodoIndex: File ignored via frontmatter: ${file.id}`);
+      return true;
+    }
     return false;
   }
 
@@ -60,13 +65,39 @@ export class TodoIndex<T> {
   }
 
   async fileUpdated(file: FileAdapter<T>): Promise<void> {
-    if (this.ignoreFile(file)) return;
+    const fileIndex = this.files.findIndex((todosInFile) => todosInFile.file.id === file.id);
+    const fileInIndex = fileIndex >= 0;
+
+    // Check if file should be ignored (e.g., frontmatter changed to task-planner-ignore: true)
+    if (this.ignoreFile(file)) {
+      // If file was previously tracked, remove it from the index
+      if (fileInIndex) {
+        this.deps.logger.debug(`TodoIndex: File now ignored, removing from index: ${file.id}`);
+        this.files.splice(fileIndex, 1);
+        this.invalidateCache();
+        await this.triggerUpdate();
+      }
+      return;
+    }
+
+    // If file is not in index but should be tracked, add it
+    if (!fileInIndex) {
+      this.deps.logger.debug(`TodoIndex: File no longer ignored, adding to index: ${file.id}`);
+      try {
+        const todos = await this.deps.fileTodoParser.parseMdFile(file);
+        this.files.push({ todos, file });
+        this.invalidateCache();
+        await this.triggerUpdate();
+      } catch (err) {
+        this.deps.logger.error(`Failed to add previously ignored file ${file.id}: ${err}`);
+      }
+      return;
+    }
 
     this.deps.logger.debug(`TodoIndex: File updated: ${file.id}`);
-    const index = this.findFileIndex(file);
     try {
       const todos = await this.deps.fileTodoParser.parseMdFile(file);
-      this.files[index].todos = todos;
+      this.files[fileIndex].todos = todos;
       this.invalidateCache();
       await this.triggerUpdate();
     } catch (err) {

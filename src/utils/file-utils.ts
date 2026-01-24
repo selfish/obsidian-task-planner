@@ -16,3 +16,22 @@ export function getFileDisplayName(file: TFile, app: App): string {
 
   return cleanFileName(file.name);
 }
+
+/**
+ * Set a frontmatter property on a file using Obsidian's processFrontMatter API.
+ * This properly handles creating frontmatter if none exists and preserving existing properties.
+ */
+export async function setFrontmatterProperty(app: App, file: TFile, key: string, value: unknown): Promise<void> {
+  await app.fileManager.processFrontMatter(file, (frontmatter) => {
+    frontmatter[key] = value;
+  });
+}
+
+/**
+ * Remove a frontmatter property from a file.
+ */
+export async function removeFrontmatterProperty(app: App, file: TFile, key: string): Promise<void> {
+  await app.fileManager.processFrontMatter(file, (frontmatter) => {
+    delete frontmatter[key];
+  });
+}

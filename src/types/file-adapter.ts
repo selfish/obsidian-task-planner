@@ -6,4 +6,5 @@ export interface FileAdapter<T> {
   getContent(): Promise<string>;
   setContent(val: string): Promise<void>;
   isInFolder(folder: string): boolean;
+  shouldIgnore?(): boolean;
 }
