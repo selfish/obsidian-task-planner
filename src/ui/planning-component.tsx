@@ -1024,7 +1024,18 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   return (
     <div className={boardClass}>
-      <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} showIgnored={showIgnored} setShowIgnored={setShowIgnored} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} onOpenReport={onOpenReport} onQuickAdd={onQuickAdd} />
+      <PlanningSettingsComponent
+        planningSettings={planningSettings}
+        setPlanningSettings={setPlanningSettings}
+        showIgnored={showIgnored}
+        setShowIgnored={setShowIgnored}
+        totalTasks={totalTasks}
+        completedToday={completedToday}
+        app={app}
+        onRefresh={onRefresh}
+        onOpenReport={onOpenReport}
+        onQuickAdd={onQuickAdd}
+      />
       {viewMode !== "future" && (
         <div className="today-section">
           <div className="header">

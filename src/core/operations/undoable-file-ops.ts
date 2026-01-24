@@ -332,15 +332,7 @@ export class UndoableFileOperations {
    * Combined operation: update attribute, append tag, remove tags, and update status
    * This is commonly used for drag-and-drop operations
    */
-  async combinedMoveWithUndo<T>(
-    todos: TodoItem<T>[],
-    attributeName: string,
-    attributeValue: string | boolean | undefined,
-    tag?: string,
-    newStatus?: TodoStatus,
-    description?: string,
-    tagsToRemove?: string[]
-  ): Promise<void> {
+  async combinedMoveWithUndo<T>(todos: TodoItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, tag?: string, newStatus?: TodoStatus, description?: string, tagsToRemove?: string[]): Promise<void> {
     if (todos.length === 0) return;
 
     const effectiveDescription = description ?? UndoManager.createMoveDescription(todos.length, String(attributeValue));
