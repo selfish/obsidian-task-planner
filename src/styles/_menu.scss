@@ -1,0 +1,30 @@
+// Context menu customizations for task planner
+.task-planner-menu {
+  // Priority icon colors
+  .menu-item-icon {
+    // Critical - red/error color
+    .lucide-zap {
+      color: var(--text-error);
+    }
+
+    // High - orange/warning color
+    .lucide-chevron-up {
+      color: var(--text-warning);
+    }
+
+    // Medium - accent color
+    .lucide-minus {
+      color: var(--text-accent);
+    }
+
+    // Low - muted color
+    .lucide-chevron-down {
+      color: var(--text-muted);
+    }
+
+    // Lowest - faint color
+    .lucide-chevrons-down {
+      color: var(--text-faint);
+    }
+  }
+}
