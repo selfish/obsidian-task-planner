@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidian";
 
 import TaskPlannerPlugin from "../main";
-import { HorizonColor, CustomHorizon, CustomAtShortcut } from "./types";
+import { HorizonColor, CustomHorizon, CustomAtShortcut, NextWeekMode } from "./types";
 import { FileSuggest } from "../ui/file-suggest";
 import { FolderSuggest } from "../ui/folder-suggest";
 
@@ -282,18 +282,35 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         });
       });
 
+    // --- Next week ---
+    const nextWeekSection = this.createSubsection(containerEl, "Next Week");
+
+    new Setting(nextWeekSection)
+      .setName("Display mode")
+      .setDesc("How to show next week's horizons")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("same-as-this-week", "Same days as this week");
+        dropdown.addOption("all-days", "All days (Mon-Sun)");
+        dropdown.addOption("collapsed", "Single column");
+        dropdown.setValue(this.plugin.settings.horizonVisibility.nextWeekMode ?? "same-as-this-week");
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.horizonVisibility.nextWeekMode = value as "collapsed" | "same-as-this-week" | "all-days";
+          await this.plugin.saveSettings();
+          this.plugin.refreshPlanningViews();
+        });
+      });
+
     // --- Future horizons ---
     const futureSection = this.createSubsection(containerEl, "Future Horizons");
 
     new Setting(futureSection)
-      .setName("Weeks ahead")
-      .setDesc("Show upcoming weeks as columns")
+      .setName("Weeks after next")
+      .setDesc("Additional weeks to show beyond next week")
       .addDropdown((dropdown) => {
         dropdown.addOption("0", "None");
-        dropdown.addOption("1", "1 week");
-        dropdown.addOption("2", "2 weeks");
-        dropdown.addOption("3", "3 weeks");
-        dropdown.addOption("4", "4 weeks");
+        dropdown.addOption("1", "1 week (In 2 weeks)");
+        dropdown.addOption("2", "2 weeks (In 2-3 weeks)");
+        dropdown.addOption("3", "3 weeks (In 2-4 weeks)");
         dropdown.setValue(this.plugin.settings.horizonVisibility.weeksToShow.toString());
         dropdown.onChange(async (value) => {
           this.plugin.settings.horizonVisibility.weeksToShow = parseInt(value);
