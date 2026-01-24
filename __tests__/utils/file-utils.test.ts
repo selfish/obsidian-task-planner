@@ -1,5 +1,5 @@
-import { App, TFile, MetadataCache } from 'obsidian';
-import { cleanFileName, getFileDisplayName } from '../../src/utils/file-utils';
+import { App, TFile, MetadataCache, FileManager } from 'obsidian';
+import { cleanFileName, getFileDisplayName, setFrontmatterProperty, removeFrontmatterProperty } from '../../src/utils/file-utils';
 
 describe('cleanFileName', () => {
   it('should remove .md extension', () => {
@@ -146,5 +146,88 @@ describe('getFileDisplayName', () => {
     const file = createMockFile('note.md', 'folder/subfolder/note.md');
 
     expect(getFileDisplayName(file, app)).toBe('note');
+  });
+});
+
+describe('setFrontmatterProperty', () => {
+  const createMockFile = (name: string): TFile => {
+    return {
+      name,
+      path: name,
+      basename: name.replace(/\.md$/, ''),
+      extension: 'md',
+      vault: {},
+      parent: null,
+      stat: { ctime: Date.now(), mtime: Date.now(), size: 0 },
+    } as TFile;
+  };
+
+  it('should call processFrontMatter with the correct key and value', async () => {
+    const processFrontMatter = jest.fn().mockImplementation((_file, callback) => {
+      const frontmatter: Record<string, unknown> = {};
+      callback(frontmatter);
+      expect(frontmatter['my-key']).toBe('my-value');
+      return Promise.resolve();
+    });
+
+    const app = {
+      fileManager: { processFrontMatter } as unknown as FileManager,
+    } as unknown as App;
+
+    const file = createMockFile('test.md');
+    await setFrontmatterProperty(app, file, 'my-key', 'my-value');
+
+    expect(processFrontMatter).toHaveBeenCalledWith(file, expect.any(Function));
+  });
+
+  it('should handle boolean values', async () => {
+    const processFrontMatter = jest.fn().mockImplementation((_file, callback) => {
+      const frontmatter: Record<string, unknown> = {};
+      callback(frontmatter);
+      expect(frontmatter['task-planner-ignore']).toBe(true);
+      return Promise.resolve();
+    });
+
+    const app = {
+      fileManager: { processFrontMatter } as unknown as FileManager,
+    } as unknown as App;
+
+    const file = createMockFile('test.md');
+    await setFrontmatterProperty(app, file, 'task-planner-ignore', true);
+
+    expect(processFrontMatter).toHaveBeenCalled();
+  });
+});
+
+describe('removeFrontmatterProperty', () => {
+  const createMockFile = (name: string): TFile => {
+    return {
+      name,
+      path: name,
+      basename: name.replace(/\.md$/, ''),
+      extension: 'md',
+      vault: {},
+      parent: null,
+      stat: { ctime: Date.now(), mtime: Date.now(), size: 0 },
+    } as TFile;
+  };
+
+  it('should delete the specified key from frontmatter', async () => {
+    const processFrontMatter = jest.fn().mockImplementation((_file, callback) => {
+      const frontmatter: Record<string, unknown> = { 'existing-key': 'value', 'key-to-remove': 'bye' };
+      callback(frontmatter);
+      expect(frontmatter['key-to-remove']).toBeUndefined();
+      expect(frontmatter['existing-key']).toBe('value');
+      return Promise.resolve();
+    });
+
+    const app = {
+      fileManager: { processFrontMatter } as unknown as FileManager,
+    } as unknown as App;
+
+    const file = createMockFile('test.md');
+    await removeFrontmatterProperty(app, file, 'key-to-remove');
+
+    expect(processFrontMatter).toHaveBeenCalledWith(file, expect.any(Function));
   });
 });

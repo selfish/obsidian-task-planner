@@ -480,5 +480,44 @@ describe('TodoIndex', () => {
       expect(updateHandler).toHaveBeenCalled();
       expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File no longer ignored, adding to index: file1');
     });
+
+    it('should log error when parsing previously ignored file fails during fileUpdated', async () => {
+      const file = createMockFileAdapter('file1', false, false);
+      const parseError = new Error('Parse error');
+
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockRejectedValue(parseError);
+
+      const index = new TodoIndex(deps, settings);
+      // File is not in index (was previously ignored)
+      index.files = [];
+
+      await index.fileUpdated(file);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(`Failed to add previously ignored file file1: ${parseError}`);
+      expect(index.files).toHaveLength(0);
+    });
+
+    it('should handle file without shouldIgnore method', async () => {
+      // Create a file adapter without shouldIgnore defined
+      const fileWithoutShouldIgnore: FileAdapter<unknown> = {
+        id: 'noignore',
+        path: 'notes/noignore.md',
+        name: 'noignore.md',
+        getContent: jest.fn().mockResolvedValue(''),
+        setContent: jest.fn().mockResolvedValue(undefined),
+        createOrSave: jest.fn().mockResolvedValue(undefined),
+        isInFolder: jest.fn().mockReturnValue(false),
+        // shouldIgnore is undefined
+        file: {},
+      };
+
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockResolvedValue([]);
+
+      const index = new TodoIndex(deps, settings);
+      await index.filesLoaded([fileWithoutShouldIgnore]);
+
+      // File should be included (not ignored) when shouldIgnore is undefined
+      expect(mockFolderTodoParser.parseFiles).toHaveBeenCalledWith([fileWithoutShouldIgnore]);
+    });
   });
 });
