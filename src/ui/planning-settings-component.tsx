@@ -151,7 +151,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
           <span ref={hideDoneIconRef} className="icon" />
           <span className="led" />
         </button>
-        <button className={`toggle-btn ${showIgnored ? "active" : ""}`} onClick={toggleShowIgnored} aria-label="Show ignored tasks" title="Show ignored tasks">
+        <button className={`toggle-btn ${showIgnored ? "active" : ""}`} onClick={toggleShowIgnored} aria-label="View ignored tasks only" title="View ignored tasks only">
           <span ref={showIgnoredIconRef} className="icon" />
           <span className="led" />
         </button>
