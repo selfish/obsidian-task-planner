@@ -162,11 +162,13 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
     return flattenedTodos.todos.filter((todo) => {
-      // Filter out ignored tasks unless showIgnored is enabled
-      if (!showIgnored) {
-        const isIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
-        if (isIgnored) return false;
+      const isIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+      // Show ignored mode: show ONLY ignored tasks
+      if (showIgnored) {
+        return isIgnored && filter.matches(todo);
       }
+      // Normal mode: hide ignored tasks
+      if (isIgnored) return false;
       return filter.matches(todo);
     });
   }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored]);
