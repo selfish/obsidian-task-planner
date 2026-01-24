@@ -7,9 +7,12 @@ import * as React from "react";
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
 import { PlanningTodoColumn, ColumnType, ColumnHeaderAction } from "./planning-todo-column";
+import { UndoToastContainer } from "./undo-toast";
 import { TodoIndex } from "../core/index/todo-index";
 import { TodoMatcher } from "../core/matchers/todo-matcher";
 import { FileOperations } from "../core/operations/file-operations";
+import { UndoManager, UndoOperation } from "../core/operations/undo-manager";
+import { UndoableFileOperations } from "../core/operations/undoable-file-ops";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
 import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
@@ -19,6 +22,7 @@ import { findTodoDate } from "../utils/todo-utils";
 export interface PlanningComponentDeps {
   logger: Logger;
   todoIndex: TodoIndex<TFile>;
+  undoManager?: UndoManager;
 }
 
 export interface PlanningComponentProps {
@@ -38,6 +42,72 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
   const { searchParameters, hideEmpty, hideDone, wipLimit, viewMode } = planningSettings;
   const fileOperations = new FileOperations(settings);
+
+  // Undo manager setup
+  const undoManager = React.useMemo(() => {
+    if (deps.undoManager) return deps.undoManager;
+    return new UndoManager({
+      maxHistorySize: settings.undo.undoHistorySize,
+      maxHistoryAgeMs: settings.undo.undoHistoryMaxAgeSeconds * 1000,
+      enabled: settings.undo.enableUndo,
+    });
+  }, [deps.undoManager, settings.undo.undoHistorySize, settings.undo.undoHistoryMaxAgeSeconds, settings.undo.enableUndo]);
+
+  const undoableFileOps = React.useMemo(
+    () => new UndoableFileOperations({ settings, undoManager }),
+    [settings, undoManager]
+  );
+
+  // Undo toast state
+  const [undoToast, setUndoToast] = React.useState<{ message: string; id: string; isUndone?: boolean } | null>(null);
+
+  // Subscribe to undo manager events to show toast
+  React.useEffect(() => {
+    if (!settings.undo.showUndoToast) return undefined;
+
+    const unsubscribe = undoManager.onOperationRecorded.listen(async (operation) => {
+      setUndoToast({ message: operation.description, id: operation.id });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [undoManager, settings.undo.showUndoToast]);
+
+  // Handle undo action
+  const handleUndo = React.useCallback(async () => {
+    const operation = undoManager.popForUndo();
+    if (operation) {
+      const success = await undoableFileOps.applyUndo(operation, findTodo);
+      if (success) {
+        setUndoToast({ message: `Undone: ${operation.description}`, id: `${operation.id}-undone`, isUndone: true });
+      } else {
+        deps.logger.warn("Undo operation partially failed - some tasks may have changed");
+        setUndoToast({ message: `Partially undone: ${operation.description}`, id: `${operation.id}-partial`, isUndone: true });
+      }
+    }
+  }, [undoManager, undoableFileOps, deps.logger]);
+
+  // Handle keyboard shortcut for undo (Mod+Z)
+  React.useEffect(() => {
+    if (!settings.undo.enableUndo) return undefined;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (isMod && e.key === "z" && !e.shiftKey) {
+        if (undoManager.canUndo()) {
+          e.preventDefault();
+          e.stopPropagation();
+          void handleUndo();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [settings.undo.enableUndo, undoManager, handleUndo]);
 
   // Flatten todos to include subtasks with their own due dates as independent items
   const flattenedTodos = React.useMemo(() => {
@@ -151,6 +221,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     }
   }
 
+  function getDateLabel(date: Moment): string {
+    const today = moment().startOf("day");
+    const tomorrow = today.clone().add(1, "day");
+    if (date.isSame(today, "day")) return "Today";
+    if (date.isSame(tomorrow, "day")) return "Tomorrow";
+    return date.format("MMM D");
+  }
+
   function moveToDate(date: Moment) {
     return (todoId: string) => {
       const todo = findTodo(todoId);
@@ -160,7 +238,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
         return;
       }
-      void fileOperations.updateAttribute(todo, settings.dueDateAttribute, dateStr).then(() => ensureNotCompleted(todo));
+      const description = UndoManager.createMoveDescription(1, getDateLabel(date));
+      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, undefined, undefined, description);
     };
   }
 
@@ -173,8 +252,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       }
       const dateStr = date.format("YYYY-MM-DD");
       deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr}`);
-      await fileOperations.batchUpdateAttribute(foundTodos, settings.dueDateAttribute, dateStr);
-      await batchEnsureNotCompleted(foundTodos);
+      const description = UndoManager.createMoveDescription(foundTodos.length, getDateLabel(date));
+      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, undefined, undefined, description);
     };
   }
 
@@ -187,10 +266,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
         return;
       }
-      void fileOperations
-        .updateAttribute(todo, settings.dueDateAttribute, dateStr)
-        .then(() => fileOperations.appendTag(todo, tag))
-        .then(() => ensureNotCompleted(todo));
+      const description = UndoManager.createMoveDescription(1, `${getDateLabel(date)} (#${tag})`);
+      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, tag, undefined, description);
     };
   }
 
@@ -203,9 +280,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       }
       const dateStr = date.format("YYYY-MM-DD");
       deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr} with tag #${tag}`);
-      await fileOperations.batchUpdateAttribute(foundTodos, settings.dueDateAttribute, dateStr);
-      await fileOperations.batchAppendTag(foundTodos, tag);
-      await batchEnsureNotCompleted(foundTodos);
+      const description = UndoManager.createMoveDescription(foundTodos.length, `${getDateLabel(date)} (#${tag})`);
+      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, tag, undefined, description);
     };
   }
 
@@ -215,7 +291,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       if (!todo) {
         return;
       }
-      void fileOperations.removeAttribute(todo, settings.dueDateAttribute).then(() => ensureNotCompleted(todo));
+      const description = UndoManager.createMoveDescription(1, "Backlog");
+      void undoableFileOps.batchRemoveAttributeWithUndo([todo], settings.dueDateAttribute, description);
     };
   }
 
@@ -224,9 +301,28 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
       if (foundTodos.length === 0) return;
       deps.logger.debug(`Batch removing date from ${foundTodos.length} todos`);
-      await fileOperations.batchRemoveAttribute(foundTodos, settings.dueDateAttribute);
-      await batchEnsureNotCompleted(foundTodos);
+      const description = UndoManager.createMoveDescription(foundTodos.length, "Backlog");
+      await undoableFileOps.batchRemoveAttributeWithUndo(foundTodos, settings.dueDateAttribute, description);
     };
+  }
+
+  function getStatusLabel(status: TodoStatus): string {
+    switch (status) {
+      case TodoStatus.Todo:
+        return "Todo";
+      case TodoStatus.InProgress:
+        return "In Progress";
+      case TodoStatus.Complete:
+        return "Done";
+      case TodoStatus.Canceled:
+        return "Canceled";
+      case TodoStatus.Delegated:
+        return "Delegated";
+      case TodoStatus.AttentionRequired:
+        return "Attention Required";
+      default:
+        return "Unknown";
+    }
   }
 
   function moveToDateAndStatus(date: Moment, status: TodoStatus) {
@@ -238,10 +334,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
         return;
       }
-      todo.status = status;
-      void fileOperations.updateAttribute(todo, settings.dueDateAttribute, dateStr).then(() => {
-        void fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
-      });
+      const description = UndoManager.createMoveDescription(1, `${getDateLabel(date)} (${getStatusLabel(status)})`);
+      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, undefined, status, description);
     };
   }
 
@@ -254,15 +348,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       }
       const dateStr = date.format("YYYY-MM-DD");
       deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr} with status ${status}`);
-
-      // Update status in memory
-      foundTodos.forEach((todo) => (todo.status = status));
-
-      // Batch update date attribute
-      await fileOperations.batchUpdateAttribute(foundTodos, settings.dueDateAttribute, dateStr);
-
-      // Batch update status
-      await fileOperations.batchUpdateTodoStatus(foundTodos, settings.completedDateAttribute);
+      const description = UndoManager.createMoveDescription(foundTodos.length, `${getDateLabel(date)} (${getStatusLabel(status)})`);
+      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, undefined, status, description);
     };
   }
 
@@ -774,6 +861,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         <div className="future" ref={futureSectionRef}>
           {Array.from(getColumns())}
         </div>
+      )}
+      {settings.undo.showUndoToast && (
+        <UndoToastContainer
+          toast={undoToast}
+          onUndo={handleUndo}
+          onDismiss={() => setUndoToast(null)}
+          durationMs={settings.undo.undoToastDurationMs}
+        />
       )}
     </div>
   );

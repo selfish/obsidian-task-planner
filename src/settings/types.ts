@@ -71,6 +71,14 @@ export interface FollowUpSettings {
   copyPriority: boolean; // Default: false
 }
 
+export interface UndoSettings {
+  enableUndo: boolean; // Default: true
+  undoHistorySize: number; // Default: 10
+  undoHistoryMaxAgeSeconds: number; // Default: 300
+  showUndoToast: boolean; // Default: true
+  undoToastDurationMs: number; // Default: 5000
+}
+
 export interface TaskPlannerSettings {
   version: number;
   ignoredFolders: string[];
@@ -87,6 +95,7 @@ export interface TaskPlannerSettings {
   atShortcutSettings: AtShortcutSettings;
   quickAdd: QuickAddSettings;
   followUp: FollowUpSettings;
+  undo: UndoSettings;
   hasSeenOnboarding: boolean;
   hasDismissedNativeMenusWarning: boolean;
 }
@@ -140,6 +149,13 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     textPrefix: "Follow up: ",
     copyTags: true,
     copyPriority: true,
+  },
+  undo: {
+    enableUndo: true,
+    undoHistorySize: 10,
+    undoHistoryMaxAgeSeconds: 300,
+    showUndoToast: true,
+    undoToastDurationMs: 5000,
   },
   hasSeenOnboarding: false,
   hasDismissedNativeMenusWarning: false,

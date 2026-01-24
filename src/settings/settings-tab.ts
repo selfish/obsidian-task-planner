@@ -620,6 +620,32 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         })
       );
 
+    // --- Undo for drag-and-drop ---
+    const undoSection = this.createSubsection(advancedContent, "Undo");
+
+    new Setting(undoSection)
+      .setName("Enable undo for drag-and-drop")
+      .setDesc("Allow undoing task moves with Ctrl/Cmd+Z")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.undo.enableUndo).onChange(async (value) => {
+          this.plugin.settings.undo.enableUndo = value;
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+
+    if (this.plugin.settings.undo.enableUndo) {
+      new Setting(undoSection)
+        .setName("Show undo toast")
+        .setDesc("Display a notification after drag-and-drop with an undo button")
+        .addToggle((toggle) =>
+          toggle.setValue(this.plugin.settings.undo.showUndoToast).onChange(async (value) => {
+            this.plugin.settings.undo.showUndoToast = value;
+            await this.plugin.saveSettings();
+          })
+        );
+    }
+
     // --- Follow-up tasks ---
     const followUpSection = this.createSubsection(advancedContent, "Follow-up Tasks");
 
