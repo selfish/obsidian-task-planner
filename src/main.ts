@@ -18,7 +18,7 @@ import { App, Platform, Plugin, PluginManifest, TFile } from "obsidian";
 import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, ToggleOngoingTodoCommand, ToggleTodoCommand } from "./commands";
 import { FileTodoParser, FolderTodoParser, StatusOperations, TodoIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
-import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice } from "./lib";
+import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice, showInfoNotice } from "./lib";
 import { DEFAULT_SETTINGS, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
 import { Logger } from "./types";
 import { OnboardingModal } from "./ui/onboarding-modal";
@@ -83,6 +83,9 @@ export default class TaskPlannerPlugin extends Plugin {
       if (!this.settings.hasSeenOnboarding) {
         this.showOnboardingModal();
       }
+
+      // Warn about native menus (icons won't show in context menus)
+      this.checkNativeMenusSetting();
 
       if (this.app.workspace.getLeavesOfType(TodoListView.viewType).length) {
         return;
@@ -230,6 +233,25 @@ export default class TaskPlannerPlugin extends Plugin {
       });
     });
     modal.open();
+  }
+
+  private checkNativeMenusSetting(): void {
+    if (this.settings.hasDismissedNativeMenusWarning) return;
+
+    // Check if native menus are enabled (Obsidian internal config)
+    const vaultConfig = this.app.vault as { getConfig?: (key: string) => unknown };
+    if (typeof vaultConfig.getConfig !== "function") return;
+
+    const nativeMenus = vaultConfig.getConfig("nativeMenus");
+    if (nativeMenus) {
+      showInfoNotice(
+        "Task Planner: For the best experience with context menu icons, disable 'Native menus' in Settings → Appearance.",
+        0 // Stay until dismissed
+      );
+      // Mark as dismissed so we don't show again
+      this.settings.hasDismissedNativeMenusWarning = true;
+      void this.saveSettings();
+    }
   }
 
   onunload(): void {}

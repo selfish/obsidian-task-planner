@@ -88,6 +88,7 @@ export interface TaskPlannerSettings {
   quickAdd: QuickAddSettings;
   followUp: FollowUpSettings;
   hasSeenOnboarding: boolean;
+  hasDismissedNativeMenusWarning: boolean;
 }
 
 export const DEFAULT_SETTINGS: TaskPlannerSettings = {
@@ -141,4 +142,5 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     copyPriority: true,
   },
   hasSeenOnboarding: false,
+  hasDismissedNativeMenusWarning: false,
 };
