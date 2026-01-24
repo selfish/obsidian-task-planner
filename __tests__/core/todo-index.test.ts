@@ -189,6 +189,31 @@ describe('TodoIndex', () => {
       expect(mockFileTodoParser.parseMdFile).not.toHaveBeenCalled();
     });
 
+    it('should remove file from index when moved to archived folder', async () => {
+      const settings: TodoIndexSettings = {
+        ignoreArchivedTodos: true,
+        ignoredFolders: ['archive'],
+      };
+      const index = new TodoIndex(deps, settings);
+
+      // File starts as non-archived and is in the index
+      const file = createMockFileAdapter('file1', false);
+      const todo = createTodo('Task 1', file);
+      index.files = [{ file, todos: [todo] }];
+
+      const updateHandler = jest.fn().mockResolvedValue(undefined);
+      index.onUpdateEvent.listen(updateHandler);
+
+      // Now the file is in an archived folder
+      (file.isInFolder as jest.Mock).mockReturnValue(true);
+
+      await index.fileUpdated(file);
+
+      expect(index.files).toHaveLength(0);
+      expect(updateHandler).toHaveBeenCalled();
+      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File now ignored, removing from index: file1');
+    });
+
     it('should log debug message', async () => {
       const file = createMockFileAdapter('file1');
       const index = new TodoIndex(deps, settings);
