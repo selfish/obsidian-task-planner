@@ -13,7 +13,6 @@ export interface PlanningSettings {
   searchParameters: SearchParameters;
   hideEmpty: boolean;
   hideDone: boolean;
-  showIgnored: boolean;
   wipLimit: WipLimit;
   viewMode: ViewMode;
 }
@@ -25,7 +24,6 @@ export function getDefaultSettings(): PlanningSettings {
     },
     hideEmpty: true,
     hideDone: false,
-    showIgnored: false,
     wipLimit: {
       dailyLimit: 5,
       isLimited: false,

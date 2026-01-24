@@ -61,7 +61,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   );
 
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
-  const { searchParameters, hideEmpty, hideDone, showIgnored, wipLimit, viewMode } = planningSettings;
+  const { searchParameters, hideEmpty, hideDone, wipLimit, viewMode } = planningSettings;
+
+  // Show ignored is session-only state (not persisted)
+  const [showIgnored, setShowIgnored] = React.useState(false);
   const fileOperations = new FileOperations(settings);
 
   // Undo manager setup
@@ -162,7 +165,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
     return flattenedTodos.todos.filter((todo) => {
-      const isIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+      // Check both task-level and file-level ignore
+      const isTaskIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+      const isFileIgnored = todo.file.shouldIgnore?.() === true;
+      const isIgnored = isTaskIgnored || isFileIgnored;
+
       // Show ignored mode: show ONLY ignored tasks
       if (showIgnored) {
         return isIgnored && filter.matches(todo);
@@ -997,7 +1004,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   return (
     <div className={boardClass}>
-      <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} onOpenReport={onOpenReport} onQuickAdd={onQuickAdd} />
+      <PlanningSettingsComponent planningSettings={planningSettings} setPlanningSettings={setPlanningSettings} showIgnored={showIgnored} setShowIgnored={setShowIgnored} totalTasks={totalTasks} completedToday={completedToday} app={app} onRefresh={onRefresh} onOpenReport={onOpenReport} onQuickAdd={onQuickAdd} />
       {viewMode !== "future" && (
         <div className="today-section">
           <div className="header">

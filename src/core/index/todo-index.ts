@@ -37,17 +37,15 @@ export class TodoIndex<T> {
   ) {}
 
   private ignoreFile(file: FileAdapter<T>): boolean {
+    // Only exclude archived folders at index level
+    // Frontmatter-based ignore (shouldIgnore) is handled at display level
+    // so "show ignored" mode can display those tasks
     if (this.settings.ignoreArchivedTodos) {
       const isIgnored = this.settings.ignoredFolders.some((folder) => file.isInFolder(folder));
       if (isIgnored) {
         this.deps.logger.debug(`TodoIndex: File ignored because archived: ${file.id}`);
         return true;
       }
-    }
-    // Check for file-level ignore via frontmatter
-    if (file.shouldIgnore?.()) {
-      this.deps.logger.debug(`TodoIndex: File ignored via frontmatter: ${file.id}`);
-      return true;
     }
     return false;
   }
