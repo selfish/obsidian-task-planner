@@ -61,7 +61,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   );
 
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
-  const { searchParameters, hideEmpty, hideDone, wipLimit, viewMode } = planningSettings;
+  const { searchParameters, hideEmpty, hideDone, showIgnored, wipLimit, viewMode } = planningSettings;
   const fileOperations = new FileOperations(settings);
 
   // Undo manager setup
@@ -162,14 +162,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const filteredTodos = React.useMemo(() => {
     const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
     return flattenedTodos.todos.filter((todo) => {
-      // Skip ignored tasks (task-level ignore via attribute)
-      const ignoreAttr = todo.attributes?.["ignore"];
-      if (ignoreAttr === true || ignoreAttr === "true") {
-        return false;
+      // Filter out ignored tasks unless showIgnored is enabled
+      if (!showIgnored) {
+        const isIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
+        if (isIgnored) return false;
       }
       return filter.matches(todo);
     });
-  }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch]);
+  }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored]);
 
   // Set of subtask IDs that have their own dates (to hide from parent's subtask list)
   const promotedSubtaskIds = React.useMemo(() => {

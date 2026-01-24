@@ -16,7 +16,7 @@ export interface PlanningSettingsComponentProps {
 }
 
 export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
-  const { hideEmpty, hideDone, searchParameters, viewMode } = planningSettings;
+  const { hideEmpty, hideDone, showIgnored, searchParameters, viewMode } = planningSettings;
   const { searchPhrase } = searchParameters;
 
   function toggleHideEmpty() {
@@ -30,6 +30,13 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     setPlanningSettings({
       ...planningSettings,
       hideDone: !hideDone,
+    });
+  }
+
+  function toggleShowIgnored() {
+    setPlanningSettings({
+      ...planningSettings,
+      showIgnored: !showIgnored,
     });
   }
 
@@ -72,6 +79,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const quickAddIconRef = React.useRef<HTMLButtonElement>(null);
   const hideEmptyIconRef = React.useRef<HTMLSpanElement>(null);
   const hideDoneIconRef = React.useRef<HTMLSpanElement>(null);
+  const showIgnoredIconRef = React.useRef<HTMLSpanElement>(null);
   const todayFocusIconRef = React.useRef<HTMLSpanElement>(null);
   const futureFocusIconRef = React.useRef<HTMLSpanElement>(null);
 
@@ -99,6 +107,10 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     if (hideDoneIconRef.current) {
       hideDoneIconRef.current.replaceChildren();
       setIcon(hideDoneIconRef.current, "circle-check-big");
+    }
+    if (showIgnoredIconRef.current) {
+      showIgnoredIconRef.current.replaceChildren();
+      setIcon(showIgnoredIconRef.current, "eye-off");
     }
     if (todayFocusIconRef.current) {
       todayFocusIconRef.current.replaceChildren();
@@ -137,6 +149,10 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
         </button>
         <button className={`toggle-btn ${hideDone ? "active" : ""}`} onClick={toggleHideDone} aria-label="Hide completed tasks" title="Hide completed tasks">
           <span ref={hideDoneIconRef} className="icon" />
+          <span className="led" />
+        </button>
+        <button className={`toggle-btn ${showIgnored ? "active" : ""}`} onClick={toggleShowIgnored} aria-label="Show ignored tasks" title="Show ignored tasks">
+          <span ref={showIgnoredIconRef} className="icon" />
           <span className="led" />
         </button>
         <span className={"spacer"}></span>
