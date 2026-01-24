@@ -45,6 +45,24 @@
       }
     }
 
+    // Visual divider before first next-week column
+    &.next-week-start {
+      position: relative;
+      margin-left: calc(var(--column-gap) + 6px);
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: calc(-1 * var(--column-gap) / 2 - 4px);
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--background-modifier-border);
+        opacity: 0.5;
+        border-radius: 1px;
+      }
+    }
+
     > .header {
       display: flex;
       align-items: center;
@@ -73,6 +91,28 @@
 
       .title {
         line-height: var(--leading-tight);
+      }
+
+      // Title group for two-line labels (e.g., "Tomorrow" + "Jan 25")
+      .title-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        line-height: 1.2;
+
+        .title {
+          font-size: var(--font-sm);
+          font-weight: 600;
+          color: var(--text-muted);
+        }
+
+        .subtitle {
+          font-size: var(--font-xs);
+          font-weight: 400;
+          color: var(--text-faint);
+          margin-top: 2px;
+        }
       }
 
       .count {

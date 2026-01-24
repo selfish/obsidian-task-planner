@@ -22,13 +22,15 @@ export interface CustomHorizon {
   position: "before" | "after" | "end"; // before = before backlog, after = after backlog, end = after time horizons
 }
 
+export type NextWeekMode = "collapsed" | "same-as-this-week" | "all-days";
+
 export interface HorizonVisibility {
   // Basic horizons
   showBacklog: boolean;
   showPast: boolean;
   showOverdue: boolean;
 
-  // Individual weekdays
+  // Individual weekdays (this week)
   showMonday: boolean;
   showTuesday: boolean;
   showWednesday: boolean;
@@ -37,7 +39,10 @@ export interface HorizonVisibility {
   showSaturday: boolean;
   showSunday: boolean;
 
-  // Week/Month counts
+  // Next week display mode
+  nextWeekMode: NextWeekMode;
+
+  // Week/Month counts (weeksToShow now counts weeks AFTER next week)
   weeksToShow: number; // 0-4
   monthsToShow: number; // 0-3
 
@@ -108,8 +113,9 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     showFriday: true,
     showSaturday: false,
     showSunday: false,
-    weeksToShow: 4,
-    monthsToShow: 3,
+    nextWeekMode: "same-as-this-week",
+    weeksToShow: 2,
+    monthsToShow: 2,
     showQuarters: false,
     showNextYear: false,
     showLater: true,

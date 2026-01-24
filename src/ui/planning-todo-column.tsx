@@ -72,6 +72,12 @@ function getEmptyStateMessage(columnType?: ColumnType): string {
 export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType, headerActions }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
 
+  // Parse title for main title and optional subtitle (separated by \n)
+  const [mainTitle, subtitle] = React.useMemo(() => {
+    const parts = title.split("\n");
+    return [parts[0], parts[1] || null];
+  }, [title]);
+
   // Use callback ref to ensure icon renders on mount (fixes Preact re-render issue)
   const setIconRef = React.useCallback(
     (node: HTMLSpanElement | null) => {
@@ -81,6 +87,17 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
       }
     },
     [icon]
+  );
+
+  // Create callback refs for header action icons
+  const createActionIconRef = React.useCallback(
+    (iconName: string) => (node: HTMLSpanElement | null) => {
+      if (node && iconName) {
+        node.replaceChildren();
+        setIcon(node, iconName);
+      }
+    },
+    []
   );
 
   function onDragOver(ev: React.DragEvent): void {
@@ -153,12 +170,28 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
 
   const columnStyle: React.CSSProperties | undefined = customColor ? ({ "--custom-horizon-color": HORIZON_COLOR_CSS_VAR[customColor] } as React.CSSProperties) : undefined;
 
+  // Check if this is a next-week column for divider styling
+  const isNextWeekStart = substyle?.includes("next-week-start");
+  const columnClassList = [columnClasses, isNextWeekStart && "next-week-start"].filter(Boolean).join(" ");
+
   return (
-    <div className={columnClasses} style={columnStyle}>
+    <div className={columnClassList} style={columnStyle}>
       <div className="header">
         <span ref={setIconRef} className="icon"></span>
-        <span className="title">{title}</span>
+        <div className="title-group">
+          <span className="title">{mainTitle}</span>
+          {subtitle && <span className="subtitle">{subtitle}</span>}
+        </div>
         {todos.length > 0 && <span className="count">({todos.length})</span>}
+        {headerActions && headerActions.length > 0 && todos.length > 0 && (
+          <div className="header-actions">
+            {headerActions.map((action, index) => (
+              <button key={index} className="header-action-btn" onClick={action.onClick} title={action.label} aria-label={action.label}>
+                <span ref={createActionIconRef(action.icon)} className="icon"></span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
         {todos.length === 0 ? (

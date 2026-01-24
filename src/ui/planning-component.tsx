@@ -434,6 +434,15 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     const daysUntilNextWeekStart = (firstWeekday - endOfWeek.isoWeekday() + 7) % 7 || 7;
     endOfWeek = endOfWeek.add(daysUntilNextWeekStart, "days");
 
+    // Helper to generate human-friendly label with date subtitle
+    function formatDayLabel(date: Moment, isTomorrow: boolean): string {
+      if (isTomorrow) {
+        return `Tomorrow\n${date.format("MMM D")}`;
+      }
+      return `${date.format("dddd")}\n${date.format("MMM D")}`;
+    }
+
+    // This week's days
     let isFirstDay = true;
     while (currentDate.isBefore(endOfWeek)) {
       const weekday = currentDate.isoWeekday();
@@ -443,7 +452,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const nextDay = currentDate.clone().add(1, "days");
         const todos = getTodosByDate(currentDate, nextDay);
         const style = getWipStyle(todos);
-        const label = isFirstDay ? "Tomorrow" : currentDate.format("dddd DD/MM");
+        const label = formatDayLabel(currentDate, isFirstDay);
 
         yield todoColumn(isFirstDay ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future");
 
@@ -453,14 +462,59 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       currentDate = currentDate.clone().add(1, "days");
     }
 
-    if (horizonVisibility.weeksToShow > 0) {
-      let weekStart = endOfWeek.clone();
+    // Next week handling
+    const endOfNextWeek = endOfWeek.clone().add(7, "days");
+    const nextWeekMode = horizonVisibility.nextWeekMode ?? "collapsed";
 
-      for (let i = 1; i <= horizonVisibility.weeksToShow; i++) {
+    if (nextWeekMode === "collapsed") {
+      // Single "Next week" column
+      if (!isWeekOverlapping(endOfWeek, endOfNextWeek)) {
+        const todos = getTodosByDate(endOfWeek, endOfNextWeek);
+        const style = getWipStyle(todos);
+        const label = `Next week\n${endOfWeek.format("MMM D")} - ${endOfNextWeek.clone().subtract(1, "days").format("MMM D")}`;
+        yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(endOfWeek), batchMoveToDate(endOfWeek), `${style} next-week-start`, undefined, "future");
+      }
+      currentDate = endOfNextWeek.clone();
+    } else {
+      // Individual days for next week
+      let nextWeekDate = endOfWeek.clone();
+      let isFirstNextWeekDay = true;
+
+      while (nextWeekDate.isBefore(endOfNextWeek)) {
+        const weekday = nextWeekDate.isoWeekday();
+        const setting = weekdaySettings.find((s) => s.day === weekday);
+
+        // Show day if: all-days mode, OR same-as-this-week and the day is enabled
+        const showThisDay = nextWeekMode === "all-days" || (setting && horizonVisibility[setting.key as keyof typeof horizonVisibility]);
+
+        if (showThisDay) {
+          const nextDay = nextWeekDate.clone().add(1, "days");
+          const todos = getTodosByDate(nextWeekDate, nextDay);
+          const style = getWipStyle(todos);
+          const label = `${nextWeekDate.format("dddd")}\n${nextWeekDate.format("MMM D")}`;
+
+          // Add "next-week-start" class to first column for visual divider
+          const extraStyle = isFirstNextWeekDay ? `${style} next-week-start` : style;
+
+          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), extraStyle, undefined, "future");
+
+          isFirstNextWeekDay = false;
+        }
+
+        nextWeekDate = nextWeekDate.clone().add(1, "days");
+      }
+      currentDate = endOfNextWeek.clone();
+    }
+
+    // Weeks after next (weeksToShow now counts from after next week)
+    if (horizonVisibility.weeksToShow > 0) {
+      let weekStart = endOfNextWeek.clone();
+
+      for (let i = 2; i <= horizonVisibility.weeksToShow + 1; i++) {
         const weekEnd = weekStart.clone().add(1, "weeks");
 
         if (!isWeekOverlapping(weekStart, weekEnd)) {
-          const label = `Week +${i} (${weekStart.format("DD/MM")} - ${weekEnd.clone().subtract(1, "days").format("DD/MM")})`;
+          const label = `In ${i} weeks\n${weekStart.format("MMM D")} - ${weekEnd.clone().subtract(1, "days").format("MMM D")}`;
           const todos = getTodosByDate(weekStart, weekEnd);
           const style = getWipStyle(todos);
           yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style, undefined, "future");
@@ -468,8 +522,6 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         weekStart = weekEnd;
       }
       currentDate = weekStart;
-    } else {
-      currentDate = endOfWeek.clone();
     }
 
     if (horizonVisibility.monthsToShow > 0) {
@@ -482,7 +534,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const monthEnd = monthStart.clone().add(1, "months");
 
         if (!isMonthOverlapping(monthStart, monthEnd)) {
-          const label = `Month +${i} (${monthStart.format("MMM DD")} - ${monthEnd.clone().subtract(1, "days").format("MMM DD")})`;
+          // Use month name as primary label
+          const label = `${monthStart.format("MMMM")}\n${monthStart.format("MMM D")} - ${monthEnd.clone().subtract(1, "days").format("MMM D")}`;
           const todos = getTodosByDate(monthStart, monthEnd);
           const style = getWipStyle(todos);
           yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style, undefined, "future");
