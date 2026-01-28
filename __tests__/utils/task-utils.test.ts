@@ -1,5 +1,5 @@
-import { findTodoDate } from '../../src/utils/todo-utils';
-import { TodoItem, TodoStatus } from '../../src/types/todo';
+import { findTaskDate } from '../../src/utils/task-utils';
+import { TaskItem, TaskStatus } from '../../src/types/task';
 import { FileAdapter } from '../../src/types/file-adapter';
 
 const createMockFile = (): FileAdapter<unknown> => ({
@@ -13,19 +13,19 @@ const createMockFile = (): FileAdapter<unknown> => ({
   file: {},
 });
 
-const createTodo = (attributes?: Record<string, string>): TodoItem<unknown> => ({
-  status: TodoStatus.Todo,
+const createTodo = (attributes?: Record<string, string>): TaskItem<unknown> => ({
+  status: TaskStatus.Todo,
   text: 'Test todo',
   file: createMockFile(),
   attributes,
 });
 
-describe('findTodoDate', () => {
+describe('findTaskDate', () => {
   describe('with valid dates', () => {
     it('should find and parse a valid date attribute', () => {
       const todo = createTodo({ due: '2024-01-15' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).not.toBeNull();
       expect(result!.format('YYYY-MM-DD')).toBe('2024-01-15');
@@ -34,7 +34,7 @@ describe('findTodoDate', () => {
     it('should find scheduled date', () => {
       const todo = createTodo({ scheduled: '2024-06-20' });
 
-      const result = findTodoDate(todo, 'scheduled');
+      const result = findTaskDate(todo, 'scheduled');
 
       expect(result).not.toBeNull();
       expect(result!.format('YYYY-MM-DD')).toBe('2024-06-20');
@@ -43,7 +43,7 @@ describe('findTodoDate', () => {
     it('should find start date', () => {
       const todo = createTodo({ start: '2024-03-01' });
 
-      const result = findTodoDate(todo, 'start');
+      const result = findTaskDate(todo, 'start');
 
       expect(result).not.toBeNull();
       expect(result!.format('YYYY-MM-DD')).toBe('2024-03-01');
@@ -52,7 +52,7 @@ describe('findTodoDate', () => {
     it('should parse dates with different formats', () => {
       const todo = createTodo({ due: '2024/12/25' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).not.toBeNull();
       expect(result!.isValid()).toBe(true);
@@ -61,7 +61,7 @@ describe('findTodoDate', () => {
     it('should handle ISO date format', () => {
       const todo = createTodo({ due: '2024-01-15T10:30:00' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).not.toBeNull();
       expect(result!.isValid()).toBe(true);
@@ -72,7 +72,7 @@ describe('findTodoDate', () => {
     it('should return null when todo has no attributes', () => {
       const todo = createTodo(undefined);
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).toBeNull();
     });
@@ -80,7 +80,7 @@ describe('findTodoDate', () => {
     it('should return null when attribute does not exist', () => {
       const todo = createTodo({ other: 'value' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).toBeNull();
     });
@@ -88,7 +88,7 @@ describe('findTodoDate', () => {
     it('should return null for invalid date string', () => {
       const todo = createTodo({ due: 'not-a-date' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).toBeNull();
     });
@@ -96,7 +96,7 @@ describe('findTodoDate', () => {
     it('should return null for empty string', () => {
       const todo = createTodo({ due: '' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).toBeNull();
     });
@@ -104,7 +104,7 @@ describe('findTodoDate', () => {
     it('should return null for gibberish', () => {
       const todo = createTodo({ due: 'xyz123abc' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       expect(result).toBeNull();
     });
@@ -114,7 +114,7 @@ describe('findTodoDate', () => {
     it('should work with custom attribute names', () => {
       const todo = createTodo({ myCustomDate: '2024-07-04' });
 
-      const result = findTodoDate(todo, 'myCustomDate');
+      const result = findTaskDate(todo, 'myCustomDate');
 
       expect(result).not.toBeNull();
       expect(result!.format('YYYY-MM-DD')).toBe('2024-07-04');
@@ -123,8 +123,8 @@ describe('findTodoDate', () => {
     it('should be case-sensitive for attribute names', () => {
       const todo = createTodo({ Due: '2024-01-15' });
 
-      const resultLower = findTodoDate(todo, 'due');
-      const resultUpper = findTodoDate(todo, 'Due');
+      const resultLower = findTaskDate(todo, 'due');
+      const resultUpper = findTaskDate(todo, 'Due');
 
       expect(resultLower).toBeNull();
       expect(resultUpper).not.toBeNull();
@@ -140,10 +140,10 @@ describe('findTodoDate', () => {
         priority: 'high',
       });
 
-      expect(findTodoDate(todo, 'due')!.format('YYYY-MM-DD')).toBe('2024-01-15');
-      expect(findTodoDate(todo, 'scheduled')!.format('YYYY-MM-DD')).toBe('2024-01-10');
-      expect(findTodoDate(todo, 'start')!.format('YYYY-MM-DD')).toBe('2024-01-05');
-      expect(findTodoDate(todo, 'priority')).toBeNull();
+      expect(findTaskDate(todo, 'due')!.format('YYYY-MM-DD')).toBe('2024-01-15');
+      expect(findTaskDate(todo, 'scheduled')!.format('YYYY-MM-DD')).toBe('2024-01-10');
+      expect(findTaskDate(todo, 'start')!.format('YYYY-MM-DD')).toBe('2024-01-05');
+      expect(findTaskDate(todo, 'priority')).toBeNull();
     });
   });
 
@@ -151,7 +151,7 @@ describe('findTodoDate', () => {
     it('should handle attributes with numeric-like values', () => {
       const todo = createTodo({ due: '20240115' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       // moment might parse this as a valid date
       expect(result).not.toBeNull();
@@ -160,7 +160,7 @@ describe('findTodoDate', () => {
     it('should handle whitespace in date string', () => {
       const todo = createTodo({ due: '  2024-01-15  ' });
 
-      const result = findTodoDate(todo, 'due');
+      const result = findTaskDate(todo, 'due');
 
       // moment handles whitespace
       expect(result).not.toBeNull();

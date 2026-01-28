@@ -1,14 +1,14 @@
 import { ItemView, Platform, TFile, WorkspaceLeaf } from "obsidian";
 
-import { TodoIndex } from "../core";
+import { TaskIndex } from "../core";
 import { TaskPlannerSettings } from "../settings";
 import { Logger } from "../types";
-import { TodoReportView } from "./todo-report-view";
+import { TodoReportView } from "./task-report-view";
 import { mountPlanningComponent } from "../ui/planning-component";
 
 export interface PlanningViewDeps {
   logger: Logger;
-  todoIndex: TodoIndex<TFile>;
+  taskIndex: TaskIndex<TFile>;
   onQuickAdd?: () => void;
 }
 

@@ -1,8 +1,8 @@
 import { TaskPlannerEvent } from "../../events/task-planner-event";
-import { TodoStatus } from "../../types/todo";
+import { TaskStatus } from "../../types/task";
 
 export interface TaskChange {
-  todoId: string;
+  taskId: string;
   filePath: string;
   lineNumber: number;
   attributeName: string;
@@ -11,17 +11,17 @@ export interface TaskChange {
 }
 
 export interface StatusChange {
-  todoId: string;
+  taskId: string;
   filePath: string;
   lineNumber: number;
-  previousStatus: TodoStatus;
-  newStatus: TodoStatus;
+  previousStatus: TaskStatus;
+  newStatus: TaskStatus;
   previousCompletedDate?: string;
   newCompletedDate?: string;
 }
 
 export interface TagChange {
-  todoId: string;
+  taskId: string;
   filePath: string;
   lineNumber: number;
   tag: string;
@@ -172,8 +172,8 @@ export class UndoManager {
   /**
    * Create a description for a status change operation
    */
-  static createStatusDescription(taskCount: number, newStatus: TodoStatus): string {
-    const statusName = TodoStatus[newStatus] || "Unknown";
+  static createStatusDescription(taskCount: number, newStatus: TaskStatus): string {
+    const statusName = TaskStatus[newStatus] || "Unknown";
     if (taskCount === 1) {
       return `Changed task to ${statusName}`;
     }

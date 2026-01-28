@@ -1,4 +1,4 @@
-import { TodoItem } from "./todo";
+import { TaskItem } from "./task";
 
 export interface LineStructure {
   indentation: string;
@@ -8,10 +8,10 @@ export interface LineStructure {
   line: string;
 }
 
-export interface TodoParsingResult<T> {
-  isTodo: boolean;
+export interface TaskParsingResult<T> {
+  isTask: boolean;
   lineNumber: number;
-  todo?: TodoItem<T>;
+  task?: TaskItem<T>;
   indentLevel: number;
 }
 

@@ -1,5 +1,5 @@
 import { HorizonDeduplicator, filterTodosByTag } from "../../src/ui/horizon-deduplication";
-import { TodoItem, TodoStatus } from "../../src/types/todo";
+import { TaskItem, TaskStatus } from "../../src/types/task";
 import { FileAdapter } from "../../src/types/file-adapter";
 
 const createMockFileAdapter = (id: string, path: string): FileAdapter<unknown> => ({
@@ -16,11 +16,11 @@ function createTodo(options: {
   text: string;
   line?: number;
   tags?: string[];
-  status?: TodoStatus;
+  status?: TaskStatus;
   attributes?: Record<string, string | boolean>;
-}): TodoItem<unknown> {
+}): TaskItem<unknown> {
   return {
-    status: options.status ?? TodoStatus.Todo,
+    status: options.status ?? TaskStatus.Todo,
     text: options.text,
     file: createMockFileAdapter(options.id, `notes/${options.id}.md`),
     line: options.line ?? 1,

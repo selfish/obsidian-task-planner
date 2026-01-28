@@ -1,11 +1,11 @@
 import { Consts } from '../../src/types/constants';
 
 describe('Consts', () => {
-  it('should have TodoItemDragType constant', () => {
-    expect(Consts.TodoItemDragType).toBe('application/x-todo-id');
+  it('should have TaskItemDragType constant', () => {
+    expect(Consts.TaskItemDragType).toBe('application/x-task-id');
   });
 
-  it('should have TodoGroupDragType constant', () => {
-    expect(Consts.TodoGroupDragType).toBe('application/x-todo-group-ids');
+  it('should have TaskGroupDragType constant', () => {
+    expect(Consts.TaskGroupDragType).toBe('application/x-task-group-ids');
   });
 });

@@ -1,6 +1,6 @@
 import { FileAdapter } from "./file-adapter";
 
-export enum TodoStatus {
+export enum TaskStatus {
   AttentionRequired = 0,
   Todo = 1,
   InProgress = 2,
@@ -9,17 +9,17 @@ export enum TodoStatus {
   Canceled = 5,
 }
 
-export interface TodoItem<TFile> {
-  status: TodoStatus;
+export interface TaskItem<TFile> {
+  status: TaskStatus;
   text: string;
   file: FileAdapter<TFile>;
   folderType?: string;
   attributes?: Record<string, string | boolean>;
   tags?: string[];
   line?: number;
-  subtasks?: TodoItem<TFile>[];
+  subtasks?: TaskItem<TFile>[];
 }
 
-export function getTodoId<T>(todo: TodoItem<T>): string {
-  return todo.file.id + "-" + (todo.line || 0) + "-" + todo.text;
+export function getTaskId<T>(task: TaskItem<T>): string {
+  return task.file.id + "-" + (task.line || 0) + "-" + task.text;
 }

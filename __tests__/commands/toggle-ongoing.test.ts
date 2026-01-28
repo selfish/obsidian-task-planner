@@ -1,4 +1,4 @@
-import { ToggleOngoingTodoCommand } from '../../src/commands/toggle-ongoing';
+import { ToggleOngoingTaskCommand } from '../../src/commands/toggle-ongoing';
 import { StatusOperations } from '../../src/core/operations/status-operations';
 import { Editor, MarkdownView } from 'obsidian';
 
@@ -13,22 +13,22 @@ const createMockEditor = (lines: string[]): Editor => {
   } as unknown as Editor;
 };
 
-describe('ToggleOngoingTodoCommand', () => {
+describe('ToggleOngoingTaskCommand', () => {
   let statusOperations: StatusOperations;
-  let command: ToggleOngoingTodoCommand;
+  let command: ToggleOngoingTaskCommand;
 
   beforeEach(() => {
     statusOperations = new StatusOperations();
-    command = new ToggleOngoingTodoCommand(statusOperations);
+    command = new ToggleOngoingTaskCommand(statusOperations);
   });
 
   describe('properties', () => {
     it('should have correct id', () => {
-      expect(command.id).toBe('toggle-ongoing-todo');
+      expect(command.id).toBe('toggle-ongoing-task');
     });
 
     it('should have correct name', () => {
-      expect(command.name).toBe('Mark todo as ongoing / unchecked');
+      expect(command.name).toBe('Mark task as ongoing / unchecked');
     });
 
     it('should have correct icon', () => {

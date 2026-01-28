@@ -3,10 +3,10 @@ import { TFile, setIcon } from "obsidian";
 import * as React from "react";
 
 import { StandardDependencies } from "./standard-dependencies";
-import { TodoListComponent } from "./todo-list-component";
+import { TaskListComponent } from "./task-list-component";
 import { HorizonColor } from "../settings/types";
 import { Consts } from "../types/constants";
-import { TodoItem } from "../types/todo";
+import { TaskItem } from "../types/task";
 
 const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
   red: "var(--color-red)",
@@ -36,8 +36,8 @@ export interface ColumnHeaderAction {
 export interface PlanningTodoColumnProps {
   icon: string;
   title: string;
-  todos: TodoItem<TFile>[];
-  onTodoDropped: ((todoId: string) => void) | null;
+  todos: TaskItem<TFile>[];
+  onTodoDropped: ((taskId: string) => void) | null;
   onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null;
   hideIfEmpty: boolean;
   deps: PlanningTodoColumnDeps;
@@ -65,7 +65,7 @@ function getEmptyStateMessage(columnType?: ColumnType): string {
   }
 }
 
-export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType, headerActions }: PlanningTodoColumnProps): React.ReactElement | null {
+export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType, headerActions }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
 
   // Parse title for main title and optional subtitle (separated by \n)
@@ -118,25 +118,25 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
     ev.stopPropagation();
     setIsHovering(false);
 
-    const groupIds = ev.dataTransfer.getData(Consts.TodoGroupDragType);
+    const groupIds = ev.dataTransfer.getData(Consts.TaskGroupDragType);
     if (groupIds) {
-      const todoIds = groupIds.split(Consts.TodoIdDelimiter);
+      const todoIds = groupIds.split(Consts.TaskIdDelimiter);
 
       if (onBatchTodoDropped) {
         void onBatchTodoDropped(todoIds);
       } else if (onTodoDropped) {
-        todoIds.forEach((todoId, index) => {
+        todoIds.forEach((taskId, index) => {
           setTimeout(() => {
-            onTodoDropped(todoId);
+            onTodoDropped(taskId);
           }, index * 30);
         });
       }
       return;
     }
 
-    const todoId = ev.dataTransfer.getData(Consts.TodoItemDragType);
-    if (todoId && onTodoDropped) {
-      onTodoDropped(todoId);
+    const taskId = ev.dataTransfer.getData(Consts.TaskItemDragType);
+    if (taskId && onTodoDropped) {
+      onTodoDropped(taskId);
     }
   }
 
@@ -194,7 +194,7 @@ export function PlanningTodoColumn({ icon, title, hideIfEmpty, onTodoDropped, on
             <span className="empty-state-text">{getEmptyStateMessage(columnType)}</span>
           </div>
         ) : (
-          <TodoListComponent deps={deps} todos={todos} />
+          <TaskListComponent deps={deps} todos={todos} />
         )}
       </div>
     </div>

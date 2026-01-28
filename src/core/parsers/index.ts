@@ -1,3 +1,3 @@
-export * from "./file-todo-parser";
-export * from "./folder-todo-parser";
+export * from "./file-task-parser";
+export * from "./folder-task-parser";
 export * from "./line-parser";

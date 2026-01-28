@@ -82,7 +82,7 @@ export interface UndoSettings {
 export interface TaskPlannerSettings {
   version: number;
   ignoredFolders: string[];
-  ignoreArchivedTodos: boolean;
+  ignoreArchivedTasks: boolean;
   defaultDailyWipLimit: number;
   dueDateAttribute: string;
   completedDateAttribute: string;
@@ -103,7 +103,7 @@ export interface TaskPlannerSettings {
 export const DEFAULT_SETTINGS: TaskPlannerSettings = {
   version: 4,
   ignoredFolders: [],
-  ignoreArchivedTodos: true,
+  ignoreArchivedTasks: true,
   defaultDailyWipLimit: 5,
   dueDateAttribute: "due",
   completedDateAttribute: "completed",

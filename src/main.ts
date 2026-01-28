@@ -15,8 +15,8 @@
 
 import { App, Platform, Plugin, PluginManifest, TFile } from "obsidian";
 
-import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, ToggleOngoingTodoCommand, ToggleTodoCommand } from "./commands";
-import { FileTodoParser, FolderTodoParser, StatusOperations, TodoIndex } from "./core";
+import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, ToggleOngoingTaskCommand, ToggleTaskCommand } from "./commands";
+import { FileTaskParser, FolderTaskParser, StatusOperations, TaskIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice, showInfoNotice } from "./lib";
 import { DEFAULT_SETTINGS, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
@@ -28,9 +28,9 @@ import { PlanningView, TodoListView, TodoReportView } from "./views";
 export default class TaskPlannerPlugin extends Plugin {
   logger: Logger = new ConsoleLogger(LogLevel.ERROR);
   settings!: TaskPlannerSettings;
-  fileTodoParser!: FileTodoParser<TFile>;
-  folderTodoParser!: FolderTodoParser<TFile>;
-  todoIndex!: TodoIndex<TFile>;
+  fileTaskParser!: FileTaskParser<TFile>;
+  folderTaskParser!: FolderTaskParser<TFile>;
+  taskIndex!: TaskIndex<TFile>;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
@@ -40,15 +40,15 @@ export default class TaskPlannerPlugin extends Plugin {
     this.logger.info("Loading Task Planner");
     await this.loadSettings();
 
-    this.fileTodoParser = new FileTodoParser(this.settings);
-    this.folderTodoParser = new FolderTodoParser({
-      fileTodoParser: this.fileTodoParser,
+    this.fileTaskParser = new FileTaskParser(this.settings);
+    this.folderTaskParser = new FolderTaskParser({
+      fileTaskParser: this.fileTaskParser,
       logger: this.logger,
     });
-    this.todoIndex = new TodoIndex(
+    this.taskIndex = new TaskIndex(
       {
-        fileTodoParser: this.fileTodoParser,
-        folderTodoParser: this.folderTodoParser,
+        fileTaskParser: this.fileTaskParser,
+        folderTaskParser: this.folderTaskParser,
         logger: this.logger,
       },
       this.settings
@@ -59,9 +59,9 @@ export default class TaskPlannerPlugin extends Plugin {
     const quickAddCommand = new QuickAddCommand(() => this.openQuickAddModal());
     const statusOperations = new StatusOperations(this.settings);
 
-    this.addCommand(new ToggleTodoCommand(statusOperations));
+    this.addCommand(new ToggleTaskCommand(statusOperations));
     this.addCommand(new CompleteLineCommand(statusOperations));
-    this.addCommand(new ToggleOngoingTodoCommand(statusOperations));
+    this.addCommand(new ToggleOngoingTaskCommand(statusOperations));
     this.addCommand(openPlanningCommand);
     this.addCommand(openReportCommand);
     this.addCommand(quickAddCommand);
@@ -107,7 +107,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
   private registerViews(): void {
     this.registerView(TodoListView.viewType, (leaf) => {
-      const view = new TodoListView(leaf, { logger: this.logger }, this.todoIndex, this.settings);
+      const view = new TodoListView(leaf, { logger: this.logger }, this.taskIndex, this.settings);
       view.render();
       return view;
     });
@@ -116,7 +116,7 @@ export default class TaskPlannerPlugin extends Plugin {
       const view = new PlanningView(
         {
           logger: this.logger,
-          todoIndex: this.todoIndex,
+          taskIndex: this.taskIndex,
           onQuickAdd: () => this.openQuickAddModal(),
         },
         this.settings,
@@ -131,7 +131,7 @@ export default class TaskPlannerPlugin extends Plugin {
         leaf,
         {
           logger: this.logger,
-          todoIndex: this.todoIndex,
+          taskIndex: this.taskIndex,
           settings: this.settings,
           app: this.app,
         },
@@ -146,7 +146,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
         if (file instanceof TFile && file.extension === "md") {
-          void this.todoIndex.fileUpdated(new ObsidianFile(this.app, file));
+          void this.taskIndex.fileUpdated(new ObsidianFile(this.app, file));
         }
       })
     );
@@ -157,7 +157,7 @@ export default class TaskPlannerPlugin extends Plugin {
       this.app.vault.on("create", (file) => {
         if (!this.app.workspace.layoutReady) return;
         if (file instanceof TFile && file.extension === "md") {
-          void this.todoIndex.fileCreated(new ObsidianFile(this.app, file));
+          void this.taskIndex.fileCreated(new ObsidianFile(this.app, file));
         }
       })
     );
@@ -165,7 +165,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
         if (file instanceof TFile && file.extension === "md") {
-          void this.todoIndex.fileDeleted(new ObsidianFile(this.app, file));
+          void this.taskIndex.fileDeleted(new ObsidianFile(this.app, file));
         }
       })
     );
@@ -173,7 +173,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
         if (file instanceof TFile && file.extension === "md") {
-          void this.todoIndex.fileRenamed(oldPath, new ObsidianFile(this.app, file));
+          void this.taskIndex.fileRenamed(oldPath, new ObsidianFile(this.app, file));
         }
       })
     );
@@ -183,7 +183,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
         if (file instanceof TFile && file.extension === "md") {
-          void this.todoIndex.fileUpdated(new ObsidianFile(this.app, file));
+          void this.taskIndex.fileUpdated(new ObsidianFile(this.app, file));
         }
       })
     );
@@ -192,7 +192,7 @@ export default class TaskPlannerPlugin extends Plugin {
   private loadFiles(): void {
     setTimeout(() => {
       const files = this.app.vault.getMarkdownFiles().map((file) => new ObsidianFile(this.app, file));
-      void this.todoIndex.filesLoaded(files);
+      void this.taskIndex.filesLoaded(files);
     }, 50);
   }
 

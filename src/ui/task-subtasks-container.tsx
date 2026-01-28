@@ -3,17 +3,17 @@ import { TFile, setIcon } from "obsidian";
 import * as React from "react";
 
 import { StandardDependencies } from "./standard-dependencies";
-import { TodoItemComponent } from "./todo-item-component";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
+import { TodoItemComponent } from "./task-item-component";
+import { TaskItem, TaskStatus, getTaskId } from "../types/task";
 
 export interface TodoSubtasksContainerProps {
-  subtasks?: TodoItem<TFile>[];
+  subtasks?: TaskItem<TFile>[];
   deps: StandardDependencies;
   dontCrossCompleted?: boolean;
 }
 
-function countCompleted<T>(subtasks: TodoItem<T>[]): number {
-  return subtasks.filter((t) => t.status === TodoStatus.Complete || t.status === TodoStatus.Canceled).length;
+function countCompleted<T>(subtasks: TaskItem<T>[]): number {
+  return subtasks.filter((t) => t.status === TaskStatus.Complete || t.status === TaskStatus.Canceled).length;
 }
 
 export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: TodoSubtasksContainerProps) {
@@ -24,7 +24,7 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
     if (!subtasks) return [];
     const promoted = deps.promotedSubtaskIds;
     if (!promoted || promoted.size === 0) return subtasks;
-    return subtasks.filter((t) => !promoted.has(getTodoId(t)));
+    return subtasks.filter((t) => !promoted.has(getTaskId(t)));
   }, [subtasks, deps.promotedSubtaskIds]);
 
   // Use callback ref for chevron icon

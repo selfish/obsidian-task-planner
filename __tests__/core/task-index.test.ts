@@ -1,10 +1,10 @@
-import { TodoIndex, TodoIndexDeps, TodoIndexSettings } from '../../src/core/index/todo-index';
-import { FileTodoParser } from '../../src/core/parsers/file-todo-parser';
-import { FolderTodoParser } from '../../src/core/parsers/folder-todo-parser';
+import { TaskIndex, TaskIndexDeps, TaskIndexSettings } from '../../src/core/index/task-index';
+import { FileTaskParser } from '../../src/core/parsers/file-task-parser';
+import { FolderTaskParser } from '../../src/core/parsers/folder-task-parser';
 import { FileAdapter } from '../../src/types/file-adapter';
-import { TodoItem, TodoStatus } from '../../src/types/todo';
+import { TaskItem, TaskStatus } from '../../src/types/task';
 import { Logger } from '../../src/types/logger';
-import { TodosInFiles } from '../../src/types/todos-in-files';
+import { TasksInFiles } from '../../src/types/tasks-in-files';
 
 const createMockFileAdapter = (id: string, inArchive = false, shouldIgnore = false): FileAdapter<unknown> => ({
   id,
@@ -25,72 +25,72 @@ const createMockLogger = (): Logger => ({
   error: jest.fn(),
 });
 
-const createTodo = (text: string, file: FileAdapter<unknown>): TodoItem<unknown> => ({
-  status: TodoStatus.Todo,
+const createTodo = (text: string, file: FileAdapter<unknown>): TaskItem<unknown> => ({
+  status: TaskStatus.Todo,
   text,
   file,
   line: 0,
 });
 
-describe('TodoIndex', () => {
+describe('TaskIndex', () => {
   let mockLogger: Logger;
-  let mockFileTodoParser: FileTodoParser<unknown>;
-  let mockFolderTodoParser: FolderTodoParser<unknown>;
-  let settings: TodoIndexSettings;
-  let deps: TodoIndexDeps<unknown>;
+  let mockFileTodoParser: FileTaskParser<unknown>;
+  let mockFolderTodoParser: FolderTaskParser<unknown>;
+  let settings: TaskIndexSettings;
+  let deps: TaskIndexDeps<unknown>;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockFileTodoParser = {
       parseMdFile: jest.fn().mockResolvedValue([]),
-    } as unknown as FileTodoParser<unknown>;
+    } as unknown as FileTaskParser<unknown>;
     mockFolderTodoParser = {
       parseFiles: jest.fn().mockResolvedValue([]),
-    } as unknown as FolderTodoParser<unknown>;
+    } as unknown as FolderTaskParser<unknown>;
     settings = {
-      ignoreArchivedTodos: false,
+      ignoreArchivedTasks: false,
       ignoredFolders: [],
     };
     deps = {
-      fileTodoParser: mockFileTodoParser,
-      folderTodoParser: mockFolderTodoParser,
+      fileTaskParser: mockFileTodoParser,
+      folderTaskParser: mockFolderTodoParser,
       logger: mockLogger,
     };
   });
 
   describe('constructor', () => {
     it('should initialize with empty files array', () => {
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       expect(index.files).toEqual([]);
     });
 
     it('should have an onUpdateEvent', () => {
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       expect(index.onUpdateEvent).toBeDefined();
     });
   });
 
   describe('todos getter', () => {
     it('should return empty array when no files', () => {
-      const index = new TodoIndex(deps, settings);
-      expect(index.todos).toEqual([]);
+      const index = new TaskIndex(deps, settings);
+      expect(index.tasks).toEqual([]);
     });
 
     it('should return all todos from all files', () => {
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       const file1 = createMockFileAdapter('file1');
       const file2 = createMockFileAdapter('file2');
       const todo1 = createTodo('Task 1', file1);
       const todo2 = createTodo('Task 2', file2);
 
       index.files = [
-        { file: file1, todos: [todo1] },
-        { file: file2, todos: [todo2] },
+        { file: file1, tasks: [todo1] },
+        { file: file2, tasks: [todo2] },
       ];
 
-      expect(index.todos).toHaveLength(2);
-      expect(index.todos).toContain(todo1);
-      expect(index.todos).toContain(todo2);
+      expect(index.tasks).toHaveLength(2);
+      expect(index.tasks).toContain(todo1);
+      expect(index.tasks).toContain(todo2);
     });
   });
 
@@ -101,14 +101,14 @@ describe('TodoIndex', () => {
       const todo1 = createTodo('Task 1', file1);
       const todo2 = createTodo('Task 2', file2);
 
-      const todosInFiles: TodosInFiles<unknown>[] = [
-        { file: file1, todos: [todo1] },
-        { file: file2, todos: [todo2] },
+      const todosInFiles: TasksInFiles<unknown>[] = [
+        { file: file1, tasks: [todo1] },
+        { file: file2, tasks: [todo2] },
       ];
 
       (mockFolderTodoParser.parseFiles as jest.Mock).mockResolvedValue(todosInFiles);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       const updateHandler = jest.fn().mockResolvedValue(undefined);
       index.onUpdateEvent.listen(updateHandler);
 
@@ -121,12 +121,12 @@ describe('TodoIndex', () => {
       expect(updateHandler).toHaveBeenCalledWith([todo1, todo2]);
     });
 
-    it('should filter out archived files when ignoreArchivedTodos is true', async () => {
-      const settings: TodoIndexSettings = {
-        ignoreArchivedTodos: true,
+    it('should filter out archived files when ignoreArchivedTasks is true', async () => {
+      const settings: TaskIndexSettings = {
+        ignoreArchivedTasks: true,
         ignoredFolders: ['archive'],
       };
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
 
       const normalFile = createMockFileAdapter('normal', false);
       const archivedFile = createMockFileAdapter('archived', true);
@@ -146,7 +146,7 @@ describe('TodoIndex', () => {
 
       (mockFolderTodoParser.parseFiles as jest.Mock).mockRejectedValue(parseError);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
 
       await index.filesLoaded([file]);
 
@@ -160,7 +160,7 @@ describe('TodoIndex', () => {
       const oldTodo = createTodo('Old task', file);
       const newTodo = createTodo('New task', file);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [{ file, todos: [oldTodo] }];
 
       (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([newTodo]);
@@ -172,16 +172,16 @@ describe('TodoIndex', () => {
 
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(index.files[0].todos).toEqual([newTodo]);
+      expect(index.files[0].tasks).toEqual([newTodo]);
       expect(updateHandler).toHaveBeenCalled();
     });
 
-    it('should ignore archived files when ignoreArchivedTodos is true', async () => {
-      const settings: TodoIndexSettings = {
-        ignoreArchivedTodos: true,
+    it('should ignore archived files when ignoreArchivedTasks is true', async () => {
+      const settings: TaskIndexSettings = {
+        ignoreArchivedTasks: true,
         ignoredFolders: ['archive'],
       };
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       const archivedFile = createMockFileAdapter('archived', true);
 
       index.fileUpdated(archivedFile);
@@ -190,11 +190,11 @@ describe('TodoIndex', () => {
     });
 
     it('should remove file from index when moved to archived folder', async () => {
-      const settings: TodoIndexSettings = {
-        ignoreArchivedTodos: true,
+      const settings: TaskIndexSettings = {
+        ignoreArchivedTasks: true,
         ignoredFolders: ['archive'],
       };
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
 
       // File starts as non-archived and is in the index
       const file = createMockFileAdapter('file1', false);
@@ -211,25 +211,25 @@ describe('TodoIndex', () => {
 
       expect(index.files).toHaveLength(0);
       expect(updateHandler).toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File now ignored, removing from index: file1');
+      expect(mockLogger.debug).toHaveBeenCalledWith('TaskIndex: File now ignored, removing from index: file1');
     });
 
     it('should log debug message', async () => {
       const file = createMockFileAdapter('file1');
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [{ file, todos: [] }];
 
       (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([]);
 
       index.fileUpdated(file);
 
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File updated: file1');
+      expect(mockLogger.debug).toHaveBeenCalledWith('TaskIndex: File updated: file1');
     });
 
     it('should log error when parsing file fails', async () => {
       const file = createMockFileAdapter('file1');
       const parseError = new Error('Parse error');
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [{ file, todos: [] }];
 
       (mockFileTodoParser.parseMdFile as jest.Mock).mockRejectedValue(parseError);
@@ -245,10 +245,10 @@ describe('TodoIndex', () => {
       const file1 = createMockFileAdapter('file1');
       const file2 = createMockFileAdapter('file2');
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [
-        { file: file1, todos: [] },
-        { file: file2, todos: [] },
+        { file: file1, tasks: [] },
+        { file: file2, tasks: [] },
       ];
 
       const updateHandler = jest.fn().mockResolvedValue(undefined);
@@ -263,12 +263,12 @@ describe('TodoIndex', () => {
       expect(updateHandler).toHaveBeenCalled();
     });
 
-    it('should ignore archived files when ignoreArchivedTodos is true', () => {
-      const settings: TodoIndexSettings = {
-        ignoreArchivedTodos: true,
+    it('should ignore archived files when ignoreArchivedTasks is true', () => {
+      const settings: TaskIndexSettings = {
+        ignoreArchivedTasks: true,
         ignoredFolders: ['archive'],
       };
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       const archivedFile = createMockFileAdapter('archived', true);
       index.files = [];
 
@@ -280,10 +280,10 @@ describe('TodoIndex', () => {
 
     it('should throw error when file not found in index', async () => {
       const file = createMockFileAdapter('file1');
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [];
 
-      await expect(index.fileDeleted(file)).rejects.toThrow('TodoIndex: File not found in index: file1');
+      await expect(index.fileDeleted(file)).rejects.toThrow('TaskIndex: File not found in index: file1');
       expect(mockLogger.error).toHaveBeenCalled();
     });
   });
@@ -294,8 +294,8 @@ describe('TodoIndex', () => {
       const newFile = createMockFileAdapter('new');
       const newTodo = createTodo('New task', newFile);
 
-      const index = new TodoIndex(deps, settings);
-      index.files = [{ file: existingFile, todos: [] }];
+      const index = new TaskIndex(deps, settings);
+      index.files = [{ file: existingFile, tasks: [] }];
 
       (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([newTodo]);
 
@@ -306,16 +306,16 @@ describe('TodoIndex', () => {
 
       expect(index.files).toHaveLength(2);
       expect(index.files[1].file).toBe(newFile);
-      expect(index.files[1].todos).toEqual([newTodo]);
+      expect(index.files[1].tasks).toEqual([newTodo]);
       expect(updateHandler).toHaveBeenCalled();
     });
 
-    it('should ignore archived files when ignoreArchivedTodos is true', () => {
-      const settings: TodoIndexSettings = {
-        ignoreArchivedTodos: true,
+    it('should ignore archived files when ignoreArchivedTasks is true', () => {
+      const settings: TaskIndexSettings = {
+        ignoreArchivedTasks: true,
         ignoredFolders: ['archive'],
       };
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       const archivedFile = createMockFileAdapter('archived', true);
 
       index.fileCreated(archivedFile);
@@ -326,7 +326,7 @@ describe('TodoIndex', () => {
     it('should log error when parsing created file fails', async () => {
       const newFile = createMockFileAdapter('new');
       const parseError = new Error('Parse error');
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [];
 
       (mockFileTodoParser.parseMdFile as jest.Mock).mockRejectedValue(parseError);
@@ -340,16 +340,16 @@ describe('TodoIndex', () => {
   describe('fileRenamed', () => {
     it('should log debug message', () => {
       const file = createMockFileAdapter('newname');
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
 
       index.fileRenamed('oldname', file);
 
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File renamed: oldname to newname');
+      expect(mockLogger.debug).toHaveBeenCalledWith('TaskIndex: File renamed: oldname to newname');
     });
 
     it('should return early when file not found in index', async () => {
       const file = createMockFileAdapter('newname');
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [];
 
       const updateHandler = jest.fn().mockResolvedValue(undefined);
@@ -357,7 +357,7 @@ describe('TodoIndex', () => {
 
       await index.fileRenamed('nonexistent', file);
 
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File not found in index during rename: nonexistent');
+      expect(mockLogger.debug).toHaveBeenCalledWith('TaskIndex: File not found in index during rename: nonexistent');
       expect(updateHandler).not.toHaveBeenCalled();
     });
 
@@ -366,8 +366,8 @@ describe('TodoIndex', () => {
       const newFile = createMockFileAdapter('newname');
       const todo = createTodo('Task 1', oldFile);
 
-      const index = new TodoIndex(deps, settings);
-      index.files = [{ file: oldFile, todos: [todo] }];
+      const index = new TaskIndex(deps, settings);
+      index.files = [{ file: oldFile, tasks: [todo] }];
 
       const updateHandler = jest.fn().mockResolvedValue(undefined);
       index.onUpdateEvent.listen(updateHandler);
@@ -380,17 +380,17 @@ describe('TodoIndex', () => {
     });
 
     it('should remove file from index when renamed/moved to ignored folder', async () => {
-      const settings: TodoIndexSettings = {
-        ignoreArchivedTodos: true,
+      const settings: TaskIndexSettings = {
+        ignoreArchivedTasks: true,
         ignoredFolders: ['archive'],
       };
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
 
       const originalFile = createMockFileAdapter('original');
       const archivedFile = createMockFileAdapter('archived', true);
       const todo = createTodo('Task 1', originalFile);
 
-      index.files = [{ file: originalFile, todos: [todo] }];
+      index.files = [{ file: originalFile, tasks: [todo] }];
 
       const updateHandler = jest.fn().mockResolvedValue(undefined);
       index.onUpdateEvent.listen(updateHandler);
@@ -406,16 +406,16 @@ describe('TodoIndex', () => {
       const newFile = createMockFileAdapter('newname');
       const todo = createTodo('Task 1', oldFile);
 
-      const index = new TodoIndex(deps, settings);
-      index.files = [{ file: oldFile, todos: [todo] }];
+      const index = new TaskIndex(deps, settings);
+      index.files = [{ file: oldFile, tasks: [todo] }];
 
       // Access todos to populate the cache
-      expect(index.todos).toHaveLength(1);
+      expect(index.tasks).toHaveLength(1);
 
       await index.fileRenamed('oldname', newFile);
 
       // The todos getter should return fresh data (cache invalidated)
-      expect(index.todos).toHaveLength(1);
+      expect(index.tasks).toHaveLength(1);
     });
   });
 
@@ -425,7 +425,7 @@ describe('TodoIndex', () => {
       const todo = createTodo('Task 1', file);
       const listenerError = new Error('Listener error');
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [{ file, todos: [todo] }];
 
       // Add a listener that throws an error
@@ -452,7 +452,7 @@ describe('TodoIndex', () => {
 
       (mockFolderTodoParser.parseFiles as jest.Mock).mockResolvedValue([]);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       await index.filesLoaded([normalFile, ignoredFile]);
 
       // Both files should be passed to parser (shouldIgnore is handled at display level)
@@ -464,7 +464,7 @@ describe('TodoIndex', () => {
       const todo = createTodo('Task 1', ignoredFile);
       (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([todo]);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       await index.fileCreated(ignoredFile);
 
       // File should be parsed and added (shouldIgnore is handled at display level)
@@ -476,7 +476,7 @@ describe('TodoIndex', () => {
       const file = createMockFileAdapter('file1', false, false);
       const todo = createTodo('Task 1', file);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       index.files = [{ file, todos: [todo] }];
 
       // Simulate frontmatter change - shouldIgnore now returns true
@@ -499,7 +499,7 @@ describe('TodoIndex', () => {
 
       (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([todo]);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       // File is not in index (was previously ignored)
       index.files = [];
 
@@ -509,9 +509,9 @@ describe('TodoIndex', () => {
       await index.fileUpdated(file);
 
       expect(index.files).toHaveLength(1);
-      expect(index.files[0].todos).toEqual([todo]);
+      expect(index.files[0].tasks).toEqual([todo]);
       expect(updateHandler).toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith('TodoIndex: File no longer ignored, adding to index: file1');
+      expect(mockLogger.debug).toHaveBeenCalledWith('TaskIndex: File no longer ignored, adding to index: file1');
     });
 
     it('should log error when parsing previously ignored file fails during fileUpdated', async () => {
@@ -520,7 +520,7 @@ describe('TodoIndex', () => {
 
       (mockFileTodoParser.parseMdFile as jest.Mock).mockRejectedValue(parseError);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       // File is not in index (was previously ignored)
       index.files = [];
 
@@ -546,7 +546,7 @@ describe('TodoIndex', () => {
 
       (mockFolderTodoParser.parseFiles as jest.Mock).mockResolvedValue([]);
 
-      const index = new TodoIndex(deps, settings);
+      const index = new TaskIndex(deps, settings);
       await index.filesLoaded([fileWithoutShouldIgnore]);
 
       // File should be included (not ignored) when shouldIgnore is undefined

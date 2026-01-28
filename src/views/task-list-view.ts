@@ -1,9 +1,9 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 
-import { TodoIndex } from "../core";
+import { TaskIndex } from "../core";
 import { TaskPlannerSettings } from "../settings";
 import { Logger } from "../types";
-import { mountSidePanelComponent } from "../ui/todo-side-panel-component";
+import { mountSidePanelComponent } from "../ui/task-side-panel-component";
 
 export interface TodoListViewDeps {
   logger: Logger;
@@ -15,7 +15,7 @@ export class TodoListView extends ItemView {
   constructor(
     leaf: WorkspaceLeaf,
     private deps: TodoListViewDeps,
-    private todoIndex: TodoIndex<TFile>,
+    private taskIndex: TaskIndex<TFile>,
     private settings: TaskPlannerSettings
   ) {
     super(leaf);
@@ -42,7 +42,7 @@ export class TodoListView extends ItemView {
       deps: {
         app: this.app,
         logger: this.deps.logger,
-        todoIndex: this.todoIndex,
+        taskIndex: this.taskIndex,
         settings: this.settings,
       },
     });

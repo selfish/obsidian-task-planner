@@ -1,6 +1,6 @@
 import { FollowUpCreator } from "../../../src/core/services/follow-up-creator";
 import { DEFAULT_SETTINGS, TaskPlannerSettings } from "../../../src/settings/types";
-import { FileAdapter, TodoItem, TodoStatus } from "../../../src/types";
+import { FileAdapter, TaskItem, TaskStatus } from "../../../src/types";
 
 describe("FollowUpCreator", () => {
   let settings: TaskPlannerSettings;
@@ -24,11 +24,11 @@ describe("FollowUpCreator", () => {
   }
 
   function createMockTodo(
-    overrides: Partial<TodoItem<string>> = {},
+    overrides: Partial<TaskItem<string>> = {},
     fileContent = "- [ ] Original task\n"
-  ): TodoItem<string> {
+  ): TaskItem<string> {
     return {
-      status: TodoStatus.Todo,
+      status: TaskStatus.Todo,
       text: "Original task",
       file: createMockFileAdapter(fileContent),
       line: 0,

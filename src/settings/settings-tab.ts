@@ -603,8 +603,8 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .setName("Ignore archived")
       .setDesc("Skip tasks in archive folder")
       .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.ignoreArchivedTodos).onChange(async (value) => {
-          this.plugin.settings.ignoreArchivedTodos = value;
+        toggle.setValue(this.plugin.settings.ignoreArchivedTasks).onChange(async (value) => {
+          this.plugin.settings.ignoreArchivedTasks = value;
           await this.plugin.saveSettings();
         })
       );

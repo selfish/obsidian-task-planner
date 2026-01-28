@@ -1,11 +1,11 @@
 import { Command, Editor, MarkdownFileInfo, MarkdownView } from "obsidian";
 
 import { StatusOperations } from "../core";
-import { TodoStatus } from "../types";
+import { TaskStatus } from "../types";
 
-export class ToggleTodoCommand implements Command {
-  id = "toggle-todo";
-  name = "Mark todo as checked / unchecked";
+export class ToggleTaskCommand implements Command {
+  id = "toggle-task";
+  name = "Mark task as checked / unchecked";
   icon = "check-small";
 
   constructor(private lineOperations: StatusOperations) {}
@@ -13,10 +13,10 @@ export class ToggleTodoCommand implements Command {
   editorCallback(editor: Editor, _ctx: MarkdownView | MarkdownFileInfo): void {
     const lineNumber = editor.getCursor("from").line;
     let line = editor.getLine(lineNumber);
-    const todo = this.lineOperations.toTodo(line, lineNumber);
+    const task = this.lineOperations.toTask(line, lineNumber);
 
-    if (todo.isTodo && todo.todo) {
-      const newCheckmark = todo.todo.status === TodoStatus.Complete ? " " : "x";
+    if (task.isTask && task.task) {
+      const newCheckmark = task.task.status === TaskStatus.Complete ? " " : "x";
       line = this.lineOperations.setCheckmark(line, newCheckmark);
       editor.setLine(lineNumber, line);
     }

@@ -2,14 +2,14 @@ import { ItemView, Platform, WorkspaceLeaf } from "obsidian";
 
 import { TaskPlannerSettings } from "../settings";
 import { PlanningView } from "./planning-view";
-import { mountTodoReportComponent, TodoReportComponentDeps } from "../ui/todo-report-component";
+import { mountTaskReportComponent, TaskReportComponentDeps } from "../ui/task-report-component";
 
 export class TodoReportView extends ItemView {
   static viewType = "task-planner.report";
 
   constructor(
     leaf: WorkspaceLeaf,
-    private deps: TodoReportComponentDeps,
+    private deps: TaskReportComponentDeps,
     private settings: TaskPlannerSettings
   ) {
     super(leaf);
@@ -37,10 +37,10 @@ export class TodoReportView extends ItemView {
   }
 
   render(): void {
-    mountTodoReportComponent(this.containerEl, {
+    mountTaskReportComponent(this.containerEl, {
       deps: {
         logger: this.deps.logger,
-        todoIndex: this.deps.todoIndex,
+        taskIndex: this.deps.taskIndex,
         app: this.app,
         settings: this.settings,
       },
