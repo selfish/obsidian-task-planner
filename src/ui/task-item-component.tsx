@@ -3,6 +3,7 @@ import { MarkdownView, Menu, TFile, setIcon } from "obsidian";
 import * as React from "react";
 
 import { MarkdownText } from "./markdown-text";
+import { ColumnType } from "./planning-task-column";
 import { StandardDependencies } from "./standard-dependencies";
 import { TodoStatusComponent } from "./task-status-component";
 import { TodoSubtasksContainer } from "./task-subtasks-container";
@@ -12,7 +13,8 @@ import { showSuccessNotice, showErrorNotice } from "../lib/user-notice";
 import { Consts } from "../types/constants";
 import { TaskItem, TaskStatus, getTaskId } from "../types/task";
 import { getFileDisplayName, setFrontmatterProperty, removeFrontmatterProperty } from "../utils/file-utils";
-import { moment } from "../utils/moment";
+import { moment, Moment } from "../utils/moment";
+import { findTaskDate } from "../utils/task-utils";
 
 interface PriorityBadgeProps {
   priority: string;
@@ -81,6 +83,45 @@ function IgnoredBadge({ type }: { type: "task" | "file" }): React.ReactElement {
   );
 }
 
+interface DueDateBadgeProps {
+  dueDate: Moment;
+}
+
+function getDueDateInfo(dueDate: Moment): { label: string; variant: "overdue" | "today" | "tomorrow" | "future" } {
+  const today = moment().startOf("day");
+  const tomorrow = today.clone().add(1, "day");
+
+  if (dueDate.isBefore(today)) {
+    return { label: "Overdue", variant: "overdue" };
+  }
+  if (dueDate.isSame(today, "day")) {
+    return { label: "Due: Today", variant: "today" };
+  }
+  if (dueDate.isSame(tomorrow, "day")) {
+    return { label: "Due: Tomorrow", variant: "tomorrow" };
+  }
+  return { label: `Due: ${dueDate.format("MMM D")}`, variant: "future" };
+}
+
+function DueDateBadge({ dueDate }: DueDateBadgeProps): React.ReactElement {
+  const iconRef = React.useRef<HTMLSpanElement>(null);
+  const { label, variant } = getDueDateInfo(dueDate);
+
+  React.useEffect(() => {
+    if (iconRef.current) {
+      iconRef.current.replaceChildren();
+      setIcon(iconRef.current, variant === "overdue" ? "alert-triangle" : "calendar");
+    }
+  }, [variant]);
+
+  return (
+    <span className={`badge due-date ${variant}`} title={`Due: ${dueDate.format("YYYY-MM-DD")}`}>
+      <span ref={iconRef} className="icon"></span>
+      {label}
+    </span>
+  );
+}
+
 function getPriority(attributes: Record<string, string | boolean> | undefined): string | null {
   if (!attributes) return null;
 
@@ -99,9 +140,11 @@ export interface TodoItemComponentProps {
   dontCrossCompleted?: boolean;
   deps: StandardDependencies;
   hideFileRef?: boolean;
+  /** Column type for context-specific rendering (e.g., due date badges in in-progress) */
+  columnType?: ColumnType;
 }
 
-export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef }: TodoItemComponentProps): React.ReactElement {
+export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef, columnType }: TodoItemComponentProps): React.ReactElement {
   const app = deps.app;
   const settings = deps.settings;
   const fileOperations = new FileOperations(settings);
@@ -374,6 +417,10 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   const cardClasses = ["card", isCompleted && "completed"].filter(Boolean).join(" ");
   const textClasses = ["text", !dontCrossCompleted && isCompleted && "completed"].filter(Boolean).join(" ");
 
+  // Show due date badge in the in-progress column
+  const showDueDateBadge = columnType === "today-in-progress";
+  const dueDate = showDueDateBadge ? findTaskDate(todo, settings.dueDateAttribute) : null;
+
   function onKeyDown(ev: React.KeyboardEvent<HTMLDivElement>): void {
     if (ev.key === "Enter" || ev.key === " ") {
       ev.preventDefault();
@@ -388,9 +435,10 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
         <div className="body">
           <MarkdownText text={todo.text} app={app} sourcePath={todo.file.file.path} className={textClasses} />
           {!hideFileRef && <div className="file-ref">{fileDisplayName}</div>}
-          {(priority || isSelected || isFileIgnored || isTaskIgnored) && (
+          {(priority || isSelected || isFileIgnored || isTaskIgnored || dueDate) && (
             <div className="meta">
               {isSelected && <PinnedBadge />}
+              {dueDate && <DueDateBadge dueDate={dueDate} />}
               {isFileIgnored && <IgnoredBadge type="file" />}
               {isTaskIgnored && <IgnoredBadge type="task" />}
               {priority && <PriorityBadge priority={priority} />}
