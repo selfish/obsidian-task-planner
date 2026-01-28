@@ -778,4 +778,96 @@ describe('FileOperations', () => {
     });
   });
 
+  describe('batchRemoveTag', () => {
+    it('should remove tag from multiple todos in the same file', async () => {
+      const fileContent = '- [ ] Task one #work\n- [ ] Task two #work\n- [ ] Task three';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one #work', file, line: 0, tags: ['work'] },
+        { status: TaskStatus.Todo, text: 'Task two #work', file, line: 1, tags: ['work'] },
+      ];
+
+      await operations.batchRemoveTag(todos, 'work');
+
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one\n- [ ] Task two\n- [ ] Task three');
+    });
+
+    it('should skip todos that do not have the tag', async () => {
+      const fileContent = '- [ ] Task one #work\n- [ ] Task two';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one #work', file, line: 0, tags: ['work'] },
+        { status: TaskStatus.Todo, text: 'Task two', file, line: 1, tags: [] },
+      ];
+
+      await operations.batchRemoveTag(todos, 'work');
+
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one\n- [ ] Task two');
+    });
+
+    it('should handle empty array', async () => {
+      await operations.batchRemoveTag([], 'work');
+      // No errors should be thrown
+    });
+
+    it('should skip if no todos have the tag', async () => {
+      const fileContent = '- [ ] Task one\n- [ ] Task two';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one', file, line: 0, tags: [] },
+        { status: TaskStatus.Todo, text: 'Task two', file, line: 1, tags: [] },
+      ];
+
+      await operations.batchRemoveTag(todos, 'work');
+
+      expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it('should update todos in multiple files', async () => {
+      const file1 = createMockFileAdapter('- [ ] Task one #shared');
+      const file2 = createMockFileAdapter('- [ ] Task two #shared');
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one #shared', file: file1, line: 0, tags: ['shared'] },
+        { status: TaskStatus.Todo, text: 'Task two #shared', file: file2, line: 0, tags: ['shared'] },
+      ];
+
+      await operations.batchRemoveTag(todos, 'shared');
+
+      expect(file1.setContent).toHaveBeenCalledTimes(1);
+      expect(file2.setContent).toHaveBeenCalledTimes(1);
+      expect((file1.setContent as jest.Mock).mock.calls[0][0]).toBe('- [ ] Task one');
+      expect((file2.setContent as jest.Mock).mock.calls[0][0]).toBe('- [ ] Task two');
+    });
+
+    it('should preserve other tags when removing one', async () => {
+      const fileContent = '- [ ] Task one #work #urgent';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one #work #urgent', file, line: 0, tags: ['work', 'urgent'] },
+      ];
+
+      await operations.batchRemoveTag(todos, 'work');
+
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one #urgent');
+    });
+
+    it('should preserve attributes when removing a tag', async () => {
+      const fileContent = '- [ ] Task one #work [due:: 2025-01-15]';
+      const file = createMockFileAdapter(fileContent);
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one #work', file, line: 0, tags: ['work'] },
+      ];
+
+      await operations.batchRemoveTag(todos, 'work');
+
+      const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
+      expect(setContentCall).toBe('- [ ] Task one [due:: 2025-01-15]');
+    });
+  });
+
 });

@@ -92,13 +92,6 @@ export class FileOperations {
     await this.updateContentInFile(task, updateLine);
   }
 
-  private async updateCheckbox<T>(task: TaskItem<T>, newCheckbox: string) {
-    const updateLine = (line: LineStructure) => {
-      line.checkbox = newCheckbox;
-    };
-    await this.updateContentInFile(task, updateLine);
-  }
-
   async updateTaskStatus<T>(task: TaskItem<T>, completedAttribute: string): Promise<void> {
     const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
     const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;

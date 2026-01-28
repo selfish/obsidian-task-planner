@@ -1139,4 +1139,228 @@ describe('UndoableFileOperations', () => {
       expect(undoManager.getHistorySize()).toBe(1);
     });
   });
+
+  describe('branch coverage - line number fallback', () => {
+    it('should use line number 0 for removeAttributeWithUndo when line is undefined', async () => {
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
+        text: 'Task',
+        file: createMockFileAdapter('file-1', 'notes/1.md'),
+        line: undefined,
+        attributes: { due: '2025-01-15' },
+      };
+
+      await undoableOps.removeAttributeWithUndo(todo, 'due', 'Cleared');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.taskChanges[0].lineNumber).toBe(0);
+    });
+
+    it('should use line number 0 for appendTagWithUndo when line is undefined', async () => {
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
+        text: 'Task',
+        file: createMockFileAdapter('file-1', 'notes/1.md'),
+        line: undefined,
+        tags: [],
+      };
+
+      await undoableOps.appendTagWithUndo(todo, 'urgent', 'Tagged');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.tagChanges[0].lineNumber).toBe(0);
+    });
+
+    it('should use line number 0 for batchUpdateAttributeWithUndo when line is undefined', async () => {
+      const todos: TaskItem<unknown>[] = [{
+        status: TaskStatus.Todo,
+        text: 'Task',
+        file: createMockFileAdapter('file-1', 'notes/1.md'),
+        line: undefined,
+      }];
+
+      await undoableOps.batchUpdateAttributeWithUndo(todos, 'due', '2025-01-15', 'Moved');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.taskChanges[0].lineNumber).toBe(0);
+    });
+
+    it('should use line number 0 for batchRemoveAttributeWithUndo when line is undefined', async () => {
+      const todos: TaskItem<unknown>[] = [{
+        status: TaskStatus.Todo,
+        text: 'Task',
+        file: createMockFileAdapter('file-1', 'notes/1.md'),
+        line: undefined,
+        attributes: { due: '2025-01-15' },
+      }];
+
+      await undoableOps.batchRemoveAttributeWithUndo(todos, 'due', 'Cleared');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.taskChanges[0].lineNumber).toBe(0);
+    });
+
+    it('should use line number 0 for batchAppendTagWithUndo when line is undefined', async () => {
+      const todos: TaskItem<unknown>[] = [{
+        status: TaskStatus.Todo,
+        text: 'Task',
+        file: createMockFileAdapter('file-1', 'notes/1.md'),
+        line: undefined,
+        tags: [],
+      }];
+
+      await undoableOps.batchAppendTagWithUndo(todos, 'urgent', 'Tagged');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.tagChanges[0].lineNumber).toBe(0);
+    });
+
+    it('should use line number 0 for batchUpdateTaskStatusWithUndo when line is undefined', async () => {
+      const todos: TaskItem<unknown>[] = [{
+        status: TaskStatus.Complete,
+        text: 'Task',
+        file: createMockFileAdapter('file-1', 'notes/1.md'),
+        line: undefined,
+      }];
+
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, new Map(), 'Completed');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.statusChanges[0].lineNumber).toBe(0);
+    });
+
+    it('should use line number 0 for combinedMoveWithUndo when line is undefined', async () => {
+      const todos: TaskItem<unknown>[] = [{
+        status: TaskStatus.Todo,
+        text: 'Task',
+        file: createMockFileAdapter('file-1', 'notes/1.md'),
+        line: undefined,
+        tags: [],
+      }];
+
+      await undoableOps.combinedMoveWithUndo(todos, 'due', '2025-01-15', 'project', TaskStatus.InProgress, 'Move');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.taskChanges[0].lineNumber).toBe(0);
+      expect(lastOp?.tagChanges[0].lineNumber).toBe(0);
+      expect(lastOp?.statusChanges[0].lineNumber).toBe(0);
+    });
+  });
+
+  describe('branch coverage - status transitions', () => {
+    it('should track completed date when transitioning to Canceled status', async () => {
+      const todo = createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Canceled);
+
+      await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Todo, 'Canceled task');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.statusChanges[0].newCompletedDate).toBeDefined();
+    });
+
+    it('should track previous completed date when was previously Canceled', async () => {
+      const todo = createTodo('1', 'Task 1', 1, { completed: '2025-01-10' }, [], TaskStatus.Todo);
+
+      await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Canceled, 'Uncanceled task');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.statusChanges[0].previousCompletedDate).toBe('2025-01-10');
+    });
+
+    it('should handle batch status update with Canceled status', async () => {
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Canceled)];
+      const previousStatuses = new Map([['notes/1.md:1', TaskStatus.Todo]]);
+
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, previousStatuses, 'Batch canceled');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.statusChanges[0].newCompletedDate).toBeDefined();
+    });
+
+    it('should handle batch status when previous was Canceled', async () => {
+      const todos = [createTodo('1', 'Task 1', 1, { completed: '2025-01-10' }, [], TaskStatus.Todo)];
+      // taskId format is: file.id + "-" + line + "-" + text
+      const previousStatuses = new Map([['file-1-1-Task 1', TaskStatus.Canceled]]);
+
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, previousStatuses, 'Uncanceled');
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.statusChanges[0].previousCompletedDate).toBe('2025-01-10');
+    });
+
+    it('should handle combined move with Canceled status', async () => {
+      const todos = [createTodo('1', 'Task 1', 1, {}, [])];
+
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        undefined,
+        TaskStatus.Canceled,
+        'Canceled'
+      );
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.statusChanges[0].newCompletedDate).toBeDefined();
+    });
+
+    it('should handle combined move when previous status was Canceled', async () => {
+      const todos = [createTodo('1', 'Task 1', 1, { completed: '2025-01-10' }, [], TaskStatus.Canceled)];
+
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        undefined,
+        TaskStatus.Todo,
+        'Uncanceled'
+      );
+
+      const lastOp = undoManager.getLastOperation();
+      expect(lastOp?.statusChanges[0].previousCompletedDate).toBe('2025-01-10');
+    });
+  });
+
+  describe('branch coverage - previousStatuses fallback', () => {
+    it('should use task.status when previousStatuses map does not have entry', async () => {
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete)];
+      const emptyPreviousStatuses = new Map<string, TaskStatus>();
+
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, emptyPreviousStatuses, 'Completed');
+
+      const lastOp = undoManager.getLastOperation();
+      // When map doesn't have the taskId, it falls back to task.status
+      expect(lastOp?.statusChanges[0].previousStatus).toBe(TaskStatus.Complete);
+    });
+  });
+
+  describe('branch coverage - combinedMoveWithUndo with undo disabled', () => {
+    it('should handle tag addition when undo disabled', async () => {
+      undoManager.updateConfig({ enabled: false });
+      const todos = [createTodo('1', 'Task 1', 1, {}, [])];
+
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        'newtag'
+      );
+
+      expect(undoManager.getHistorySize()).toBe(0);
+    });
+
+    it('should handle status change when undo disabled', async () => {
+      undoManager.updateConfig({ enabled: false });
+      const todos = [createTodo('1', 'Task 1', 1, {}, [])];
+
+      await undoableOps.combinedMoveWithUndo(
+        todos,
+        'due',
+        '2025-01-15',
+        undefined,
+        TaskStatus.Complete
+      );
+
+      expect(undoManager.getHistorySize()).toBe(0);
+    });
+  });
 });
