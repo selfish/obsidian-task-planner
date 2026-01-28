@@ -18,6 +18,7 @@ interface Moment {
   year(): number;
   month(): number;
   date(): number;
+  day(): number;
   isoWeekday(): number;
 }
 

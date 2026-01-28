@@ -398,4 +398,93 @@ describe("FollowUpCreator", () => {
       expect(newContent).toContain("- [ ] FU: Important meeting #work #meeting [due:: 2026-01-22] [priority:: high]");
     });
   });
+
+  describe("completeOriginal option", () => {
+    it("should mark original task as complete when completeOriginal is true", async () => {
+      const fileContent = "- [ ] Original task\n- [ ] Another task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, "2026-01-22", { completeOriginal: true });
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      const lines = newContent.split("\n");
+      expect(lines[0]).toMatch(/^- \[x\] Original task/);
+      expect(lines[0]).toContain("[completed::");
+    });
+
+    it("should not mark original task as complete when completeOriginal is false", async () => {
+      const fileContent = "- [ ] Original task\n- [ ] Another task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, "2026-01-22", { completeOriginal: false });
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      const lines = newContent.split("\n");
+      expect(lines[0]).toBe("- [ ] Original task");
+    });
+
+    it("should not mark original task as complete when options is undefined", async () => {
+      const fileContent = "- [ ] Original task\n- [ ] Another task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, "2026-01-22");
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      const lines = newContent.split("\n");
+      expect(lines[0]).toBe("- [ ] Original task");
+    });
+
+    it("should use custom completed date attribute", async () => {
+      settings.completedDateAttribute = "done";
+      followUpCreator = new FollowUpCreator<string>(settings);
+      const fileContent = "- [ ] Original task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, "2026-01-22", { completeOriginal: true });
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      expect(newContent).toContain("[done::");
+    });
+
+    it("should not add duplicate completed attribute if already present", async () => {
+      const fileContent = "- [ ] Original task [completed:: 2026-01-01]\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, "2026-01-22", { completeOriginal: true });
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      const lines = newContent.split("\n");
+      // Should only have one completed attribute (the original one)
+      const completedMatches = lines[0].match(/\[completed::/g);
+      expect(completedMatches).toHaveLength(1);
+    });
+
+    it("should complete original task and create follow-up in one operation", async () => {
+      const fileContent = "- [ ] Original task\n- [ ] Another task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, "2026-01-22", { completeOriginal: true });
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      const lines = newContent.split("\n");
+      // Original task should be completed
+      expect(lines[0]).toMatch(/^- \[x\] Original task/);
+      // Follow-up should be created
+      expect(lines[1]).toContain("- [ ] Follow up: Original task");
+      expect(lines[1]).toContain("[due:: 2026-01-22]");
+      // Other tasks should be preserved
+      expect(lines[2]).toBe("- [ ] Another task");
+    });
+
+    it("should preserve indentation when completing original task", async () => {
+      const fileContent = "# Tasks\n  - [ ] Indented task\n  - [ ] Another indented\n";
+      const todo = createMockTodo({ line: 1, text: "Indented task" }, fileContent);
+
+      await followUpCreator.createFollowUp(todo, "2026-01-22", { completeOriginal: true });
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      const lines = newContent.split("\n");
+      expect(lines[1]).toMatch(/^\s{2}- \[x\] Indented task/);
+    });
+  });
 });

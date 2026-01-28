@@ -12,9 +12,10 @@ import { FollowUpCreator } from "../core/services/follow-up-creator";
 import { showSuccessNotice, showErrorNotice } from "../lib/user-notice";
 import { Consts } from "../types/constants";
 import { TaskItem, TaskStatus, getTaskId } from "../types/task";
+import { getAllDateOptions } from "../utils/date-utils";
 import { getDueDateInfo } from "../utils/due-date-utils";
 import { getFileDisplayName, setFrontmatterProperty, removeFrontmatterProperty } from "../utils/file-utils";
-import { moment, Moment } from "../utils/moment";
+import { Moment } from "../utils/moment";
 import { findTaskDate } from "../utils/task-utils";
 
 interface PriorityBadgeProps {
@@ -249,45 +250,74 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef,
     }
 
     // === Reschedule Submenu ===
+    const dateOptions = getAllDateOptions();
+
+    const addDateOptionsToMenu = (sub: Menu, onSelect: (date: string | null) => void) => {
+      // Immediate options (Today, Tomorrow)
+      for (const opt of dateOptions.immediate) {
+        sub.addItem((i) => {
+          i.setTitle(opt.label);
+          i.setIcon(opt.icon);
+          i.onClick(() => onSelect(opt.getDate(settings.firstWeekday)));
+        });
+      }
+
+      sub.addSeparator();
+
+      // Week options (Next week, In a week)
+      for (const opt of dateOptions.week) {
+        sub.addItem((i) => {
+          i.setTitle(opt.label);
+          i.setIcon(opt.icon);
+          i.onClick(() => onSelect(opt.getDate(settings.firstWeekday)));
+        });
+      }
+
+      sub.addSeparator();
+
+      // Month options (Next month, In a month)
+      for (const opt of dateOptions.month) {
+        sub.addItem((i) => {
+          i.setTitle(opt.label);
+          i.setIcon(opt.icon);
+          i.onClick(() => onSelect(opt.getDate(settings.firstWeekday)));
+        });
+      }
+
+      sub.addSeparator();
+
+      // Backlog option
+      sub.addItem((i) => {
+        i.setTitle(dateOptions.backlog.label);
+        i.setIcon(dateOptions.backlog.icon);
+        i.onClick(() => onSelect(null));
+      });
+    };
+
     menu.addSeparator();
     menu.addItem((item) => {
       item.setTitle("Reschedule");
       item.setIcon("calendar");
       const sub = addSubmenu(item);
-      sub.addItem((i) => {
-        i.setTitle("Today");
-        i.setIcon("calendar-check");
-        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().format("YYYY-MM-DD")));
-      });
-      sub.addItem((i) => {
-        i.setTitle("Tomorrow");
-        i.setIcon("calendar-plus");
-        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().add(1, "day").format("YYYY-MM-DD")));
-      });
-      sub.addItem((i) => {
-        i.setTitle("Next week");
-        i.setIcon("calendar-range");
-        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().add(1, "week").format("YYYY-MM-DD")));
-      });
-      sub.addItem((i) => {
-        i.setTitle("Next month");
-        i.setIcon("calendar-days");
-        i.onClick(() => void fileOperations.updateAttribute(todo, settings.dueDateAttribute, moment().add(1, "month").format("YYYY-MM-DD")));
-      });
-      sub.addSeparator();
-      sub.addItem((i) => {
-        i.setTitle("Backlog (remove date)");
-        i.setIcon("calendar-off");
-        i.onClick(() => void fileOperations.removeAttribute(todo, settings.dueDateAttribute));
+      addDateOptionsToMenu(sub, (date) => {
+        if (date === null) {
+          void fileOperations.removeAttribute(todo, settings.dueDateAttribute);
+        } else {
+          void fileOperations.updateAttribute(todo, settings.dueDateAttribute, date);
+        }
       });
     });
 
     // === Follow-up Submenu ===
     const followUpCreator = new FollowUpCreator<TFile>(settings);
-    const createFollowUp = async (dueDate: string | null) => {
+    const createFollowUp = async (dueDate: string | null, completeOriginal?: boolean) => {
       try {
-        await followUpCreator.createFollowUp(todo, dueDate);
-        showSuccessNotice("Follow-up created");
+        await followUpCreator.createFollowUp(todo, dueDate, { completeOriginal });
+        if (completeOriginal) {
+          showSuccessNotice("Task completed with follow-up reminder");
+        } else {
+          showSuccessNotice("Follow-up created");
+        }
       } catch (error) {
         showErrorNotice(error instanceof Error ? error : new Error(String(error)));
       }
@@ -297,32 +327,14 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef,
       item.setTitle("Follow-up");
       item.setIcon("copy-plus");
       const sub = addSubmenu(item);
-      sub.addItem((i) => {
-        i.setTitle("Today");
-        i.setIcon("calendar-check");
-        i.onClick(() => void createFollowUp(moment().format("YYYY-MM-DD")));
-      });
-      sub.addItem((i) => {
-        i.setTitle("Tomorrow");
-        i.setIcon("calendar-plus");
-        i.onClick(() => void createFollowUp(moment().add(1, "day").format("YYYY-MM-DD")));
-      });
-      sub.addItem((i) => {
-        i.setTitle("Next week");
-        i.setIcon("calendar-range");
-        i.onClick(() => void createFollowUp(moment().add(1, "week").format("YYYY-MM-DD")));
-      });
-      sub.addItem((i) => {
-        i.setTitle("Next month");
-        i.setIcon("calendar-days");
-        i.onClick(() => void createFollowUp(moment().add(1, "month").format("YYYY-MM-DD")));
-      });
-      sub.addSeparator();
-      sub.addItem((i) => {
-        i.setTitle("Backlog (no date)");
-        i.setIcon("calendar-off");
-        i.onClick(() => void createFollowUp(null));
-      });
+      addDateOptionsToMenu(sub, (date) => void createFollowUp(date, false));
+    });
+
+    menu.addItem((item) => {
+      item.setTitle("Complete & follow-up");
+      item.setIcon("check-circle");
+      const sub = addSubmenu(item);
+      addDateOptionsToMenu(sub, (date) => void createFollowUp(date, true));
     });
 
     // === Tags ===
