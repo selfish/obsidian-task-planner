@@ -1,6 +1,6 @@
-import { TodoItem } from "../../types";
+import { TaskItem } from "../../types";
 
-export class TodoMatcher<T> {
+export class TaskMatcher<T> {
   private matchTerm: string;
   private regex: RegExp;
   constructor(
@@ -14,19 +14,19 @@ export class TodoMatcher<T> {
     this.regex = RegExp(escapedTerm, "gi");
   }
 
-  public matches(todo: TodoItem<T>): boolean {
+  public matches(task: TaskItem<T>): boolean {
     if (!this.matchTerm) {
       return true;
     }
     if (this.fuzzySearch) {
-      return this.fuzzyMatch(todo);
+      return this.fuzzyMatch(task);
     } else {
-      return this.exactMatch(todo);
+      return this.exactMatch(task);
     }
   }
 
-  private exactMatch(todo: TodoItem<T>) {
-    return todo.text.search(this.regex) >= 0;
+  private exactMatch(task: TaskItem<T>) {
+    return task.text.search(this.regex) >= 0;
   }
 
   /**
@@ -36,8 +36,8 @@ export class TodoMatcher<T> {
    * - "staff" matches "Staff Talk" (substring)
    * - "nexsta" matches "Next Staff" (consecutive + word start)
    */
-  private fuzzyMatch(todo: TodoItem<T>): boolean {
-    const todoText = todo.text.toLowerCase();
+  private fuzzyMatch(task: TaskItem<T>): boolean {
+    const taskText = task.text.toLowerCase();
     const searchChars = this.matchTerm.replace(/\s/g, ""); // Remove spaces from search
 
     if (searchChars.length === 0) return true;
@@ -45,15 +45,15 @@ export class TodoMatcher<T> {
     // Find word boundaries (start of string or after non-alphanumeric)
     const wordStarts = new Set<number>();
     wordStarts.add(0);
-    for (let i = 1; i < todoText.length; i++) {
-      const prevChar = todoText[i - 1];
+    for (let i = 1; i < taskText.length; i++) {
+      const prevChar = taskText[i - 1];
       if (!/[a-z0-9]/.test(prevChar)) {
         wordStarts.add(i);
       }
     }
 
     // Try to match using recursive backtracking with constraints
-    return this.fuzzyMatchFrom(todoText, searchChars, 0, 0, wordStarts, true);
+    return this.fuzzyMatchFrom(taskText, searchChars, 0, 0, wordStarts, true);
   }
 
   /**

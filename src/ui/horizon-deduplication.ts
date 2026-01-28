@@ -1,4 +1,4 @@
-import { TodoItem, getTodoId } from "../types/todo";
+import { TaskItem, getTaskId } from "../types/task";
 
 /**
  * Helper class for tracking assigned tasks across horizons.
@@ -10,23 +10,23 @@ export class HorizonDeduplicator<TFile> {
   /**
    * Marks the given todos as assigned, adding their IDs to the exclusion set.
    */
-  markAsAssigned(todos: TodoItem<TFile>[]): void {
+  markAsAssigned(todos: TaskItem<TFile>[]): void {
     for (const todo of todos) {
-      this.assignedTaskIds.add(getTodoId(todo));
+      this.assignedTaskIds.add(getTaskId(todo));
     }
   }
 
   /**
    * Checks if a todo has already been assigned to a horizon.
    */
-  isAssigned(todo: TodoItem<TFile>): boolean {
-    return this.assignedTaskIds.has(getTodoId(todo));
+  isAssigned(todo: TaskItem<TFile>): boolean {
+    return this.assignedTaskIds.has(getTaskId(todo));
   }
 
   /**
    * Filters out todos that have already been assigned to a horizon.
    */
-  filterExcluded(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
+  filterExcluded(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
     return todos.filter((todo) => !this.isAssigned(todo));
   }
 
@@ -34,7 +34,7 @@ export class HorizonDeduplicator<TFile> {
    * Filters todos, marks the remaining as assigned, and returns them.
    * This is a convenience method that combines filterExcluded and markAsAssigned.
    */
-  filterAndMark(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
+  filterAndMark(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
     const filtered = this.filterExcluded(todos);
     this.markAsAssigned(filtered);
     return filtered;
@@ -65,6 +65,6 @@ export class HorizonDeduplicator<TFile> {
 /**
  * Filters todos by tag, returning only those that have the specified tag.
  */
-export function filterTodosByTag<TFile>(todos: TodoItem<TFile>[], tag: string): TodoItem<TFile>[] {
+export function filterTodosByTag<TFile>(todos: TaskItem<TFile>[], tag: string): TaskItem<TFile>[] {
   return todos.filter((todo) => todo.tags?.includes(tag));
 }

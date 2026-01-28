@@ -1,7 +1,7 @@
-import { FolderTodoParser, FolderTodoParserDeps } from '../../src/core/parsers/folder-todo-parser';
-import { FileTodoParser } from '../../src/core/parsers/file-todo-parser';
+import { FolderTaskParser, FolderTaskParserDeps } from '../../src/core/parsers/folder-task-parser';
+import { FileTaskParser } from '../../src/core/parsers/file-task-parser';
 import { FileAdapter } from '../../src/types/file-adapter';
-import { TodoItem, TodoStatus } from '../../src/types/todo';
+import { TaskItem, TaskStatus } from '../../src/types/task';
 import { Logger } from '../../src/types/logger';
 import { ParseError } from '../../src/lib/errors';
 
@@ -23,11 +23,11 @@ const createMockLogger = (): Logger => ({
   error: jest.fn(),
 });
 
-const createMockFileTodoParser = (todos: TodoItem<unknown>[]): FileTodoParser<unknown> => ({
+const createMockFileTodoParser = (todos: TaskItem<unknown>[]): FileTaskParser<unknown> => ({
   parseMdFile: jest.fn().mockResolvedValue(todos),
-}) as unknown as FileTodoParser<unknown>;
+}) as unknown as FileTaskParser<unknown>;
 
-describe('FolderTodoParser', () => {
+describe('FolderTaskParser', () => {
   let mockLogger: Logger;
 
   beforeEach(() => {
@@ -36,24 +36,24 @@ describe('FolderTodoParser', () => {
 
   describe('parseFiles', () => {
     it('should parse multiple files and return todos by file', async () => {
-      const mockTodos1: TodoItem<unknown>[] = [
-        { status: TodoStatus.Todo, text: 'Task 1', file: {} as FileAdapter<unknown> },
+      const mockTodos1: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task 1', file: {} as FileAdapter<unknown> },
       ];
-      const mockTodos2: TodoItem<unknown>[] = [
-        { status: TodoStatus.Todo, text: 'Task 2', file: {} as FileAdapter<unknown> },
+      const mockTodos2: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task 2', file: {} as FileAdapter<unknown> },
       ];
 
       const mockFileTodoParser = {
         parseMdFile: jest.fn()
           .mockResolvedValueOnce(mockTodos1)
           .mockResolvedValueOnce(mockTodos2),
-      } as unknown as FileTodoParser<unknown>;
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file1 = createMockFileAdapter('file1', '- [ ] Task 1');
       const file2 = createMockFileAdapter('file2', '- [ ] Task 2');
@@ -62,34 +62,34 @@ describe('FolderTodoParser', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].file).toBe(file1);
-      expect(result[0].todos).toEqual(mockTodos1);
+      expect(result[0].tasks).toEqual(mockTodos1);
       expect(result[1].file).toBe(file2);
-      expect(result[1].todos).toEqual(mockTodos2);
+      expect(result[1].tasks).toEqual(mockTodos2);
     });
 
     it('should log debug messages', async () => {
       const mockFileTodoParser = createMockFileTodoParser([]);
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file = createMockFileAdapter('file1', '');
 
       await parser.parseFiles([file]);
 
       expect(mockLogger.debug).toHaveBeenCalledWith('Loading 1 files');
-      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Loaded 1 todos in'));
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Loaded 1 tasks in'));
     });
 
     it('should handle empty file list', async () => {
       const mockFileTodoParser = createMockFileTodoParser([]);
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const result = await parser.parseFiles([]);
 
@@ -106,13 +106,13 @@ describe('FolderTodoParser', () => {
           await new Promise(resolve => setTimeout(resolve, 10));
           return [];
         }),
-      } as unknown as FileTodoParser<unknown>;
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const files = [
         createMockFileAdapter('file1', ''),
@@ -130,11 +130,11 @@ describe('FolderTodoParser', () => {
 
     it('should return correct todo count in debug log', async () => {
       const mockFileTodoParser = createMockFileTodoParser([]);
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const files = [
         createMockFileAdapter('file1', ''),
@@ -143,8 +143,8 @@ describe('FolderTodoParser', () => {
 
       await parser.parseFiles(files);
 
-      // "Loaded 2 todos" because we have 2 TodosInFiles results
-      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringMatching(/Loaded 2 todos in \d+ms/));
+      // "Loaded 2 tasks" because we have 2 TasksInFiles results
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringMatching(/Loaded 2 tasks in \d+ms/));
     });
   });
 
@@ -153,14 +153,14 @@ describe('FolderTodoParser', () => {
       const mockFileTodoParser = {
         parseMdFile: jest.fn()
           .mockRejectedValueOnce(new Error('Parse failed'))
-          .mockResolvedValueOnce([{ status: TodoStatus.Todo, text: 'Task', file: {} }]),
-      } as unknown as FileTodoParser<unknown>;
+          .mockResolvedValueOnce([{ status: TaskStatus.Todo, text: 'Task', file: {} }]),
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file1 = createMockFileAdapter('failing-file', '');
       const file2 = createMockFileAdapter('working-file', '');
@@ -168,21 +168,21 @@ describe('FolderTodoParser', () => {
       const result = await parser.parseFiles([file1, file2]);
 
       expect(result).toHaveLength(2);
-      expect(result[0].todos).toHaveLength(0); // Failed file returns empty
+      expect(result[0].tasks).toHaveLength(0); // Failed file returns empty
       expect(result[0].file).toBe(file1);
-      expect(result[1].todos).toHaveLength(1); // Working file returns todos
+      expect(result[1].tasks).toHaveLength(1); // Working file returns todos
     });
 
     it('should log errors when file parsing fails', async () => {
       const mockFileTodoParser = {
         parseMdFile: jest.fn().mockRejectedValue(new Error('Read error')),
-      } as unknown as FileTodoParser<unknown>;
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file = createMockFileAdapter('error-file', '');
 
@@ -194,13 +194,13 @@ describe('FolderTodoParser', () => {
     it('should wrap non-ParseError errors in ParseError', async () => {
       const mockFileTodoParser = {
         parseMdFile: jest.fn().mockRejectedValue(new Error('Generic error')),
-      } as unknown as FileTodoParser<unknown>;
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file = createMockFileAdapter('error-file', '');
 
@@ -217,13 +217,13 @@ describe('FolderTodoParser', () => {
       const originalError = new ParseError('Original parse error', '/test.md', 5, 'HIGH');
       const mockFileTodoParser = {
         parseMdFile: jest.fn().mockRejectedValue(originalError),
-      } as unknown as FileTodoParser<unknown>;
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file = createMockFileAdapter('error-file', '');
 
@@ -241,14 +241,14 @@ describe('FolderTodoParser', () => {
         parseMdFile: jest.fn()
           .mockRejectedValueOnce(new Error('Error 1'))
           .mockRejectedValueOnce(new Error('Error 2'))
-          .mockResolvedValueOnce([{ status: TodoStatus.Todo, text: 'Success', file: {} }]),
-      } as unknown as FileTodoParser<unknown>;
+          .mockResolvedValueOnce([{ status: TaskStatus.Todo, text: 'Success', file: {} }]),
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const files = [
         createMockFileAdapter('fail1', ''),
@@ -259,42 +259,42 @@ describe('FolderTodoParser', () => {
       const result = await parser.parseFiles(files);
 
       expect(result).toHaveLength(3);
-      expect(result[0].todos).toHaveLength(0);
-      expect(result[1].todos).toHaveLength(0);
-      expect(result[2].todos).toHaveLength(1);
+      expect(result[0].tasks).toHaveLength(0);
+      expect(result[1].tasks).toHaveLength(0);
+      expect(result[2].tasks).toHaveLength(1);
       expect(mockFileTodoParser.parseMdFile).toHaveBeenCalledTimes(3);
     });
 
     it('should handle non-Error rejections', async () => {
       const mockFileTodoParser = {
         parseMdFile: jest.fn().mockRejectedValue('string error'),
-      } as unknown as FileTodoParser<unknown>;
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file = createMockFileAdapter('error-file', '');
 
       const result = await parser.parseFiles([file]);
 
       expect(result).toHaveLength(1);
-      expect(result[0].todos).toHaveLength(0);
+      expect(result[0].tasks).toHaveLength(0);
       expect(mockLogger.error).toHaveBeenCalled();
     });
 
     it('should include original error message in ParseError context', async () => {
       const mockFileTodoParser = {
         parseMdFile: jest.fn().mockRejectedValue(new Error('Specific failure reason')),
-      } as unknown as FileTodoParser<unknown>;
+      } as unknown as FileTaskParser<unknown>;
 
-      const deps: FolderTodoParserDeps<unknown> = {
-        fileTodoParser: mockFileTodoParser,
+      const deps: FolderTaskParserDeps<unknown> = {
+        fileTaskParser: mockFileTodoParser,
         logger: mockLogger,
       };
-      const parser = new FolderTodoParser(deps);
+      const parser = new FolderTaskParser(deps);
 
       const file = createMockFileAdapter('error-file', '');
 

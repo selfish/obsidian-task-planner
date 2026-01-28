@@ -1,5 +1,5 @@
 import { FileOperations } from '../../src/core/operations/file-operations';
-import { TodoItem, TodoStatus } from '../../src/types/todo';
+import { TaskItem, TaskStatus } from '../../src/types/task';
 import { FileAdapter } from '../../src/types/file-adapter';
 import { FileOperationError } from '../../src/lib/errors';
 
@@ -20,7 +20,7 @@ const createMockFileAdapter = (content: string): FileAdapter<unknown> => {
   };
 };
 
-const createTodo = (text: string, line: number, file: FileAdapter<unknown>, status = TodoStatus.Todo): TodoItem<unknown> => ({
+const createTodo = (text: string, line: number, file: FileAdapter<unknown>, status = TaskStatus.Todo): TaskItem<unknown> => ({
   status,
   text,
   file,
@@ -83,8 +83,8 @@ describe('FileOperations', () => {
 
     it('should handle todo without line number', async () => {
       const file = createMockFileAdapter('- [ ] Task');
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task',
         file,
         line: undefined,
@@ -154,13 +154,13 @@ describe('FileOperations', () => {
     });
   });
 
-  describe('updateTodoStatus', () => {
+  describe('updateTaskStatus', () => {
     it('should update checkbox to completed [x]', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.Complete);
+      const todo = createTodo('Task', 0, file, TaskStatus.Complete);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       // Single call updates both checkbox and completed attribute
       const calls = (file.setContent as jest.Mock).mock.calls;
@@ -171,9 +171,9 @@ describe('FileOperations', () => {
     it('should update checkbox to canceled [-]', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.Canceled);
+      const todo = createTodo('Task', 0, file, TaskStatus.Canceled);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[-]');
@@ -182,9 +182,9 @@ describe('FileOperations', () => {
     it('should update checkbox to in progress [>]', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.InProgress);
+      const todo = createTodo('Task', 0, file, TaskStatus.InProgress);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[>]');
@@ -193,9 +193,9 @@ describe('FileOperations', () => {
     it('should update checkbox to attention required [!]', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.AttentionRequired);
+      const todo = createTodo('Task', 0, file, TaskStatus.AttentionRequired);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[!]');
@@ -204,9 +204,9 @@ describe('FileOperations', () => {
     it('should update checkbox to delegated [d]', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.Delegated);
+      const todo = createTodo('Task', 0, file, TaskStatus.Delegated);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[d]');
@@ -215,9 +215,9 @@ describe('FileOperations', () => {
     it('should update checkbox to todo [ ]', async () => {
       const fileContent = '- [x] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.Todo);
+      const todo = createTodo('Task', 0, file, TaskStatus.Todo);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       expect(calls[0][0]).toContain('[ ]');
@@ -226,9 +226,9 @@ describe('FileOperations', () => {
     it('should add completed date when completing', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.Complete);
+      const todo = createTodo('Task', 0, file, TaskStatus.Complete);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       // Single call includes both checkbox and completed attribute
@@ -238,9 +238,9 @@ describe('FileOperations', () => {
     it('should remove completed date when uncompleting', async () => {
       const fileContent = '- [x] Task [completed:: 2025-01-10]';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, TodoStatus.Todo);
+      const todo = createTodo('Task', 0, file, TaskStatus.Todo);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       // Single call handles both checkbox and completed attribute removal
@@ -250,9 +250,9 @@ describe('FileOperations', () => {
     it('should handle unknown status with empty checkbox', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todo = createTodo('Task', 0, file, 999 as TodoStatus);
+      const todo = createTodo('Task', 0, file, 999 as TaskStatus);
 
-      await operations.updateTodoStatus(todo, 'completed');
+      await operations.updateTaskStatus(todo, 'completed');
 
       const calls = (file.setContent as jest.Mock).mock.calls;
       // Unknown status results in empty checkbox string
@@ -407,16 +407,16 @@ describe('FileOperations', () => {
     });
   });
 
-  describe('batchUpdateTodoStatus', () => {
+  describe('batchUpdateTaskStatus', () => {
     it('should update status for multiple todos', async () => {
       const fileContent = '- [ ] Task one\n- [ ] Task two';
       const file = createMockFileAdapter(fileContent);
       const todos = [
-        createTodo('Task one', 0, file, TodoStatus.Complete),
-        createTodo('Task two', 1, file, TodoStatus.Complete),
+        createTodo('Task one', 0, file, TaskStatus.Complete),
+        createTodo('Task two', 1, file, TaskStatus.Complete),
       ];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       expect(file.setContent).toHaveBeenCalledTimes(1);
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
@@ -425,16 +425,16 @@ describe('FileOperations', () => {
     });
 
     it('should handle empty array', async () => {
-      await operations.batchUpdateTodoStatus([], 'completed');
+      await operations.batchUpdateTaskStatus([], 'completed');
       // No errors should be thrown
     });
 
     it('should batch update to Todo status', async () => {
       const fileContent = '- [x] Task';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, TodoStatus.Todo)];
+      const todos = [createTodo('Task', 0, file, TaskStatus.Todo)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[ ]');
@@ -443,9 +443,9 @@ describe('FileOperations', () => {
     it('should batch update to Canceled status', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, TodoStatus.Canceled)];
+      const todos = [createTodo('Task', 0, file, TaskStatus.Canceled)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[-]');
@@ -454,9 +454,9 @@ describe('FileOperations', () => {
     it('should batch update to AttentionRequired status', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, TodoStatus.AttentionRequired)];
+      const todos = [createTodo('Task', 0, file, TaskStatus.AttentionRequired)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[!]');
@@ -465,9 +465,9 @@ describe('FileOperations', () => {
     it('should batch update to Delegated status', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, TodoStatus.Delegated)];
+      const todos = [createTodo('Task', 0, file, TaskStatus.Delegated)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[d]');
@@ -476,9 +476,9 @@ describe('FileOperations', () => {
     it('should batch update to InProgress status', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, TodoStatus.InProgress)];
+      const todos = [createTodo('Task', 0, file, TaskStatus.InProgress)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('[>]');
@@ -487,9 +487,9 @@ describe('FileOperations', () => {
     it('should handle unknown status with empty checkbox', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, 999 as TodoStatus)];
+      const todos = [createTodo('Task', 0, file, 999 as TaskStatus)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       // Unknown status defaults to empty checkbox
@@ -500,11 +500,11 @@ describe('FileOperations', () => {
       const fileContent = '- [ ] Task one\n- [ ] Task two';
       const file = createMockFileAdapter(fileContent);
       const todos = [
-        createTodo('Task one', 0, file, TodoStatus.Complete),
-        { status: TodoStatus.Complete, text: 'Task missing line', file, line: undefined } as TodoItem<unknown>,
+        createTodo('Task one', 0, file, TaskStatus.Complete),
+        { status: TaskStatus.Complete, text: 'Task missing line', file, line: undefined } as TaskItem<unknown>,
       ];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       // Should silently skip the todo without line number but still update the valid todo
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
@@ -514,9 +514,9 @@ describe('FileOperations', () => {
     it('should add completed date for completed status in batch', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, TodoStatus.Complete)];
+      const todos = [createTodo('Task', 0, file, TaskStatus.Complete)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toMatch(/\[completed:: \d{4}-\d{2}-\d{2}\]/);
@@ -525,9 +525,9 @@ describe('FileOperations', () => {
     it('should remove completed date for non-completed status in batch', async () => {
       const fileContent = '- [x] Task [completed:: 2025-01-10]';
       const file = createMockFileAdapter(fileContent);
-      const todos = [createTodo('Task', 0, file, TodoStatus.Todo)];
+      const todos = [createTodo('Task', 0, file, TaskStatus.Todo)];
 
-      await operations.batchUpdateTodoStatus(todos, 'completed');
+      await operations.batchUpdateTaskStatus(todos, 'completed');
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).not.toContain('[completed::');
@@ -573,8 +573,8 @@ describe('FileOperations', () => {
     it('should skip if todo already has the tag', async () => {
       const fileContent = '- [ ] Task one #work';
       const file = createMockFileAdapter(fileContent);
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task one #work',
         file,
         line: 0,
@@ -588,8 +588,8 @@ describe('FileOperations', () => {
 
     it('should handle todo without line number', async () => {
       const file = createMockFileAdapter('- [ ] Task');
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task',
         file,
         line: undefined,
@@ -605,8 +605,8 @@ describe('FileOperations', () => {
     it('should remove a tag from a todo', async () => {
       const fileContent = '- [ ] Task one #work';
       const file = createMockFileAdapter(fileContent);
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task one #work',
         file,
         line: 0,
@@ -622,8 +622,8 @@ describe('FileOperations', () => {
     it('should remove only the specified tag when multiple tags exist', async () => {
       const fileContent = '- [ ] Task one #work #urgent';
       const file = createMockFileAdapter(fileContent);
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task one #work #urgent',
         file,
         line: 0,
@@ -639,8 +639,8 @@ describe('FileOperations', () => {
     it('should preserve attributes when removing a tag', async () => {
       const fileContent = '- [ ] Task one #work [due:: 2025-01-15]';
       const file = createMockFileAdapter(fileContent);
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task one #work',
         file,
         line: 0,
@@ -656,8 +656,8 @@ describe('FileOperations', () => {
     it('should skip if todo does not have the tag', async () => {
       const fileContent = '- [ ] Task one';
       const file = createMockFileAdapter(fileContent);
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task one',
         file,
         line: 0,
@@ -681,8 +681,8 @@ describe('FileOperations', () => {
 
     it('should handle todo without line number', async () => {
       const file = createMockFileAdapter('- [ ] Task #work');
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task #work',
         file,
         line: undefined,
@@ -716,9 +716,9 @@ describe('FileOperations', () => {
     it('should skip todos that already have the tag', async () => {
       const fileContent = '- [ ] Task one #project\n- [ ] Task two';
       const file = createMockFileAdapter(fileContent);
-      const todos: TodoItem<unknown>[] = [
-        { status: TodoStatus.Todo, text: 'Task one #project', file, line: 0, tags: ['project'] },
-        { status: TodoStatus.Todo, text: 'Task two', file, line: 1, tags: [] },
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one #project', file, line: 0, tags: ['project'] },
+        { status: TaskStatus.Todo, text: 'Task two', file, line: 1, tags: [] },
       ];
 
       await operations.batchAppendTag(todos, 'project');
@@ -737,9 +737,9 @@ describe('FileOperations', () => {
     it('should skip if all todos already have the tag', async () => {
       const fileContent = '- [ ] Task one #project\n- [ ] Task two #project';
       const file = createMockFileAdapter(fileContent);
-      const todos: TodoItem<unknown>[] = [
-        { status: TodoStatus.Todo, text: 'Task one #project', file, line: 0, tags: ['project'] },
-        { status: TodoStatus.Todo, text: 'Task two #project', file, line: 1, tags: ['project'] },
+      const todos: TaskItem<unknown>[] = [
+        { status: TaskStatus.Todo, text: 'Task one #project', file, line: 0, tags: ['project'] },
+        { status: TaskStatus.Todo, text: 'Task two #project', file, line: 1, tags: ['project'] },
       ];
 
       await operations.batchAppendTag(todos, 'project');
@@ -766,9 +766,9 @@ describe('FileOperations', () => {
     it('should skip todos with missing line numbers', async () => {
       const fileContent = '- [ ] Task one\n- [ ] Task two';
       const file = createMockFileAdapter(fileContent);
-      const todos: TodoItem<unknown>[] = [
+      const todos: TaskItem<unknown>[] = [
         createTodo('Task one', 0, file),
-        { status: TodoStatus.Todo, text: 'Task missing line', file, line: undefined },
+        { status: TaskStatus.Todo, text: 'Task missing line', file, line: undefined },
       ];
 
       await operations.batchAppendTag(todos, 'project');

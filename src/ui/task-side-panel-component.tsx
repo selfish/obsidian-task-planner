@@ -4,16 +4,16 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
-import { TodoItemComponent } from "./todo-item-component";
-import { TodoIndex } from "../core/index/todo-index";
+import { TodoItemComponent } from "./task-item-component";
+import { TaskIndex } from "../core/index/task-index";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
-import { TodoItem, TodoStatus } from "../types/todo";
+import { TaskItem, TaskStatus } from "../types/task";
 import { moment } from "../utils/moment";
-import { findTodoDate } from "../utils/todo-utils";
+import { findTaskDate } from "../utils/task-utils";
 
 export interface TodoSidePanelComponentDeps {
-  todoIndex: TodoIndex<TFile>;
+  taskIndex: TaskIndex<TFile>;
   logger: Logger;
   app: App;
   settings: TaskPlannerSettings;
@@ -99,11 +99,11 @@ function saveCollapsedState(app: App, state: Record<string, boolean>): void {
 
 export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const { settings, app, logger } = deps;
-  const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
+  const [todos, setTodos] = React.useState<TaskItem<TFile>[]>(deps.taskIndex.tasks);
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>(() => loadCollapsedState(app));
 
   React.useEffect(() => {
-    const unsubscribe = deps.todoIndex.onUpdateEvent.listen((updatedTodos: TodoItem<TFile>[]) => {
+    const unsubscribe = deps.taskIndex.onUpdateEvent.listen((updatedTodos: TaskItem<TFile>[]) => {
       setTodos(updatedTodos);
       return Promise.resolve();
     });
@@ -111,7 +111,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [deps.todoIndex]);
+  }, [deps.taskIndex]);
 
   const toggleSection = (section: string) => {
     setCollapsed((prev) => {
@@ -122,7 +122,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   };
 
   // Filter functions
-  const isIncomplete = (todo: TodoItem<TFile>) => todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled;
+  const isIncomplete = (todo: TaskItem<TFile>) => todo.status !== TaskStatus.Complete && todo.status !== TaskStatus.Canceled;
 
   const pinnedTodos = React.useMemo(() => {
     return todos.filter((todo) => isIncomplete(todo) && !!todo.attributes?.[settings.selectedAttribute]);
@@ -132,7 +132,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
     const today = moment().startOf("day");
     return todos.filter((todo) => {
       if (!isIncomplete(todo)) return false;
-      const dueDate = findTodoDate(todo, settings.dueDateAttribute);
+      const dueDate = findTaskDate(todo, settings.dueDateAttribute);
       return dueDate && dueDate.isBefore(today);
     });
   }, [todos, settings.dueDateAttribute]);
@@ -145,15 +145,15 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
       // Don't include pinned tasks here to avoid duplication
       if (todo.attributes?.[settings.selectedAttribute]) return false;
       // Don't include in-progress tasks here
-      if (todo.status === TodoStatus.InProgress || todo.status === TodoStatus.AttentionRequired || todo.status === TodoStatus.Delegated) return false;
-      const dueDate = findTodoDate(todo, settings.dueDateAttribute);
+      if (todo.status === TaskStatus.InProgress || todo.status === TaskStatus.AttentionRequired || todo.status === TaskStatus.Delegated) return false;
+      const dueDate = findTaskDate(todo, settings.dueDateAttribute);
       return dueDate && dueDate.isSameOrAfter(today) && dueDate.isBefore(tomorrow);
     });
   }, [todos, settings.dueDateAttribute, settings.selectedAttribute]);
 
   const startedTodos = React.useMemo(() => {
     return todos.filter((todo) => {
-      return todo.status === TodoStatus.InProgress || todo.status === TodoStatus.AttentionRequired || todo.status === TodoStatus.Delegated;
+      return todo.status === TaskStatus.InProgress || todo.status === TaskStatus.AttentionRequired || todo.status === TaskStatus.Delegated;
     });
   }, [todos]);
 
@@ -161,8 +161,8 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
     const today = moment().startOf("day");
     const tomorrow = today.clone().add(1, "day");
     return todos.filter((todo) => {
-      if (todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled) return false;
-      const completedDate = findTodoDate(todo, settings.completedDateAttribute);
+      if (todo.status !== TaskStatus.Complete && todo.status !== TaskStatus.Canceled) return false;
+      const completedDate = findTaskDate(todo, settings.completedDateAttribute);
       return completedDate && completedDate.isSameOrAfter(today) && completedDate.isBefore(tomorrow);
     });
   }, [todos, settings.completedDateAttribute]);

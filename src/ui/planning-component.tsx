@@ -6,22 +6,22 @@ import * as React from "react";
 
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
-import { PlanningTodoColumn, ColumnType, ColumnHeaderAction } from "./planning-todo-column";
+import { PlanningTaskColumn, ColumnType, ColumnHeaderAction } from "./planning-task-column";
 import { UndoToastContainer } from "./undo-toast";
-import { TodoIndex } from "../core/index/todo-index";
-import { TodoMatcher } from "../core/matchers/todo-matcher";
+import { TaskIndex } from "../core/index/task-index";
+import { TaskMatcher } from "../core/matchers/task-matcher";
 import { FileOperations } from "../core/operations/file-operations";
 import { UndoManager } from "../core/operations/undo-manager";
 import { UndoableFileOperations } from "../core/operations/undoable-file-ops";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
+import { TaskItem, TaskStatus, getTaskId } from "../types/task";
 import { moment, Moment } from "../utils/moment";
-import { findTodoDate } from "../utils/todo-utils";
+import { findTaskDate } from "../utils/task-utils";
 
 export interface PlanningComponentDeps {
   logger: Logger;
-  todoIndex: TodoIndex<TFile>;
+  taskIndex: TaskIndex<TFile>;
   undoManager?: UndoManager;
 }
 
@@ -38,14 +38,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const settingsStore = React.useMemo(() => new PlanningSettingsStore(app), [app]);
   const savedSettings = React.useMemo(() => settingsStore.getSettings(), [settingsStore]);
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
-  const [todos, setTodos] = React.useState<TodoItem<TFile>[]>(deps.todoIndex.todos);
+  const [todos, setTodos] = React.useState<TaskItem<TFile>[]>(deps.taskIndex.tasks);
 
   // Define findTodo early so it can be used by undo handler
   const findTodo = React.useCallback(
-    (todoId: string): TodoItem<TFile> | undefined => {
-      function searchRecursive(items: TodoItem<TFile>[]): TodoItem<TFile> | undefined {
+    (taskId: string): TaskItem<TFile> | undefined => {
+      function searchRecursive(items: TaskItem<TFile>[]): TaskItem<TFile> | undefined {
         for (const todo of items) {
-          if (getTodoId(todo) === todoId) {
+          if (getTaskId(todo) === taskId) {
             return todo;
           }
           if (todo.subtasks && todo.subtasks.length > 0) {
@@ -153,14 +153,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Flatten todos to include subtasks with their own due dates as independent items
   const flattenedTodos = React.useMemo(() => {
-    const result: TodoItem<TFile>[] = [];
-    const subtasksWithDates = new Set<TodoItem<TFile>>();
+    const result: TaskItem<TFile>[] = [];
+    const subtasksWithDates = new Set<TaskItem<TFile>>();
 
     // First pass: identify subtasks that have their own due dates
-    function collectDatedSubtasks(todo: TodoItem<TFile>) {
+    function collectDatedSubtasks(todo: TaskItem<TFile>) {
       if (todo.subtasks) {
         for (const subtask of todo.subtasks) {
-          const subtaskDate = findTodoDate(subtask, settings.dueDateAttribute);
+          const subtaskDate = findTaskDate(subtask, settings.dueDateAttribute);
           if (subtaskDate) {
             subtasksWithDates.add(subtask);
           }
@@ -183,7 +183,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }, [todos, settings.dueDateAttribute]);
 
   const filteredTodos = React.useMemo(() => {
-    const filter = new TodoMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
+    const filter = new TaskMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
     return flattenedTodos.todos.filter((todo) => {
       // Check both task-level and file-level ignore
       const isTaskIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
@@ -202,11 +202,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Set of subtask IDs that have their own dates (to hide from parent's subtask list)
   const promotedSubtaskIds = React.useMemo(() => {
-    return new Set(Array.from(flattenedTodos.subtasksWithDates).map((t) => getTodoId(t)));
+    return new Set(Array.from(flattenedTodos.subtasksWithDates).map((t) => getTaskId(t)));
   }, [flattenedTodos.subtasksWithDates]);
 
   React.useEffect(() => {
-    const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos) => {
+    const unsubscribe = deps.taskIndex.onUpdateEvent.listen((todos) => {
       setTodos(todos);
       return Promise.resolve();
     });
@@ -214,15 +214,15 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [deps.todoIndex]);
+  }, [deps.taskIndex]);
 
-  function getTodosByDate(from: Moment | null, to: Moment | null, includeSelected: boolean = false, excludeIds?: Set<string>): TodoItem<TFile>[] {
+  function getTodosByDate(from: Moment | null, to: Moment | null, includeSelected: boolean = false, excludeIds?: Set<string>): TaskItem<TFile>[] {
     const dateIsInRange = (date: Moment | null) => date && (from === null || date.isSameOrAfter(from)) && (to === null || date.isBefore(to));
-    function todoInRange<T>(todo: TodoItem<T>) {
-      const isDone = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+    function todoInRange<T>(todo: TaskItem<T>) {
+      const isDone = todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled;
       const isSelected = todo.attributes && !!todo.attributes[settings.selectedAttribute];
-      const dueDate = findTodoDate(todo, settings.dueDateAttribute);
-      const completedDate = findTodoDate(todo, settings.completedDateAttribute);
+      const dueDate = findTaskDate(todo, settings.dueDateAttribute);
+      const completedDate = findTaskDate(todo, settings.completedDateAttribute);
       const dueDateIsInRange = dateIsInRange(dueDate);
       const completedDateIsInRange = dateIsInRange(completedDate);
 
@@ -235,33 +235,33 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       return isInRangeOrSelected;
     }
     const todosInRange = filteredTodos.filter((todo) => {
-      if (excludeIds && excludeIds.has(getTodoId(todo))) return false;
+      if (excludeIds && excludeIds.has(getTaskId(todo))) return false;
       return todo.attributes && todoInRange(todo);
     });
     return todosInRange;
   }
 
-  function getTodosWithNoDate(excludeIds?: Set<string>): TodoItem<TFile>[] {
+  function getTodosWithNoDate(excludeIds?: Set<string>): TaskItem<TFile>[] {
     return filteredTodos.filter((todo) => {
-      if (excludeIds && excludeIds.has(getTodoId(todo))) return false;
-      return !findTodoDate(todo, settings.dueDateAttribute) && todo.attributes && !todo.attributes[settings.selectedAttribute] && todo.status !== TodoStatus.Canceled && todo.status !== TodoStatus.Complete;
+      if (excludeIds && excludeIds.has(getTaskId(todo))) return false;
+      return !findTaskDate(todo, settings.dueDateAttribute) && todo.attributes && !todo.attributes[settings.selectedAttribute] && todo.status !== TaskStatus.Canceled && todo.status !== TaskStatus.Complete;
     });
   }
 
   // Helper to un-complete a task if it's currently done
-  async function _ensureNotCompleted(todo: TodoItem<TFile>) {
-    if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
-      todo.status = TodoStatus.Todo;
-      await fileOperations.updateTodoStatus(todo, settings.completedDateAttribute);
+  async function _ensureNotCompleted(todo: TaskItem<TFile>) {
+    if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) {
+      todo.status = TaskStatus.Todo;
+      await fileOperations.updateTaskStatus(todo, settings.completedDateAttribute);
     }
   }
 
   // Helper to batch un-complete tasks
-  async function _batchEnsureNotCompleted(todos: TodoItem<TFile>[]) {
-    const completedTodos = todos.filter((todo) => todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled);
+  async function _batchEnsureNotCompleted(todos: TaskItem<TFile>[]) {
+    const completedTodos = todos.filter((todo) => todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled);
     if (completedTodos.length > 0) {
-      completedTodos.forEach((todo) => (todo.status = TodoStatus.Todo));
-      await fileOperations.batchUpdateTodoStatus(completedTodos, settings.completedDateAttribute);
+      completedTodos.forEach((todo) => (todo.status = TaskStatus.Todo));
+      await fileOperations.batchUpdateTaskStatus(completedTodos, settings.completedDateAttribute);
     }
   }
   // Silence unused function warnings (reserved for future use)
@@ -278,7 +278,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Get custom horizon tags that should be removed when moving to a builtin horizon
   // This ensures tasks can be moved OUT of custom horizons into builtin horizons
-  function getCustomHorizonTagsToRemove(todos: TodoItem<TFile>[]): string[] {
+  function getCustomHorizonTagsToRemove(todos: TaskItem<TFile>[]): string[] {
     if (!settings.customHorizons || settings.customHorizons.length === 0) return [];
 
     const tagsToRemove: string[] = [];
@@ -299,12 +299,12 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function moveToDate(date: Moment) {
-    return (todoId: string) => {
-      const todo = findTodo(todoId);
+    return (taskId: string) => {
+      const todo = findTodo(taskId);
       const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Moving ${todoId} to ${dateStr}`);
+      deps.logger.debug(`Moving ${taskId} to ${dateStr}`);
       if (!todo) {
-        deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
+        deps.logger.warn(`Todo ${taskId} not found, couldn't move`);
         return;
       }
       const tagsToRemove = getCustomHorizonTagsToRemove([todo]);
@@ -315,7 +315,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   function batchMoveToDate(date: Moment) {
     return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
       if (foundTodos.length === 0) {
         deps.logger.warn(`No todos found for batch move`);
         return;
@@ -329,12 +329,12 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function moveToDateAndTag(date: Moment, tag: string) {
-    return (todoId: string) => {
-      const todo = findTodo(todoId);
+    return (taskId: string) => {
+      const todo = findTodo(taskId);
       const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Moving ${todoId} to ${dateStr} with tag #${tag}`);
+      deps.logger.debug(`Moving ${taskId} to ${dateStr} with tag #${tag}`);
       if (!todo) {
-        deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
+        deps.logger.warn(`Todo ${taskId} not found, couldn't move`);
         return;
       }
       const description = UndoManager.createMoveDescription(1, `${getDateLabel(date)} (#${tag})`);
@@ -344,7 +344,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   function batchMoveToDateAndTag(date: Moment, tag: string) {
     return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
       if (foundTodos.length === 0) {
         deps.logger.warn(`No todos found for batch move`);
         return;
@@ -357,8 +357,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function removeDate() {
-    return (todoId: string) => {
-      const todo = findTodo(todoId);
+    return (taskId: string) => {
+      const todo = findTodo(taskId);
       if (!todo) {
         return;
       }
@@ -369,7 +369,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   function batchRemoveDate() {
     return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
       if (foundTodos.length === 0) return;
       deps.logger.debug(`Batch removing date from ${foundTodos.length} todos`);
       const description = UndoManager.createMoveDescription(foundTodos.length, "Backlog");
@@ -377,32 +377,32 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }
 
-  function getStatusLabel(status: TodoStatus): string {
+  function getStatusLabel(status: TaskStatus): string {
     switch (status) {
-      case TodoStatus.Todo:
+      case TaskStatus.Todo:
         return "Todo";
-      case TodoStatus.InProgress:
+      case TaskStatus.InProgress:
         return "In Progress";
-      case TodoStatus.Complete:
+      case TaskStatus.Complete:
         return "Done";
-      case TodoStatus.Canceled:
+      case TaskStatus.Canceled:
         return "Canceled";
-      case TodoStatus.Delegated:
+      case TaskStatus.Delegated:
         return "Delegated";
-      case TodoStatus.AttentionRequired:
+      case TaskStatus.AttentionRequired:
         return "Attention Required";
       default:
         return "Unknown";
     }
   }
 
-  function moveToDateAndStatus(date: Moment, status: TodoStatus) {
-    return (todoId: string) => {
-      const todo = findTodo(todoId);
+  function moveToDateAndStatus(date: Moment, status: TaskStatus) {
+    return (taskId: string) => {
+      const todo = findTodo(taskId);
       const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Moving ${todoId} to ${dateStr}`);
+      deps.logger.debug(`Moving ${taskId} to ${dateStr}`);
       if (!todo) {
-        deps.logger.warn(`Todo ${todoId} not found, couldn't move`);
+        deps.logger.warn(`Todo ${taskId} not found, couldn't move`);
         return;
       }
       const description = UndoManager.createMoveDescription(1, `${getDateLabel(date)} (${getStatusLabel(status)})`);
@@ -410,9 +410,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }
 
-  function batchMoveToDateAndStatus(date: Moment, status: TodoStatus) {
+  function batchMoveToDateAndStatus(date: Moment, status: TaskStatus) {
     return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TodoItem<TFile> => todo !== undefined);
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
       if (foundTodos.length === 0) {
         deps.logger.warn(`No todos found for batch move`);
         return;
@@ -424,7 +424,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }
 
-  function getTodosByDateAndStatus(from: Moment, to: Moment, status: TodoStatus[]) {
+  function getTodosByDateAndStatus(from: Moment, to: Moment, status: TaskStatus[]) {
     const todos = getTodosByDate(from, to, true);
     return todos.filter((todo) => status.includes(todo.status));
   }
@@ -432,9 +432,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   function todoColumn(
     icon: string,
     title: string,
-    todos: TodoItem<TFile>[],
+    todos: TaskItem<TFile>[],
     hideIfEmpty = hideEmpty,
-    onTodoDropped: ((todoId: string) => void) | null = null,
+    onTodoDropped: ((taskId: string) => void) | null = null,
     onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null,
     substyle?: string,
     customColor?: string,
@@ -442,7 +442,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     headerActions?: ColumnHeaderAction[]
   ) {
     return (
-      <PlanningTodoColumn
+      <PlanningTaskColumn
         hideIfEmpty={hideIfEmpty}
         icon={icon}
         title={title}
@@ -457,7 +457,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           promotedSubtaskIds,
         }}
         substyle={substyle}
-        customColor={customColor as Parameters<typeof PlanningTodoColumn>[0]["customColor"]}
+        customColor={customColor as Parameters<typeof PlanningTaskColumn>[0]["customColor"]}
         columnType={columnType}
         headerActions={headerActions}
       />
@@ -469,15 +469,15 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     const tomorrow = today.clone().add(1, "day");
     const columnCount = hideDone ? 2 : 3;
 
-    yield todoColumn("circle", "Todo\nNot started", getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Todo]), false, moveToDateAndStatus(today, TodoStatus.Todo), batchMoveToDateAndStatus(today, TodoStatus.Todo), `today cols-${columnCount}`, undefined, "today-todo");
+    yield todoColumn("circle", "Todo\nNot started", getTodosByDateAndStatus(today, tomorrow, [TaskStatus.Todo]), false, moveToDateAndStatus(today, TaskStatus.Todo), batchMoveToDateAndStatus(today, TaskStatus.Todo), `today cols-${columnCount}`, undefined, "today-todo");
 
     yield todoColumn(
       "clock",
       "In Progress\nWorking on",
-      getTodosByDateAndStatus(today, tomorrow, [TodoStatus.AttentionRequired, TodoStatus.Delegated, TodoStatus.InProgress]),
+      getTodosByDateAndStatus(today, tomorrow, [TaskStatus.AttentionRequired, TaskStatus.Delegated, TaskStatus.InProgress]),
       false,
-      moveToDateAndStatus(today, TodoStatus.InProgress),
-      batchMoveToDateAndStatus(today, TodoStatus.InProgress),
+      moveToDateAndStatus(today, TaskStatus.InProgress),
+      batchMoveToDateAndStatus(today, TaskStatus.InProgress),
       `today cols-${columnCount}`,
       undefined,
       "today-in-progress"
@@ -487,10 +487,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       yield todoColumn(
         "check-circle",
         "Completed\nDone today",
-        getTodosByDateAndStatus(today, tomorrow, [TodoStatus.Canceled, TodoStatus.Complete]),
+        getTodosByDateAndStatus(today, tomorrow, [TaskStatus.Canceled, TaskStatus.Complete]),
         false,
-        moveToDateAndStatus(today, TodoStatus.Complete),
-        batchMoveToDateAndStatus(today, TodoStatus.Complete),
+        moveToDateAndStatus(today, TaskStatus.Complete),
+        batchMoveToDateAndStatus(today, TaskStatus.Complete),
         `today cols-${columnCount} done`,
         undefined,
         "today-done"
@@ -498,7 +498,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     }
   }
 
-  function getWipStyle(todos: TodoItem<TFile>[]) {
+  function getWipStyle(todos: TaskItem<TFile>[]) {
     if (wipLimit.isLimited) {
       if (todos.length > wipLimit.dailyLimit) {
         return "wip-exceeded";
@@ -507,19 +507,19 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return "";
   }
 
-  function getOverdueTodos(excludeIds?: Set<string>): TodoItem<TFile>[] {
+  function getOverdueTodos(excludeIds?: Set<string>): TaskItem<TFile>[] {
     const today = moment().startOf("day");
     return filteredTodos.filter((todo) => {
-      if (excludeIds && excludeIds.has(getTodoId(todo))) return false;
-      if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
+      if (excludeIds && excludeIds.has(getTaskId(todo))) return false;
+      if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) {
         return false;
       }
-      const dueDate = findTodoDate(todo, settings.dueDateAttribute);
+      const dueDate = findTaskDate(todo, settings.dueDateAttribute);
       return dueDate && dueDate.isBefore(today);
     });
   }
 
-  function getCustomDateHorizonTodos(targetDate: string, tag?: string, excludeIds?: Set<string>): TodoItem<TFile>[] {
+  function getCustomDateHorizonTodos(targetDate: string, tag?: string, excludeIds?: Set<string>): TaskItem<TFile>[] {
     const target = moment(targetDate);
     if (!target.isValid()) return [];
 
@@ -545,15 +545,15 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     const assignedTaskIds = new Set<string>();
 
     // Helper to add todos to the exclusion set
-    function markTasksAsAssigned(todos: TodoItem<TFile>[]) {
+    function markTasksAsAssigned(todos: TaskItem<TFile>[]) {
       for (const todo of todos) {
-        assignedTaskIds.add(getTodoId(todo));
+        assignedTaskIds.add(getTaskId(todo));
       }
     }
 
     // PRE-CLAIM: Custom horizons have priority over builtins.
     // Calculate and claim their tasks FIRST, before any builtin processing.
-    const customHorizonTodos = new Map<number, TodoItem<TFile>[]>();
+    const customHorizonTodos = new Map<number, TaskItem<TFile>[]>();
     if (customHorizons) {
       for (let i = 0; i < customHorizons.length; i++) {
         const horizon = customHorizons[i];
@@ -707,7 +707,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           icon: "calendar-check",
           label: "Reschedule all to Today",
           onClick: () => {
-            const todoIds = overdueTodos.map((todo) => getTodoId(todo));
+            const todoIds = overdueTodos.map((todo) => getTaskId(todo));
             void batchMoveToDate(today)(todoIds);
           },
         },
@@ -715,7 +715,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           icon: "inbox",
           label: "Move all to Backlog",
           onClick: () => {
-            const todoIds = overdueTodos.map((todo) => getTodoId(todo));
+            const todoIds = overdueTodos.map((todo) => getTaskId(todo));
             void batchRemoveDate()(todoIds);
           },
         },
@@ -726,9 +726,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     if (viewMode === "future") {
       const tomorrow = today.clone().add(1, "day");
       const todayTodos = filteredTodos.filter((todo) => {
-        if (assignedTaskIds.has(getTodoId(todo))) return false;
-        if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) return false;
-        const dueDate = findTodoDate(todo, settings.dueDateAttribute);
+        if (assignedTaskIds.has(getTaskId(todo))) return false;
+        if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) return false;
+        const dueDate = findTaskDate(todo, settings.dueDateAttribute);
         return dueDate && dueDate.isSameOrAfter(today) && dueDate.isBefore(tomorrow);
       });
       markTasksAsAssigned(todayTodos);
@@ -954,7 +954,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   deps.logger.debug(`Rendering planning view`);
 
   const totalTasks = React.useMemo(() => {
-    return filteredTodos.filter((todo) => todo.status !== TodoStatus.Complete && todo.status !== TodoStatus.Canceled).length;
+    return filteredTodos.filter((todo) => todo.status !== TaskStatus.Complete && todo.status !== TaskStatus.Canceled).length;
   }, [filteredTodos]);
 
   const completedToday = React.useMemo(() => {
@@ -962,9 +962,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     const tomorrow = today.clone().add(1, "day");
     const dateIsInRange = (date: Moment | null) => date && date.isSameOrAfter(today) && date.isBefore(tomorrow);
     const completedTodos = filteredTodos.filter((todo) => {
-      if (todo.status !== TodoStatus.Complete) return false;
+      if (todo.status !== TaskStatus.Complete) return false;
       if (!todo.attributes) return false;
-      const completedDate = findTodoDate(todo, settings.completedDateAttribute);
+      const completedDate = findTaskDate(todo, settings.completedDateAttribute);
       return dateIsInRange(completedDate);
     });
     return completedTodos.length;

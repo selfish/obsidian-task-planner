@@ -1,6 +1,6 @@
 import { Completion } from "./completion";
 import { TaskPlannerSettings } from "../../settings";
-import { AttributesStructure, TodoItem, TodoParsingResult, TodoStatus } from "../../types";
+import { AttributesStructure, TaskItem, TaskParsingResult, TaskStatus } from "../../types";
 import { LineParser } from "../parsers/line-parser";
 
 export class StatusOperations {
@@ -49,7 +49,7 @@ export class StatusOperations {
     return attributes;
   }
 
-  toggleTodo(line: string): string {
+  toggleTask(line: string): string {
     const parsedLine = this.lineParser.parseLine(line);
     if (parsedLine.checkbox) {
       parsedLine.checkbox = "";
@@ -65,23 +65,23 @@ export class StatusOperations {
     return this.lineParser.lineToString(parsedLine);
   }
 
-  private markToStatus(mark: string): TodoStatus {
+  private markToStatus(mark: string): TaskStatus {
     switch (mark.toLowerCase()) {
       case "]":
       case "-":
       case "c":
-        return TodoStatus.Canceled;
+        return TaskStatus.Canceled;
       case ">":
-        return TodoStatus.InProgress;
+        return TaskStatus.InProgress;
       case "!":
-        return TodoStatus.AttentionRequired;
+        return TaskStatus.AttentionRequired;
       case "x":
-        return TodoStatus.Complete;
+        return TaskStatus.Complete;
       case "d":
-        return TodoStatus.Delegated;
+        return TaskStatus.Delegated;
       case " ":
       default:
-        return TodoStatus.Todo;
+        return TaskStatus.Todo;
     }
   }
 
@@ -89,31 +89,31 @@ export class StatusOperations {
     return (str.match(/ /g)?.length || 0) + (str.match(/\t/g)?.length || 0) * 4;
   }
 
-  toTodo<T>(line: string, lineNumber: number): TodoParsingResult<T> {
+  toTask<T>(line: string, lineNumber: number): TaskParsingResult<T> {
     const parsedLine = this.lineParser.parseLine(line);
     const indentLevel = this.getIndentationLevel(parsedLine.indentation);
     if (!parsedLine.checkbox)
       return {
         lineNumber,
-        isTodo: false,
+        isTask: false,
         indentLevel,
       };
     const attributesMatching = this.lineParser.parseAttributes(parsedLine.line);
-    const todo = {
+    const task = {
       status: this.markToStatus(parsedLine.checkbox[1]),
       text: attributesMatching.textWithoutAttributes,
       attributes: attributesMatching.attributes,
       tags: attributesMatching.tags,
       file: undefined as unknown,
-    } as TodoItem<T>;
-    const res: TodoParsingResult<T> = {
+    } as TaskItem<T>;
+    const res: TaskParsingResult<T> = {
       lineNumber,
-      isTodo: true,
-      todo,
+      isTask: true,
+      task,
       indentLevel: this.getIndentationLevel(parsedLine.indentation),
     };
     if (lineNumber !== undefined) {
-      todo.line = lineNumber;
+      task.line = lineNumber;
     }
     return res;
   }

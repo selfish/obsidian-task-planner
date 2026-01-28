@@ -4,31 +4,31 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
-import { TodoListComponent } from "./todo-list-component";
-import { TodoIndex } from "../core/index/todo-index";
-import { TodoMatcher } from "../core/matchers/todo-matcher";
+import { TaskListComponent } from "./task-list-component";
+import { TaskIndex } from "../core/index/task-index";
+import { TaskMatcher } from "../core/matchers/task-matcher";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
-import { TodoItem, TodoStatus } from "../types/todo";
+import { TaskItem, TaskStatus } from "../types/task";
 import { moment, Moment } from "../utils/moment";
-import { findTodoDate } from "../utils/todo-utils";
+import { findTaskDate } from "../utils/task-utils";
 
-export interface TodoReportComponentDeps {
+export interface TaskReportComponentDeps {
   logger: Logger;
-  todoIndex: TodoIndex<TFile>;
+  taskIndex: TaskIndex<TFile>;
   settings: TaskPlannerSettings;
   app: App;
 }
 
-export interface TodoReportComponentProps {
-  deps: TodoReportComponentDeps;
+export interface TaskReportComponentProps {
+  deps: TaskReportComponentDeps;
   onOpenPlanning?: () => void;
 }
 
 interface Container {
   id: string;
   title: string;
-  todos: TodoItem<TFile>[];
+  todos: TaskItem<TFile>[];
 }
 
 interface DateContainer extends Container {
@@ -55,12 +55,12 @@ function moveToPreviousMonday(date: Moment): Moment {
   return date;
 }
 
-function findTodoCompletionDate(todo: TodoItem<TFile>, settings: TaskPlannerSettings): Moment | null {
-  let d = findTodoDate(todo, settings.completedDateAttribute);
+function findTaskCompletionDate(todo: TaskItem<TFile>, settings: TaskPlannerSettings): Moment | null {
+  let d = findTaskDate(todo, settings.completedDateAttribute);
   if (d) {
     return d;
   }
-  d = findTodoDate(todo, settings.dueDateAttribute);
+  d = findTaskDate(todo, settings.dueDateAttribute);
   if (d) {
     return d;
   }
@@ -119,27 +119,27 @@ function getDateContainers(minDate: Moment, numberOfWeeks: number): DateContaine
   return containers;
 }
 
-function filterTodosByStatus(todos: TodoItem<TFile>[], statusFilter: StatusFilter): TodoItem<TFile>[] {
+function filterTasksByStatus(todos: TaskItem<TFile>[], statusFilter: StatusFilter): TaskItem<TFile>[] {
   return todos.filter((todo) => {
     if (statusFilter === "all") {
-      return todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+      return todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled;
     }
     if (statusFilter === "completed") {
-      return todo.status === TodoStatus.Complete;
+      return todo.status === TaskStatus.Complete;
     }
     if (statusFilter === "canceled") {
-      return todo.status === TodoStatus.Canceled;
+      return todo.status === TaskStatus.Canceled;
     }
     return false;
   });
 }
 
-function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], settings: TaskPlannerSettings): Container[] {
+function groupTasks(todos: TaskItem<TFile>[], containers: DateContainer[], settings: TaskPlannerSettings): Container[] {
   const assignedTodoIds = new Set<string>();
 
   containers.forEach((container) => {
     container.todos = todos.filter((todo) => {
-      const date = findTodoCompletionDate(todo, settings);
+      const date = findTaskCompletionDate(todo, settings);
       if (!date) {
         return false;
       }
@@ -154,7 +154,7 @@ function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], setti
   const emptyContainer: Container = {
     id: "no-date",
     title: "No date",
-    todos: todos.filter((todo) => !findTodoCompletionDate(todo, settings)),
+    todos: todos.filter((todo) => !findTaskCompletionDate(todo, settings)),
   };
 
   // Only add no-date container if it has todos
@@ -166,9 +166,9 @@ function groupTodos(todos: TodoItem<TFile>[], containers: DateContainer[], setti
   return result;
 }
 
-function getMinDate(todos: TodoItem<TFile>[], settings: TaskPlannerSettings): Moment {
+function getMinDate(todos: TaskItem<TFile>[], settings: TaskPlannerSettings): Moment {
   return todos.reduce((min, thisTodo) => {
-    const completionDate = findTodoCompletionDate(thisTodo, settings);
+    const completionDate = findTaskCompletionDate(thisTodo, settings);
     if (completionDate) {
       return min.diff(completionDate) > 0 ? completionDate : min;
     }
@@ -176,14 +176,14 @@ function getMinDate(todos: TodoItem<TFile>[], settings: TaskPlannerSettings): Mo
   }, moment());
 }
 
-function assembleTodosByDate(todos: TodoItem<TFile>[], numberOfWeeks: number, settings: TaskPlannerSettings): Container[] {
+function assembleTasksByDate(todos: TaskItem<TFile>[], numberOfWeeks: number, settings: TaskPlannerSettings): Container[] {
   // Return empty array early if no todos
   if (todos.length === 0) {
     return [];
   }
   const minDate = getMinDate(todos, settings);
   const containers = getDateContainers(minDate, numberOfWeeks);
-  return groupTodos(todos, containers, settings);
+  return groupTasks(todos, containers, settings);
 }
 
 function ReportHeader({ reportSettings, setReportSettings, stats, _app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; _app: App; onOpenPlanning?: () => void }) {
@@ -246,7 +246,7 @@ function ReportHeader({ reportSettings, setReportSettings, stats, _app, onOpenPl
   );
 }
 
-function ReportSection({ container, deps, isCollapsed, onToggle }: { container: Container; deps: TodoReportComponentDeps; isCollapsed: boolean; onToggle: () => void }) {
+function ReportSection({ container, deps, isCollapsed, onToggle }: { container: Container; deps: TaskReportComponentDeps; isCollapsed: boolean; onToggle: () => void }) {
   // Use callback ref to ensure icon renders on mount and updates on collapse change
   const setChevronRef = React.useCallback(
     (node: HTMLSpanElement | null) => {
@@ -267,15 +267,15 @@ function ReportSection({ container, deps, isCollapsed, onToggle }: { container: 
       </button>
       {!isCollapsed && (
         <div className="section-content">
-          <TodoListComponent deps={deps} todos={container.todos} dontCrossCompleted={true} />
+          <TaskListComponent deps={deps} todos={container.todos} dontCrossCompleted={true} />
         </div>
       )}
     </div>
   );
 }
 
-export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponentProps) {
-  const [todos, setTodos] = React.useState(deps.todoIndex.todos);
+export function TaskReportComponent({ deps, onOpenPlanning }: TaskReportComponentProps) {
+  const [todos, setTodos] = React.useState(deps.taskIndex.tasks);
   const [numberOfWeeks] = React.useState(4);
   const [reportSettings, setReportSettings] = React.useState<ReportSettings>({
     searchPhrase: "",
@@ -284,32 +284,32 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
   });
 
   React.useEffect(() => {
-    const unsubscribe = deps.todoIndex.onUpdateEvent.listen((todos) => {
+    const unsubscribe = deps.taskIndex.onUpdateEvent.listen((todos) => {
       setTodos(todos);
       return Promise.resolve();
     });
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [deps.todoIndex]);
+  }, [deps.taskIndex]);
 
   // Filter todos by status
-  const statusFilteredTodos = React.useMemo(() => filterTodosByStatus(todos, reportSettings.statusFilter), [todos, reportSettings.statusFilter]);
+  const statusFilteredTodos = React.useMemo(() => filterTasksByStatus(todos, reportSettings.statusFilter), [todos, reportSettings.statusFilter]);
 
   // Filter by search
   const filteredTodos = React.useMemo(() => {
     if (!reportSettings.searchPhrase) return statusFilteredTodos;
-    const filter = new TodoMatcher(reportSettings.searchPhrase, deps.settings.fuzzySearch);
+    const filter = new TaskMatcher(reportSettings.searchPhrase, deps.settings.fuzzySearch);
     return statusFilteredTodos.filter((todo) => filter.matches(todo));
   }, [statusFilteredTodos, reportSettings.searchPhrase, deps.settings.fuzzySearch]);
 
   // Group into containers
-  const containers = React.useMemo(() => assembleTodosByDate(filteredTodos, numberOfWeeks, deps.settings), [filteredTodos, numberOfWeeks, deps.settings]);
+  const containers = React.useMemo(() => assembleTasksByDate(filteredTodos, numberOfWeeks, deps.settings), [filteredTodos, numberOfWeeks, deps.settings]);
 
   // Calculate stats
   const stats = React.useMemo(() => {
-    const completed = todos.filter((t) => t.status === TodoStatus.Complete).length;
-    const canceled = todos.filter((t) => t.status === TodoStatus.Canceled).length;
+    const completed = todos.filter((t) => t.status === TaskStatus.Complete).length;
+    const canceled = todos.filter((t) => t.status === TaskStatus.Canceled).length;
     return {
       total: completed + canceled,
       completed,
@@ -371,9 +371,9 @@ export function TodoReportComponent({ deps, onOpenPlanning }: TodoReportComponen
   );
 }
 
-export function mountTodoReportComponent(onElement: HTMLElement, props: TodoReportComponentProps) {
+export function mountTaskReportComponent(onElement: HTMLElement, props: TaskReportComponentProps) {
   onElement.addClass("task-planner");
   onElement.addClass("report");
   const client = createRoot(onElement);
-  client.render(<TodoReportComponent {...props}></TodoReportComponent>);
+  client.render(<TaskReportComponent {...props}></TaskReportComponent>);
 }

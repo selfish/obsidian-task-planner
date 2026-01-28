@@ -1,7 +1,7 @@
-import { FileTodoParser } from '../../src/core/parsers/file-todo-parser';
+import { FileTaskParser } from '../../src/core/parsers/file-task-parser';
 import { DEFAULT_SETTINGS } from '../../src/settings/types';
 import { FileAdapter } from '../../src/types/file-adapter';
-import { TodoParsingResult, TodoStatus } from '../../src/types/todo';
+import { TaskParsingResult, TaskStatus } from '../../src/types/task';
 
 const createMockFileAdapter = (content: string): FileAdapter<unknown> => ({
   id: 'file-1',
@@ -14,11 +14,11 @@ const createMockFileAdapter = (content: string): FileAdapter<unknown> => ({
   file: {},
 });
 
-describe('FileTodoParser', () => {
-  let parser: FileTodoParser<unknown>;
+describe('FileTaskParser', () => {
+  let parser: FileTaskParser<unknown>;
 
   beforeEach(() => {
-    parser = new FileTodoParser(DEFAULT_SETTINGS);
+    parser = new FileTaskParser(DEFAULT_SETTINGS);
   });
 
   describe('parseMdFile', () => {
@@ -60,10 +60,10 @@ describe('FileTodoParser', () => {
 
       const todos = await parser.parseMdFile(file);
 
-      expect(todos[0].status).toBe(TodoStatus.Todo);
-      expect(todos[1].status).toBe(TodoStatus.Complete);
-      expect(todos[2].status).toBe(TodoStatus.InProgress);
-      expect(todos[3].status).toBe(TodoStatus.Canceled);
+      expect(todos[0].status).toBe(TaskStatus.Todo);
+      expect(todos[1].status).toBe(TaskStatus.Complete);
+      expect(todos[2].status).toBe(TaskStatus.InProgress);
+      expect(todos[3].status).toBe(TaskStatus.Canceled);
     });
 
     it('should ignore non-todo lines', async () => {
@@ -339,104 +339,104 @@ describe('FileTodoParser', () => {
     });
   });
 
-  describe('createTodoTreeStructure (internal)', () => {
+  describe('createTaskTreeStructure (internal)', () => {
     it('should skip whitespace-only lines in parsing results', () => {
       // This tests the defensive check on line 25 of file-todo-parser.ts
       // In normal operation, this code path is unreachable because todoParsingResults
-      // only contains items where isTodo is true, which requires a non-empty checkbox line.
+      // only contains items where isTask is true, which requires a non-empty checkbox line.
       // However, we test it directly to ensure the defensive code works correctly.
       const lines = ['- [ ] Task', '   ', '  - [ ] Subtask'];
-      const parsingResults: TodoParsingResult<unknown>[] = [
+      const parsingResults: TaskParsingResult<unknown>[] = [
         {
           lineNumber: 0,
-          isTodo: true,
+          isTask: true,
           indentLevel: 0,
-          todo: { status: TodoStatus.Todo, text: 'Task', attributes: {}, tags: [], line: 0 },
+          task: { status: TaskStatus.Todo, text: 'Task', attributes: {}, tags: [], line: 0 },
         },
         {
           // Artificially create a parsing result pointing to a whitespace-only line
           lineNumber: 1,
-          isTodo: true,
+          isTask: true,
           indentLevel: 2,
-          todo: { status: TodoStatus.Todo, text: '', attributes: {}, tags: [], line: 1 },
+          task: { status: TaskStatus.Todo, text: '', attributes: {}, tags: [], line: 1 },
         },
         {
           lineNumber: 2,
-          isTodo: true,
+          isTask: true,
           indentLevel: 2,
-          todo: { status: TodoStatus.Todo, text: 'Subtask', attributes: {}, tags: [], line: 2 },
+          task: { status: TaskStatus.Todo, text: 'Subtask', attributes: {}, tags: [], line: 2 },
         },
       ];
 
       // Access the private method for testing
-      const createTodoTreeStructure = (parser as unknown as { createTodoTreeStructure: (lines: string[], results: TodoParsingResult<unknown>[]) => void }).createTodoTreeStructure.bind(parser);
+      const createTaskTreeStructure = (parser as unknown as { createTaskTreeStructure: (lines: string[], results: TaskParsingResult<unknown>[]) => void }).createTaskTreeStructure.bind(parser);
 
       // Should not throw and should skip the whitespace line
-      createTodoTreeStructure(lines, parsingResults);
+      createTaskTreeStructure(lines, parsingResults);
 
       // The first task should have the subtask (from line 2), but not the whitespace entry
-      expect(parsingResults[0].todo!.subtasks).toHaveLength(1);
-      expect(parsingResults[0].todo!.subtasks![0].text).toBe('Subtask');
+      expect(parsingResults[0].task!.subtasks).toHaveLength(1);
+      expect(parsingResults[0].task!.subtasks![0].text).toBe('Subtask');
     });
 
-    it('should skip parsing results where isTodo is false (not push to parent stack)', () => {
-      // This tests the defensive check where current.isTodo is false
-      // When isTodo is false, the item should not be pushed to the parent stack
+    it('should skip parsing results where isTask is false (not push to parent stack)', () => {
+      // This tests the defensive check where current.isTask is false
+      // When isTask is false, the item should not be pushed to the parent stack
       const lines = ['- [ ] Task', 'Regular text', '- [ ] Task2'];
-      const parsingResults: TodoParsingResult<unknown>[] = [
+      const parsingResults: TaskParsingResult<unknown>[] = [
         {
           lineNumber: 0,
-          isTodo: true,
+          isTask: true,
           indentLevel: 0,
-          todo: { status: TodoStatus.Todo, text: 'Task', attributes: {}, tags: [], line: 0 },
+          task: { status: TaskStatus.Todo, text: 'Task', attributes: {}, tags: [], line: 0 },
         },
         {
           // Non-todo result (defensive case) - this should be skipped when deciding to push to parent stack
           lineNumber: 1,
-          isTodo: false,
+          isTask: false,
           indentLevel: 0,
         },
         {
           lineNumber: 2,
-          isTodo: true,
+          isTask: true,
           indentLevel: 0,
-          todo: { status: TodoStatus.Todo, text: 'Task2', attributes: {}, tags: [], line: 2 },
+          task: { status: TaskStatus.Todo, text: 'Task2', attributes: {}, tags: [], line: 2 },
         },
       ];
 
-      const createTodoTreeStructure = (parser as unknown as { createTodoTreeStructure: (lines: string[], results: TodoParsingResult<unknown>[]) => void }).createTodoTreeStructure.bind(parser);
+      const createTaskTreeStructure = (parser as unknown as { createTaskTreeStructure: (lines: string[], results: TaskParsingResult<unknown>[]) => void }).createTaskTreeStructure.bind(parser);
 
-      // Should not throw and should handle isTodo=false results
-      createTodoTreeStructure(lines, parsingResults);
+      // Should not throw and should handle isTask=false results
+      createTaskTreeStructure(lines, parsingResults);
 
       // Both tasks should be separate (no subtask relationship created through non-todo item)
-      expect(parsingResults[0].todo!.subtasks).toBeUndefined();
-      expect(parsingResults[2].todo!.subtasks).toBeUndefined();
+      expect(parsingResults[0].task!.subtasks).toBeUndefined();
+      expect(parsingResults[2].task!.subtasks).toBeUndefined();
     });
 
     it('should handle out-of-bounds line numbers gracefully', () => {
       // Test when lines[current.lineNumber] is undefined
       const lines = ['- [ ] Task'];
-      const parsingResults: TodoParsingResult<unknown>[] = [
+      const parsingResults: TaskParsingResult<unknown>[] = [
         {
           lineNumber: 0,
-          isTodo: true,
+          isTask: true,
           indentLevel: 0,
-          todo: { status: TodoStatus.Todo, text: 'Task', attributes: {}, tags: [], line: 0 },
+          task: { status: TaskStatus.Todo, text: 'Task', attributes: {}, tags: [], line: 0 },
         },
         {
           // Line number beyond array bounds
           lineNumber: 999,
-          isTodo: true,
+          isTask: true,
           indentLevel: 0,
-          todo: { status: TodoStatus.Todo, text: 'OutOfBounds', attributes: {}, tags: [], line: 999 },
+          task: { status: TaskStatus.Todo, text: 'OutOfBounds', attributes: {}, tags: [], line: 999 },
         },
       ];
 
-      const createTodoTreeStructure = (parser as unknown as { createTodoTreeStructure: (lines: string[], results: TodoParsingResult<unknown>[]) => void }).createTodoTreeStructure.bind(parser);
+      const createTaskTreeStructure = (parser as unknown as { createTaskTreeStructure: (lines: string[], results: TaskParsingResult<unknown>[]) => void }).createTaskTreeStructure.bind(parser);
 
       // Should not throw when accessing undefined line
-      createTodoTreeStructure(lines, parsingResults);
+      createTaskTreeStructure(lines, parsingResults);
     });
   });
 
@@ -445,10 +445,10 @@ describe('FileTodoParser', () => {
       // Access the private method for testing
       const removeSubtasksFromTree = (parser as unknown as { removeSubtasksFromTree: (todos: { subtasks?: unknown[] }[]) => void }).removeSubtasksFromTree.bind(parser);
 
-      const subtask = { status: TodoStatus.Todo, text: 'Subtask', attributes: {}, tags: [], line: 1 };
+      const subtask = { status: TaskStatus.Todo, text: 'Subtask', attributes: {}, tags: [], line: 1 };
       const todos = [
         {
-          status: TodoStatus.Todo,
+          status: TaskStatus.Todo,
           text: 'Parent',
           attributes: {},
           tags: [],
@@ -468,27 +468,27 @@ describe('FileTodoParser', () => {
   });
 
   describe('parseMdFile edge cases', () => {
-    it('should handle parsing result with isTodo true but todo undefined', async () => {
-      // This is a defensive test for when result.todo might be falsy
-      // We need to mock the statusOperations.toTodo to return isTodo=true but todo=undefined
+    it('should handle parsing result with isTask true but todo undefined', async () => {
+      // This is a defensive test for when result.task might be falsy
+      // We need to mock the statusOperations.toTask to return isTask=true but todo=undefined
       const content = '- [ ] Task';
       const file = createMockFileAdapter(content);
 
       // Create a parser with mocked internals
-      const mockParser = new FileTodoParser(DEFAULT_SETTINGS);
+      const mockParser = new FileTaskParser(DEFAULT_SETTINGS);
 
-      // Access statusOperations and mock toTodo
-      const statusOperations = (mockParser as unknown as { statusOperations: { toTodo: jest.Mock } }).statusOperations;
-      const originalToTodo = statusOperations.toTodo.bind(statusOperations);
+      // Access statusOperations and mock toTask
+      const statusOperations = (mockParser as unknown as { statusOperations: { toTask: jest.Mock } }).statusOperations;
+      const originalToTodo = statusOperations.toTask.bind(statusOperations);
 
-      statusOperations.toTodo = jest.fn().mockImplementation((line: string, lineNumber: number) => {
+      statusOperations.toTask = jest.fn().mockImplementation((line: string, lineNumber: number) => {
         const result = originalToTodo(line, lineNumber);
-        // For the first todo line, return isTodo=true but todo=undefined (defensive case)
+        // For the first task line, return isTask=true but task=undefined (defensive case)
         if (line.includes('Task')) {
           return {
             ...result,
-            isTodo: true,
-            todo: undefined,  // This is the defensive case we're testing
+            isTask: true,
+            task: undefined,  // This is the defensive case we're testing
           };
         }
         return result;

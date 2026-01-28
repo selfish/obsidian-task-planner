@@ -1,10 +1,10 @@
 import { TaskPlannerSettings } from "../../settings/types";
-import { TodoItem } from "../../types/todo";
+import { TaskItem } from "../../types/task";
 
 export class FollowUpCreator<T> {
   constructor(private settings: TaskPlannerSettings) {}
 
-  async createFollowUp(todo: TodoItem<T>, dueDate: string | null): Promise<void> {
+  async createFollowUp(todo: TaskItem<T>, dueDate: string | null): Promise<void> {
     const text = this.buildFollowUpText(todo);
     const attributes = this.buildFollowUpAttributes(todo, dueDate);
     const tags = this.buildFollowUpTags(todo);
@@ -13,7 +13,7 @@ export class FollowUpCreator<T> {
     await this.insertAfterOriginal(todo, taskLine);
   }
 
-  private buildFollowUpText(todo: TodoItem<T>): string {
+  private buildFollowUpText(todo: TaskItem<T>): string {
     const prefix = this.settings.followUp.textPrefix;
     // Strip existing prefix to avoid "Follow up: Follow up: Task"
     const textWithoutPrefix = this.stripExistingPrefix(todo.text, prefix);
@@ -44,7 +44,7 @@ export class FollowUpCreator<T> {
     return text;
   }
 
-  private buildFollowUpAttributes(todo: TodoItem<T>, dueDate: string | null): Record<string, string | boolean> {
+  private buildFollowUpAttributes(todo: TaskItem<T>, dueDate: string | null): Record<string, string | boolean> {
     const attributes: Record<string, string | boolean> = {};
 
     // Set due date if provided
@@ -60,7 +60,7 @@ export class FollowUpCreator<T> {
     return attributes;
   }
 
-  private buildFollowUpTags(todo: TodoItem<T>): string[] {
+  private buildFollowUpTags(todo: TaskItem<T>): string[] {
     if (!this.settings.followUp.copyTags || !todo.tags) {
       return [];
     }
@@ -87,7 +87,7 @@ export class FollowUpCreator<T> {
     return line.length - line.trimStart().length;
   }
 
-  async insertAfterOriginal(todo: TodoItem<T>, taskLine: string): Promise<void> {
+  async insertAfterOriginal(todo: TaskItem<T>, taskLine: string): Promise<void> {
     if (todo.line === undefined) {
       throw new Error("Cannot insert follow-up: original task has no line number");
     }

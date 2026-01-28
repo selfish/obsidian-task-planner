@@ -1,4 +1,4 @@
-import { ToggleTodoCommand } from '../../src/commands/toggle-todo';
+import { ToggleTaskCommand } from '../../src/commands/toggle-task';
 import { StatusOperations } from '../../src/core/operations/status-operations';
 import { Editor, MarkdownView } from 'obsidian';
 
@@ -13,22 +13,22 @@ const createMockEditor = (lines: string[]): Editor => {
   } as unknown as Editor;
 };
 
-describe('ToggleTodoCommand', () => {
+describe('ToggleTaskCommand', () => {
   let statusOperations: StatusOperations;
-  let command: ToggleTodoCommand;
+  let command: ToggleTaskCommand;
 
   beforeEach(() => {
     statusOperations = new StatusOperations();
-    command = new ToggleTodoCommand(statusOperations);
+    command = new ToggleTaskCommand(statusOperations);
   });
 
   describe('properties', () => {
     it('should have correct id', () => {
-      expect(command.id).toBe('toggle-todo');
+      expect(command.id).toBe('toggle-task');
     });
 
     it('should have correct name', () => {
-      expect(command.name).toBe('Mark todo as checked / unchecked');
+      expect(command.name).toBe('Mark task as checked / unchecked');
     });
 
     it('should have correct icon', () => {

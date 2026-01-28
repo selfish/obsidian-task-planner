@@ -1,19 +1,19 @@
 import { ParseError } from "../../lib/errors";
 import { TaskPlannerSettings } from "../../settings";
-import { FileAdapter, TodoItem, TodoParsingResult } from "../../types";
+import { FileAdapter, TaskItem, TaskParsingResult } from "../../types";
 import { StatusOperations } from "../operations/status-operations";
 
-export class FileTodoParser<TFile> {
+export class FileTaskParser<TFile> {
   private statusOperations: StatusOperations;
 
   constructor(settings: TaskPlannerSettings) {
     this.statusOperations = new StatusOperations(settings);
   }
 
-  private createTodoTreeStructure(lines: string[], parsingResults: TodoParsingResult<TFile>[]): void {
-    const parentStack: TodoParsingResult<TFile>[] = [];
-    const parent = (): TodoParsingResult<TFile> | undefined => parentStack[parentStack.length - 1];
-    const pushParent = (p: TodoParsingResult<TFile>): void => {
+  private createTaskTreeStructure(lines: string[], parsingResults: TaskParsingResult<TFile>[]): void {
+    const parentStack: TaskParsingResult<TFile>[] = [];
+    const parent = (): TaskParsingResult<TFile> | undefined => parentStack[parentStack.length - 1];
+    const pushParent = (p: TaskParsingResult<TFile>): void => {
       parentStack.push(p);
     };
     const popParent = (): void => {
@@ -31,39 +31,39 @@ export class FileTodoParser<TFile> {
         currentParent = parent();
       }
 
-      if (currentParent?.todo && current.isTodo && current.todo) {
-        if (!currentParent.todo.subtasks) {
-          currentParent.todo.subtasks = [];
+      if (currentParent?.task && current.isTask && current.task) {
+        if (!currentParent.task.subtasks) {
+          currentParent.task.subtasks = [];
         }
-        currentParent.todo.subtasks.push(current.todo);
+        currentParent.task.subtasks.push(current.task);
       }
 
-      if (current.isTodo) {
+      if (current.isTask) {
         pushParent(current);
       }
     });
   }
 
-  private setFileOnSubtasks(todo: TodoItem<TFile>, file: FileAdapter<TFile>): void {
-    if (todo.subtasks) {
-      for (const subtask of todo.subtasks) {
+  private setFileOnSubtasks(task: TaskItem<TFile>, file: FileAdapter<TFile>): void {
+    if (task.subtasks) {
+      for (const subtask of task.subtasks) {
         subtask.file = file;
         this.setFileOnSubtasks(subtask, file);
       }
     }
   }
 
-  private removeSubtasksFromTree(todos: TodoItem<TFile>[]): void {
-    const toRemove: TodoItem<TFile>[] = [];
-    for (const todo of todos) {
-      if (todo.subtasks) {
-        toRemove.push(...todo.subtasks);
+  private removeSubtasksFromTree(tasks: TaskItem<TFile>[]): void {
+    const toRemove: TaskItem<TFile>[] = [];
+    for (const task of tasks) {
+      if (task.subtasks) {
+        toRemove.push(...task.subtasks);
       }
     }
     for (const subtask of toRemove) {
-      const idx = todos.findIndex((t) => t === subtask);
+      const idx = tasks.findIndex((t) => t === subtask);
       if (idx >= 0) {
-        todos.splice(idx, 1);
+        tasks.splice(idx, 1);
       }
     }
   }
@@ -72,7 +72,7 @@ export class FileTodoParser<TFile> {
     return /^\s*```/.test(line);
   }
 
-  async parseMdFile(file: FileAdapter<TFile>): Promise<TodoItem<TFile>[]> {
+  async parseMdFile(file: FileAdapter<TFile>): Promise<TaskItem<TFile>[]> {
     let content: string;
     try {
       content = await file.getContent();
@@ -95,28 +95,28 @@ export class FileTodoParser<TFile> {
       if (insideCodeBlock && !this.isCodeBlockFence(line)) {
         return {
           lineNumber: number,
-          isTodo: false,
+          isTask: false,
           indentLevel: 0,
         };
       }
 
-      return this.statusOperations.toTodo<TFile>(line, number);
+      return this.statusOperations.toTask<TFile>(line, number);
     });
 
-    const todoParsingResults = parsingResults.filter((result) => result.isTodo);
-    this.createTodoTreeStructure(lines, todoParsingResults);
+    const taskParsingResults = parsingResults.filter((result) => result.isTask);
+    this.createTaskTreeStructure(lines, taskParsingResults);
 
-    const todos: TodoItem<TFile>[] = [];
-    for (const result of todoParsingResults) {
-      if (result.todo) {
-        result.todo.file = file;
+    const tasks: TaskItem<TFile>[] = [];
+    for (const result of taskParsingResults) {
+      if (result.task) {
+        result.task.file = file;
         // Also set file on subtasks recursively
-        this.setFileOnSubtasks(result.todo, file);
-        todos.push(result.todo);
+        this.setFileOnSubtasks(result.task, file);
+        tasks.push(result.task);
       }
     }
 
-    this.removeSubtasksFromTree(todos);
-    return todos;
+    this.removeSubtasksFromTree(tasks);
+    return tasks;
   }
 }

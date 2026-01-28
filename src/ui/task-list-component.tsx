@@ -2,11 +2,11 @@ import { App, TFile } from "obsidian";
 
 import * as React from "react";
 
-import { TodoItemComponent } from "./todo-item-component";
+import { TodoItemComponent } from "./task-item-component";
 import { TaskPlannerSettings } from "../settings/types";
 import { Consts } from "../types/constants";
 import { Logger } from "../types/logger";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
+import { TaskItem, TaskStatus, getTaskId } from "../types/task";
 import { getFileDisplayName } from "../utils/file-utils";
 
 // Hook to get file display name with metadata cache updates
@@ -50,7 +50,7 @@ function GroupHeader({ file, app, onDragStart }: { file: TFile; app: App; onDrag
   );
 }
 
-function getPriorityValue(todo: TodoItem<TFile>): number {
+function getPriorityValue(todo: TaskItem<TFile>): number {
   if (!todo.attributes || !todo.attributes["priority"]) {
     return 0;
   }
@@ -65,18 +65,18 @@ function getPriorityValue(todo: TodoItem<TFile>): number {
   return priorities[priority] || 0;
 }
 
-function getStatusValue(todo: TodoItem<TFile>): number {
+function getStatusValue(todo: TaskItem<TFile>): number {
   switch (todo.status) {
-    case TodoStatus.Canceled:
+    case TaskStatus.Canceled:
       return 0;
-    case TodoStatus.Complete:
+    case TaskStatus.Complete:
       return 1;
     default:
       return 10;
   }
 }
 
-function sortTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
+function sortTodos(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
   if (!todos) {
     return [];
   }
@@ -93,8 +93,8 @@ function sortTodos(todos: TodoItem<TFile>[]): TodoItem<TFile>[] {
   });
 }
 
-function groupTodosByFile(todos: TodoItem<TFile>[]): Map<string, TodoItem<TFile>[]> {
-  const groups = new Map<string, TodoItem<TFile>[]>();
+function groupTodosByFile(todos: TaskItem<TFile>[]): Map<string, TaskItem<TFile>[]> {
+  const groups = new Map<string, TaskItem<TFile>[]>();
 
   for (const todo of todos) {
     const fileName = todo.file.file.name;
@@ -116,25 +116,25 @@ export interface TodoListComponentDeps {
 }
 
 export interface TodoListComponentProps {
-  todos: TodoItem<TFile>[];
+  todos: TaskItem<TFile>[];
   deps: TodoListComponentDeps;
   dontCrossCompleted?: boolean;
 }
 
-export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListComponentProps): React.ReactElement {
+export function TaskListComponent({ todos, deps, dontCrossCompleted }: TodoListComponentProps): React.ReactElement {
   const sortedTodos = React.useMemo(() => sortTodos(todos), [todos]);
   const groupedTodos = React.useMemo(() => groupTodosByFile(sortedTodos), [sortedTodos]);
 
-  function onGroupDragStart(ev: React.DragEvent, fileTodos: TodoItem<TFile>[]): void {
-    const sortedTodoIds = new Set(sortedTodos.map(getTodoId));
+  function onGroupDragStart(ev: React.DragEvent, fileTodos: TaskItem<TFile>[]): void {
+    const sortedTodoIds = new Set(sortedTodos.map(getTaskId));
     const visibleIncompleteTodos = fileTodos.filter((todo) => {
-      if (todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled) {
+      if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) {
         return false;
       }
-      return sortedTodoIds.has(getTodoId(todo));
+      return sortedTodoIds.has(getTaskId(todo));
     });
-    const todoIds = visibleIncompleteTodos.map((todo) => getTodoId(todo)).join(Consts.TodoIdDelimiter);
-    ev.dataTransfer.setData(Consts.TodoGroupDragType, todoIds);
+    const todoIds = visibleIncompleteTodos.map((todo) => getTaskId(todo)).join(Consts.TaskIdDelimiter);
+    ev.dataTransfer.setData(Consts.TaskGroupDragType, todoIds);
   }
 
   return (
@@ -145,7 +145,7 @@ export function TodoListComponent({ todos, deps, dontCrossCompleted }: TodoListC
           <div key={fileKey} className="group">
             <GroupHeader file={fileTodos[0].file.file} app={deps.app} onDragStart={(ev) => onGroupDragStart(ev, fileTodos)} />
             {fileTodos.map((todo) => (
-              <TodoItemComponent todo={todo} key={getTodoId(todo)} deps={deps} dontCrossCompleted={dontCrossCompleted} hideFileRef={true} />
+              <TodoItemComponent todo={todo} key={getTaskId(todo)} deps={deps} dontCrossCompleted={dontCrossCompleted} hideFileRef={true} />
             ))}
           </div>
         );

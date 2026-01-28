@@ -1,6 +1,6 @@
 import { UndoableFileOperations } from '../../src/core/operations/undoable-file-ops';
 import { UndoManager, UndoOperation } from '../../src/core/operations/undo-manager';
-import { TodoItem, TodoStatus } from '../../src/types/todo';
+import { TaskItem, TaskStatus } from '../../src/types/task';
 import { FileAdapter } from '../../src/types/file-adapter';
 import { TaskPlannerSettings, DEFAULT_SETTINGS } from '../../src/settings/types';
 
@@ -10,12 +10,12 @@ jest.mock('../../src/core/operations/file-operations', () => {
     FileOperations: jest.fn().mockImplementation(() => ({
       updateAttribute: jest.fn().mockResolvedValue(undefined),
       removeAttribute: jest.fn().mockResolvedValue(undefined),
-      updateTodoStatus: jest.fn().mockResolvedValue(undefined),
+      updateTaskStatus: jest.fn().mockResolvedValue(undefined),
       appendTag: jest.fn().mockResolvedValue(undefined),
       removeTag: jest.fn().mockResolvedValue(undefined),
       batchUpdateAttribute: jest.fn().mockResolvedValue(undefined),
       batchRemoveAttribute: jest.fn().mockResolvedValue(undefined),
-      batchUpdateTodoStatus: jest.fn().mockResolvedValue(undefined),
+      batchUpdateTaskStatus: jest.fn().mockResolvedValue(undefined),
       batchAppendTag: jest.fn().mockResolvedValue(undefined),
       batchRemoveTag: jest.fn().mockResolvedValue(undefined),
     })),
@@ -39,8 +39,8 @@ const createTodo = (
   line: number = 1,
   attributes: Record<string, unknown> = {},
   tags: string[] = [],
-  status: TodoStatus = TodoStatus.Todo
-): TodoItem<unknown> => ({
+  status: TaskStatus = TaskStatus.Todo
+): TaskItem<unknown> => ({
   status,
   text,
   file: createMockFileAdapter(`file-${id}`, `notes/${id}.md`),
@@ -125,23 +125,23 @@ describe('UndoableFileOperations', () => {
     });
   });
 
-  describe('updateTodoStatusWithUndo', () => {
+  describe('updateTaskStatusWithUndo', () => {
     it('should update status and record operation', async () => {
-      const todo = createTodo('1', 'Test task', 1, {}, [], TodoStatus.Complete);
+      const todo = createTodo('1', 'Test task', 1, {}, [], TaskStatus.Complete);
 
-      await undoableOps.updateTodoStatusWithUndo(todo, TodoStatus.Todo, 'Completed task');
+      await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Todo, 'Completed task');
 
       expect(undoManager.getHistorySize()).toBe(1);
       const lastOp = undoManager.getLastOperation();
       expect(lastOp?.statusChanges).toHaveLength(1);
-      expect(lastOp?.statusChanges[0].previousStatus).toBe(TodoStatus.Todo);
-      expect(lastOp?.statusChanges[0].newStatus).toBe(TodoStatus.Complete);
+      expect(lastOp?.statusChanges[0].previousStatus).toBe(TaskStatus.Todo);
+      expect(lastOp?.statusChanges[0].newStatus).toBe(TaskStatus.Complete);
     });
 
     it('should capture completed date for completed tasks', async () => {
-      const todo = createTodo('1', 'Test task', 1, {}, [], TodoStatus.Complete);
+      const todo = createTodo('1', 'Test task', 1, {}, [], TaskStatus.Complete);
 
-      await undoableOps.updateTodoStatusWithUndo(todo, TodoStatus.Todo, 'Completed');
+      await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Todo, 'Completed');
 
       const lastOp = undoManager.getLastOperation();
       expect(lastOp?.statusChanges[0].newCompletedDate).toBeDefined();
@@ -149,9 +149,9 @@ describe('UndoableFileOperations', () => {
 
     it('should skip recording when undo disabled', async () => {
       undoManager.updateConfig({ enabled: false });
-      const todo = createTodo('1', 'Test task', 1, {}, [], TodoStatus.Complete);
+      const todo = createTodo('1', 'Test task', 1, {}, [], TaskStatus.Complete);
 
-      await undoableOps.updateTodoStatusWithUndo(todo, TodoStatus.Todo, 'Completed');
+      await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Todo, 'Completed');
 
       expect(undoManager.getHistorySize()).toBe(0);
     });
@@ -263,18 +263,18 @@ describe('UndoableFileOperations', () => {
     });
   });
 
-  describe('batchUpdateTodoStatusWithUndo', () => {
+  describe('batchUpdateTaskStatusWithUndo', () => {
     it('should update status for multiple todos', async () => {
       const todos = [
-        createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Complete),
-        createTodo('2', 'Task 2', 2, {}, [], TodoStatus.Complete),
+        createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete),
+        createTodo('2', 'Task 2', 2, {}, [], TaskStatus.Complete),
       ];
       const previousStatuses = new Map([
-        ['notes/1.md:1', TodoStatus.Todo],
-        ['notes/2.md:2', TodoStatus.InProgress],
+        ['notes/1.md:1', TaskStatus.Todo],
+        ['notes/2.md:2', TaskStatus.InProgress],
       ]);
 
-      await undoableOps.batchUpdateTodoStatusWithUndo(todos, previousStatuses, 'Completed tasks');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, previousStatuses, 'Completed tasks');
 
       expect(undoManager.getHistorySize()).toBe(1);
       const lastOp = undoManager.getLastOperation();
@@ -282,16 +282,16 @@ describe('UndoableFileOperations', () => {
     });
 
     it('should skip when array is empty', async () => {
-      await undoableOps.batchUpdateTodoStatusWithUndo([], new Map(), 'Empty');
+      await undoableOps.batchUpdateTaskStatusWithUndo([], new Map(), 'Empty');
 
       expect(undoManager.getHistorySize()).toBe(0);
     });
 
     it('should skip recording when undo disabled', async () => {
       undoManager.updateConfig({ enabled: false });
-      const todos = [createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Complete)];
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete)];
 
-      await undoableOps.batchUpdateTodoStatusWithUndo(todos, new Map(), 'Completed');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, new Map(), 'Completed');
 
       expect(undoManager.getHistorySize()).toBe(0);
     });
@@ -352,7 +352,7 @@ describe('UndoableFileOperations', () => {
         'due',
         '2025-01-15',
         'project',
-        TodoStatus.Complete,
+        TaskStatus.Complete,
         'Moved and completed'
       );
 
@@ -422,7 +422,7 @@ describe('UndoableFileOperations', () => {
         'due',
         '2025-01-15',
         'newtag',
-        TodoStatus.Complete,
+        TaskStatus.Complete,
         'Move task',
         ['oldtag'] // Include tagsToRemove to cover lines 354-355
       );
@@ -502,7 +502,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -529,7 +529,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -557,7 +557,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -582,7 +582,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -596,7 +596,7 @@ describe('UndoableFileOperations', () => {
     });
 
     it('should undo status changes', async () => {
-      const todo = createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Complete);
+      const todo = createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete);
       const findTodo = jest.fn().mockReturnValue(todo);
 
       const operation: UndoOperation = {
@@ -606,11 +606,11 @@ describe('UndoableFileOperations', () => {
         description: 'Test',
         taskChanges: [],
         statusChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
-          previousStatus: TodoStatus.Todo,
-          newStatus: TodoStatus.Complete,
+          previousStatus: TaskStatus.Todo,
+          newStatus: TaskStatus.Complete,
         }],
         tagChanges: [],
       };
@@ -618,7 +618,7 @@ describe('UndoableFileOperations', () => {
       const success = await undoableOps.applyUndo(operation, findTodo);
 
       expect(success).toBe(true);
-      expect(todo.status).toBe(TodoStatus.Todo);
+      expect(todo.status).toBe(TaskStatus.Todo);
     });
 
     it('should return false when todo not found', async () => {
@@ -630,7 +630,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'missing',
+          taskId: 'missing',
           filePath: 'notes/missing.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -659,8 +659,8 @@ describe('UndoableFileOperations', () => {
         type: 'batch',
         description: 'Batch undo',
         taskChanges: [
-          { todoId: 'id-1', filePath: 'a.md', lineNumber: 1, attributeName: 'due', previousValue: '2025-01-10', newValue: '2025-01-15' },
-          { todoId: 'id-2', filePath: 'b.md', lineNumber: 2, attributeName: 'due', previousValue: '2025-01-11', newValue: '2025-01-15' },
+          { taskId: 'id-1', filePath: 'a.md', lineNumber: 1, attributeName: 'due', previousValue: '2025-01-10', newValue: '2025-01-15' },
+          { taskId: 'id-2', filePath: 'b.md', lineNumber: 2, attributeName: 'due', previousValue: '2025-01-11', newValue: '2025-01-15' },
         ],
         statusChanges: [],
         tagChanges: [],
@@ -686,7 +686,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -718,7 +718,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -742,7 +742,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'missing',
+          taskId: 'missing',
           filePath: 'notes/missing.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -758,9 +758,9 @@ describe('UndoableFileOperations', () => {
     it('should return false when status change throws error', async () => {
       const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
       const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
-      mockFileOps.updateTodoStatus.mockRejectedValueOnce(new Error('Status error'));
+      mockFileOps.updateTaskStatus.mockRejectedValueOnce(new Error('Status error'));
 
-      const todo = createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Complete);
+      const todo = createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete);
       const findTodo = jest.fn().mockReturnValue(todo);
 
       const operation: UndoOperation = {
@@ -770,11 +770,11 @@ describe('UndoableFileOperations', () => {
         description: 'Test',
         taskChanges: [],
         statusChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
-          previousStatus: TodoStatus.Todo,
-          newStatus: TodoStatus.Complete,
+          previousStatus: TaskStatus.Todo,
+          newStatus: TaskStatus.Complete,
         }],
         tagChanges: [],
       };
@@ -794,11 +794,11 @@ describe('UndoableFileOperations', () => {
         description: 'Test',
         taskChanges: [],
         statusChanges: [{
-          todoId: 'missing',
+          taskId: 'missing',
           filePath: 'notes/missing.md',
           lineNumber: 1,
-          previousStatus: TodoStatus.Todo,
-          newStatus: TodoStatus.Complete,
+          previousStatus: TaskStatus.Todo,
+          newStatus: TaskStatus.Complete,
         }],
         tagChanges: [],
       };
@@ -820,7 +820,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -846,7 +846,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -874,7 +874,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -899,7 +899,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -913,7 +913,7 @@ describe('UndoableFileOperations', () => {
     });
 
     it('should redo status changes', async () => {
-      const todo = createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Todo);
+      const todo = createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Todo);
       const findTodo = jest.fn().mockReturnValue(todo);
 
       const operation: UndoOperation = {
@@ -923,11 +923,11 @@ describe('UndoableFileOperations', () => {
         description: 'Test',
         taskChanges: [],
         statusChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
-          previousStatus: TodoStatus.Todo,
-          newStatus: TodoStatus.Complete,
+          previousStatus: TaskStatus.Todo,
+          newStatus: TaskStatus.Complete,
         }],
         tagChanges: [],
       };
@@ -935,7 +935,7 @@ describe('UndoableFileOperations', () => {
       const success = await undoableOps.applyRedo(operation, findTodo);
 
       expect(success).toBe(true);
-      expect(todo.status).toBe(TodoStatus.Complete);
+      expect(todo.status).toBe(TaskStatus.Complete);
     });
 
     it('should return false when todo not found', async () => {
@@ -947,7 +947,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'missing',
+          taskId: 'missing',
           filePath: 'notes/missing.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -977,7 +977,7 @@ describe('UndoableFileOperations', () => {
         type: 'single',
         description: 'Test',
         taskChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           attributeName: 'due',
@@ -1009,7 +1009,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -1033,7 +1033,7 @@ describe('UndoableFileOperations', () => {
         taskChanges: [],
         statusChanges: [],
         tagChanges: [{
-          todoId: 'missing',
+          taskId: 'missing',
           filePath: 'notes/missing.md',
           lineNumber: 1,
           tag: 'urgent',
@@ -1049,9 +1049,9 @@ describe('UndoableFileOperations', () => {
     it('should return false when status change throws error', async () => {
       const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
       const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
-      mockFileOps.updateTodoStatus.mockRejectedValueOnce(new Error('Status error'));
+      mockFileOps.updateTaskStatus.mockRejectedValueOnce(new Error('Status error'));
 
-      const todo = createTodo('1', 'Task 1', 1, {}, [], TodoStatus.Todo);
+      const todo = createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Todo);
       const findTodo = jest.fn().mockReturnValue(todo);
 
       const operation: UndoOperation = {
@@ -1061,11 +1061,11 @@ describe('UndoableFileOperations', () => {
         description: 'Test',
         taskChanges: [],
         statusChanges: [{
-          todoId: 'notes/1.md:1',
+          taskId: 'notes/1.md:1',
           filePath: 'notes/1.md',
           lineNumber: 1,
-          previousStatus: TodoStatus.Todo,
-          newStatus: TodoStatus.Complete,
+          previousStatus: TaskStatus.Todo,
+          newStatus: TaskStatus.Complete,
         }],
         tagChanges: [],
       };
@@ -1085,11 +1085,11 @@ describe('UndoableFileOperations', () => {
         description: 'Test',
         taskChanges: [],
         statusChanges: [{
-          todoId: 'missing',
+          taskId: 'missing',
           filePath: 'notes/missing.md',
           lineNumber: 1,
-          previousStatus: TodoStatus.Todo,
-          newStatus: TodoStatus.Complete,
+          previousStatus: TaskStatus.Todo,
+          newStatus: TaskStatus.Complete,
         }],
         tagChanges: [],
       };
@@ -1102,8 +1102,8 @@ describe('UndoableFileOperations', () => {
 
   describe('edge cases', () => {
     it('should handle todo without line number', async () => {
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task',
         file: createMockFileAdapter('file-1', 'notes/1.md'),
         line: undefined,
@@ -1126,8 +1126,8 @@ describe('UndoableFileOperations', () => {
     });
 
     it('should handle null tags array', async () => {
-      const todo: TodoItem<unknown> = {
-        status: TodoStatus.Todo,
+      const todo: TaskItem<unknown> = {
+        status: TaskStatus.Todo,
         text: 'Task',
         file: createMockFileAdapter('file-1', 'notes/1.md'),
         line: 1,

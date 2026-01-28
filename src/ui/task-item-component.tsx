@@ -4,13 +4,13 @@ import * as React from "react";
 
 import { MarkdownText } from "./markdown-text";
 import { StandardDependencies } from "./standard-dependencies";
-import { TodoStatusComponent } from "./todo-status-component";
-import { TodoSubtasksContainer } from "./todo-subtasks-container";
+import { TodoStatusComponent } from "./task-status-component";
+import { TodoSubtasksContainer } from "./task-subtasks-container";
 import { FileOperations } from "../core/operations/file-operations";
 import { FollowUpCreator } from "../core/services/follow-up-creator";
 import { showSuccessNotice, showErrorNotice } from "../lib/user-notice";
 import { Consts } from "../types/constants";
-import { TodoItem, TodoStatus, getTodoId } from "../types/todo";
+import { TaskItem, TaskStatus, getTaskId } from "../types/task";
 import { getFileDisplayName, setFrontmatterProperty, removeFrontmatterProperty } from "../utils/file-utils";
 import { moment } from "../utils/moment";
 
@@ -95,7 +95,7 @@ function getPriority(attributes: Record<string, string | boolean> | undefined): 
 }
 
 export interface TodoItemComponentProps {
-  todo: TodoItem<TFile>;
+  todo: TaskItem<TFile>;
   dontCrossCompleted?: boolean;
   deps: StandardDependencies;
   hideFileRef?: boolean;
@@ -153,7 +153,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
 
     const menu = new Menu();
     (menu as Menu & { dom: HTMLElement }).dom.addClass("task-planner-menu");
-    const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+    const isCompleted = todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled;
     const isPinned = !!todo.attributes?.[settings.selectedAttribute];
     const currentPriority = todo.attributes?.["priority"];
 
@@ -162,12 +162,12 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
 
     // === Status options (inline) ===
     const statuses = [
-      { status: TodoStatus.Todo, label: "Todo", icon: "circle" },
-      { status: TodoStatus.InProgress, label: "In progress", icon: "clock" },
-      { status: TodoStatus.Complete, label: "Complete", icon: "check-circle" },
-      { status: TodoStatus.AttentionRequired, label: "Needs attention", icon: "alert-circle" },
-      { status: TodoStatus.Delegated, label: "Delegated", icon: "users" },
-      { status: TodoStatus.Canceled, label: "Cancelled", icon: "x-circle" },
+      { status: TaskStatus.Todo, label: "Todo", icon: "circle" },
+      { status: TaskStatus.InProgress, label: "In progress", icon: "clock" },
+      { status: TaskStatus.Complete, label: "Complete", icon: "check-circle" },
+      { status: TaskStatus.AttentionRequired, label: "Needs attention", icon: "alert-circle" },
+      { status: TaskStatus.Delegated, label: "Delegated", icon: "users" },
+      { status: TaskStatus.Canceled, label: "Cancelled", icon: "x-circle" },
     ];
     for (const s of statuses) {
       if (s.status !== todo.status) {
@@ -176,7 +176,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
           item.setIcon(s.icon);
           item.onClick(() => {
             const updatedTodo = { ...todo, status: s.status };
-            void fileOperations.updateTodoStatus(updatedTodo, settings.completedDateAttribute);
+            void fileOperations.updateTaskStatus(updatedTodo, settings.completedDateAttribute);
           });
         });
       }
@@ -362,13 +362,13 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef 
   function onDragStart(ev: React.DragEvent): void {
     // Stop propagation to prevent parent cards from overwriting drag data
     ev.stopPropagation();
-    const id = getTodoId(todo);
-    ev.dataTransfer.setData(Consts.TodoItemDragType, id);
+    const id = getTaskId(todo);
+    ev.dataTransfer.setData(Consts.TaskItemDragType, id);
   }
 
   const isSelected = !!todo.attributes?.[settings.selectedAttribute];
   const priority = getPriority(todo.attributes);
-  const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+  const isCompleted = todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled;
   const isTaskIgnored = todo.attributes?.["ignore"] === true || todo.attributes?.["ignore"] === "true";
   const isFileIgnored = todo.file.shouldIgnore?.() === true;
   const cardClasses = ["card", isCompleted && "completed"].filter(Boolean).join(" ");

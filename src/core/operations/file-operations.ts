@@ -1,40 +1,40 @@
 import { FileOperationError } from "../../lib/errors";
 import { TaskPlannerSettings } from "../../settings";
-import { FileAdapter, LineStructure, TodoItem, TodoStatus } from "../../types";
+import { FileAdapter, LineStructure, TaskItem, TaskStatus } from "../../types";
 import { moment } from "../../utils";
 import { LineParser } from "../parsers/line-parser";
 
-function statusToCheckbox(status: TodoStatus): string {
+function statusToCheckbox(status: TaskStatus): string {
   switch (status) {
-    case TodoStatus.Todo:
+    case TaskStatus.Todo:
       return "[ ]";
-    case TodoStatus.Canceled:
+    case TaskStatus.Canceled:
       return "[-]";
-    case TodoStatus.AttentionRequired:
+    case TaskStatus.AttentionRequired:
       return "[!]";
-    case TodoStatus.Complete:
+    case TaskStatus.Complete:
       return "[x]";
-    case TodoStatus.Delegated:
+    case TaskStatus.Delegated:
       return "[d]";
-    case TodoStatus.InProgress:
+    case TaskStatus.InProgress:
       return "[>]";
     default:
       return "";
   }
 }
 
-function groupTodosByFile<T>(todos: TodoItem<T>[]): Map<FileAdapter<T>, TodoItem<T>[]> {
-  const todosByFile = new Map<FileAdapter<T>, TodoItem<T>[]>();
-  for (const todo of todos) {
-    const file = todo.file;
-    let fileTodos = todosByFile.get(file);
-    if (!fileTodos) {
-      fileTodos = [];
-      todosByFile.set(file, fileTodos);
+function groupTasksByFile<T>(tasks: TaskItem<T>[]): Map<FileAdapter<T>, TaskItem<T>[]> {
+  const tasksByFile = new Map<FileAdapter<T>, TaskItem<T>[]>();
+  for (const task of tasks) {
+    const file = task.file;
+    let fileTasks = tasksByFile.get(file);
+    if (!fileTasks) {
+      fileTasks = [];
+      tasksByFile.set(file, fileTasks);
     }
-    fileTodos.push(todo);
+    fileTasks.push(task);
   }
-  return todosByFile;
+  return tasksByFile;
 }
 
 export class FileOperations {
@@ -48,7 +48,7 @@ export class FileOperations {
     return content.includes("\r\n") ? "\r\n" : "\n";
   }
 
-  async updateAttribute<T>(todo: TodoItem<T>, attributeName: string, attributeValue: string | boolean | undefined) {
+  async updateAttribute<T>(task: TaskItem<T>, attributeName: string, attributeValue: string | boolean | undefined) {
     const updateLine = (line: LineStructure) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       if (attributeValue === false || attributeValue === undefined) {
@@ -58,54 +58,54 @@ export class FileOperations {
       }
       line.line = this.lineParser.attributesToString(attributes);
     };
-    await this.updateContentInFile(todo, updateLine);
+    await this.updateContentInFile(task, updateLine);
   }
 
-  async removeAttribute<T>(todo: TodoItem<T>, attributeName: string) {
+  async removeAttribute<T>(task: TaskItem<T>, attributeName: string) {
     const updateLine = (line: LineStructure) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       delete attributes.attributes[attributeName];
       line.line = this.lineParser.attributesToString(attributes);
     };
-    await this.updateContentInFile(todo, updateLine);
+    await this.updateContentInFile(task, updateLine);
   }
 
-  async appendTag<T>(todo: TodoItem<T>, tag: string) {
-    if (todo.tags?.includes(tag)) return;
+  async appendTag<T>(task: TaskItem<T>, tag: string) {
+    if (task.tags?.includes(tag)) return;
 
     const updateLine = (line: LineStructure) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       attributes.textWithoutAttributes = `${attributes.textWithoutAttributes} #${tag}`;
       line.line = this.lineParser.attributesToString(attributes);
     };
-    await this.updateContentInFile(todo, updateLine);
+    await this.updateContentInFile(task, updateLine);
   }
 
-  async removeTag<T>(todo: TodoItem<T>, tag: string) {
-    if (!todo.tags?.includes(tag)) return;
+  async removeTag<T>(task: TaskItem<T>, tag: string) {
+    if (!task.tags?.includes(tag)) return;
 
     const updateLine = (line: LineStructure) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       attributes.textWithoutAttributes = attributes.textWithoutAttributes.replace(new RegExp(`\\s*#${tag}\\b`, "g"), "").trim();
       line.line = this.lineParser.attributesToString(attributes);
     };
-    await this.updateContentInFile(todo, updateLine);
+    await this.updateContentInFile(task, updateLine);
   }
 
-  private async updateCheckbox<T>(todo: TodoItem<T>, newCheckbox: string) {
+  private async updateCheckbox<T>(task: TaskItem<T>, newCheckbox: string) {
     const updateLine = (line: LineStructure) => {
       line.checkbox = newCheckbox;
     };
-    await this.updateContentInFile(todo, updateLine);
+    await this.updateContentInFile(task, updateLine);
   }
 
-  async updateTodoStatus<T>(todo: TodoItem<T>, completedAttribute: string): Promise<void> {
-    const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+  async updateTaskStatus<T>(task: TaskItem<T>, completedAttribute: string): Promise<void> {
+    const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
     const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
 
     // Combined update: checkbox + completed attribute in a single file write
     const updateLine = (line: LineStructure) => {
-      line.checkbox = statusToCheckbox(todo.status);
+      line.checkbox = statusToCheckbox(task.status);
 
       const attributes = this.lineParser.parseAttributes(line.line);
       if (completedAttributeValue === undefined) {
@@ -115,12 +115,12 @@ export class FileOperations {
       }
       line.line = this.lineParser.attributesToString(attributes);
     };
-    await this.updateContentInFile(todo, updateLine);
+    await this.updateContentInFile(task, updateLine);
   }
 
-  private async updateContentInFile<T>(todo: TodoItem<T>, updateLine: (line: LineStructure) => void) {
-    const file = todo.file;
-    const lineNumber = todo.line;
+  private async updateContentInFile<T>(task: TaskItem<T>, updateLine: (line: LineStructure) => void) {
+    const file = task.file;
+    const lineNumber = task.line;
     if (lineNumber === undefined) {
       return;
     }
@@ -146,12 +146,12 @@ export class FileOperations {
     }
   }
 
-  async batchUpdateAttribute<T>(todos: TodoItem<T>[], attributeName: string, attributeValue: string | boolean | undefined): Promise<void> {
-    if (todos.length === 0) return;
+  async batchUpdateAttribute<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined): Promise<void> {
+    if (tasks.length === 0) return;
 
-    const todosByFile = groupTodosByFile(todos);
-    for (const [, fileTodos] of todosByFile) {
-      await this.batchUpdateFile(fileTodos, (line) => {
+    const tasksByFile = groupTasksByFile(tasks);
+    for (const [, fileTasks] of tasksByFile) {
+      await this.batchUpdateFile(fileTasks, (line) => {
         const attributes = this.lineParser.parseAttributes(line.line);
         if (attributeValue === false || attributeValue === undefined) {
           delete attributes.attributes[attributeName];
@@ -163,12 +163,12 @@ export class FileOperations {
     }
   }
 
-  async batchRemoveAttribute<T>(todos: TodoItem<T>[], attributeName: string): Promise<void> {
-    if (todos.length === 0) return;
+  async batchRemoveAttribute<T>(tasks: TaskItem<T>[], attributeName: string): Promise<void> {
+    if (tasks.length === 0) return;
 
-    const todosByFile = groupTodosByFile(todos);
-    for (const [, fileTodos] of todosByFile) {
-      await this.batchUpdateFile(fileTodos, (line) => {
+    const tasksByFile = groupTasksByFile(tasks);
+    for (const [, fileTasks] of tasksByFile) {
+      await this.batchUpdateFile(fileTasks, (line) => {
         const attributes = this.lineParser.parseAttributes(line.line);
         delete attributes.attributes[attributeName];
         line.line = this.lineParser.attributesToString(attributes);
@@ -176,13 +176,13 @@ export class FileOperations {
     }
   }
 
-  async batchAppendTag<T>(todos: TodoItem<T>[], tag: string): Promise<void> {
-    const todosNeedingTag = todos.filter((t) => !t.tags?.includes(tag));
-    if (todosNeedingTag.length === 0) return;
+  async batchAppendTag<T>(tasks: TaskItem<T>[], tag: string): Promise<void> {
+    const tasksNeedingTag = tasks.filter((t) => !t.tags?.includes(tag));
+    if (tasksNeedingTag.length === 0) return;
 
-    const todosByFile = groupTodosByFile(todosNeedingTag);
-    for (const [, fileTodos] of todosByFile) {
-      await this.batchUpdateFile(fileTodos, (line) => {
+    const tasksByFile = groupTasksByFile(tasksNeedingTag);
+    for (const [, fileTasks] of tasksByFile) {
+      await this.batchUpdateFile(fileTasks, (line) => {
         const attributes = this.lineParser.parseAttributes(line.line);
         attributes.textWithoutAttributes = `${attributes.textWithoutAttributes} #${tag}`;
         line.line = this.lineParser.attributesToString(attributes);
@@ -190,13 +190,13 @@ export class FileOperations {
     }
   }
 
-  async batchRemoveTag<T>(todos: TodoItem<T>[], tag: string): Promise<void> {
-    const todosWithTag = todos.filter((t) => t.tags?.includes(tag));
-    if (todosWithTag.length === 0) return;
+  async batchRemoveTag<T>(tasks: TaskItem<T>[], tag: string): Promise<void> {
+    const tasksWithTag = tasks.filter((t) => t.tags?.includes(tag));
+    if (tasksWithTag.length === 0) return;
 
-    const todosByFile = groupTodosByFile(todosWithTag);
-    for (const [, fileTodos] of todosByFile) {
-      await this.batchUpdateFile(fileTodos, (line) => {
+    const tasksByFile = groupTasksByFile(tasksWithTag);
+    for (const [, fileTasks] of tasksByFile) {
+      await this.batchUpdateFile(fileTasks, (line) => {
         const attributes = this.lineParser.parseAttributes(line.line);
         attributes.textWithoutAttributes = attributes.textWithoutAttributes.replace(new RegExp(`\\s*#${tag}\\b`, "g"), "").trim();
         line.line = this.lineParser.attributesToString(attributes);
@@ -204,15 +204,15 @@ export class FileOperations {
     }
   }
 
-  async batchUpdateTodoStatus<T>(todos: TodoItem<T>[], completedAttribute: string): Promise<void> {
-    if (todos.length === 0) return;
+  async batchUpdateTaskStatus<T>(tasks: TaskItem<T>[], completedAttribute: string): Promise<void> {
+    if (tasks.length === 0) return;
 
-    const todosByFile = groupTodosByFile(todos);
-    for (const [, fileTodos] of todosByFile) {
-      await this.batchUpdateFile(fileTodos, (line, todo) => {
-        line.checkbox = statusToCheckbox(todo.status);
+    const tasksByFile = groupTasksByFile(tasks);
+    for (const [, fileTasks] of tasksByFile) {
+      await this.batchUpdateFile(fileTasks, (line, task) => {
+        line.checkbox = statusToCheckbox(task.status);
 
-        const isCompleted = todo.status === TodoStatus.Complete || todo.status === TodoStatus.Canceled;
+        const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
         const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
         const attributes = this.lineParser.parseAttributes(line.line);
         if (completedAttributeValue === undefined) {
@@ -225,28 +225,28 @@ export class FileOperations {
     }
   }
 
-  private async batchUpdateFile<T>(todos: TodoItem<T>[], updateLine: (line: LineStructure, todo: TodoItem<T>) => void) {
-    if (todos.length === 0) return;
+  private async batchUpdateFile<T>(tasks: TaskItem<T>[], updateLine: (line: LineStructure, task: TaskItem<T>) => void) {
+    if (tasks.length === 0) return;
 
-    const file = todos[0].file;
+    const file = tasks[0].file;
 
     let content: string;
     try {
       content = await file.getContent();
     } catch (error) {
-      throw new FileOperationError(`Failed to read file for batch update: ${file.path}`, file.path, "read", "HIGH", { originalError: error instanceof Error ? error.message : String(error), todoCount: todos.length });
+      throw new FileOperationError(`Failed to read file for batch update: ${file.path}`, file.path, "read", "HIGH", { originalError: error instanceof Error ? error.message : String(error), taskCount: tasks.length });
     }
 
     const EOL = this.getEOL(content);
     const lines = content.split(EOL);
 
-    for (const todo of todos) {
-      const lineNumber = todo.line;
+    for (const task of tasks) {
+      const lineNumber = task.line;
       if (lineNumber === undefined) {
         continue;
       }
       const line = this.lineParser.parseLine(lines[lineNumber]);
-      updateLine(line, todo);
+      updateLine(line, task);
       lines[lineNumber] = this.lineParser.lineToString(line);
     }
 
@@ -255,7 +255,7 @@ export class FileOperations {
     try {
       await file.setContent(res);
     } catch (error) {
-      throw new FileOperationError(`Failed to write file during batch update: ${file.path}`, file.path, "write", "HIGH", { originalError: error instanceof Error ? error.message : String(error), todoCount: todos.length });
+      throw new FileOperationError(`Failed to write file during batch update: ${file.path}`, file.path, "write", "HIGH", { originalError: error instanceof Error ? error.message : String(error), taskCount: tasks.length });
     }
   }
 }

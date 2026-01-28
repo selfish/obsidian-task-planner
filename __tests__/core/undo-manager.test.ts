@@ -1,5 +1,5 @@
 import { UndoManager, UndoOperation, TaskChange, StatusChange, TagChange } from '../../src/core/operations/undo-manager';
-import { TodoStatus } from '../../src/types/todo';
+import { TaskStatus } from '../../src/types/task';
 
 describe('UndoManager', () => {
   let undoManager: UndoManager;
@@ -246,11 +246,11 @@ describe('UndoManager', () => {
     });
 
     it('createStatusDescription should format single task', () => {
-      expect(UndoManager.createStatusDescription(1, TodoStatus.Complete)).toBe('Changed task to Complete');
+      expect(UndoManager.createStatusDescription(1, TaskStatus.Complete)).toBe('Changed task to Complete');
     });
 
     it('createStatusDescription should format multiple tasks', () => {
-      expect(UndoManager.createStatusDescription(5, TodoStatus.InProgress)).toBe('Changed 5 tasks to InProgress');
+      expect(UndoManager.createStatusDescription(5, TaskStatus.InProgress)).toBe('Changed 5 tasks to InProgress');
     });
   });
 
@@ -298,7 +298,7 @@ describe('UndoManager', () => {
   describe('operations with different change types', () => {
     it('should record operation with task changes', () => {
       const taskChange: TaskChange = {
-        todoId: 'todo-1',
+        taskId: 'todo-1',
         filePath: '/notes/test.md',
         lineNumber: 5,
         attributeName: 'due',
@@ -322,11 +322,11 @@ describe('UndoManager', () => {
 
     it('should record operation with status changes', () => {
       const statusChange: StatusChange = {
-        todoId: 'todo-1',
+        taskId: 'todo-1',
         filePath: '/notes/test.md',
         lineNumber: 5,
-        previousStatus: TodoStatus.Todo,
-        newStatus: TodoStatus.Complete,
+        previousStatus: TaskStatus.Todo,
+        newStatus: TaskStatus.Complete,
         previousCompletedDate: undefined,
         newCompletedDate: '2025-01-15',
       };
@@ -347,7 +347,7 @@ describe('UndoManager', () => {
 
     it('should record operation with tag changes', () => {
       const tagChange: TagChange = {
-        todoId: 'todo-1',
+        taskId: 'todo-1',
         filePath: '/notes/test.md',
         lineNumber: 5,
         tag: 'urgent',
@@ -375,9 +375,9 @@ describe('UndoManager', () => {
         type: 'batch',
         description: 'Moved 3 tasks',
         taskChanges: [
-          { todoId: 'todo-1', filePath: '/notes/a.md', lineNumber: 1, attributeName: 'due', previousValue: undefined, newValue: '2025-01-15' },
-          { todoId: 'todo-2', filePath: '/notes/b.md', lineNumber: 2, attributeName: 'due', previousValue: '2025-01-10', newValue: '2025-01-15' },
-          { todoId: 'todo-3', filePath: '/notes/c.md', lineNumber: 3, attributeName: 'due', previousValue: '2025-01-05', newValue: '2025-01-15' },
+          { taskId: 'todo-1', filePath: '/notes/a.md', lineNumber: 1, attributeName: 'due', previousValue: undefined, newValue: '2025-01-15' },
+          { taskId: 'todo-2', filePath: '/notes/b.md', lineNumber: 2, attributeName: 'due', previousValue: '2025-01-10', newValue: '2025-01-15' },
+          { taskId: 'todo-3', filePath: '/notes/c.md', lineNumber: 3, attributeName: 'due', previousValue: '2025-01-05', newValue: '2025-01-15' },
         ],
         statusChanges: [],
         tagChanges: [],
