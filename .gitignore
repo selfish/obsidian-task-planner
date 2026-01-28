@@ -28,4 +28,4 @@ yarn.lock
 
 # Testing
 coverage/
-junit.xml
+junit.xml.worktrees/
