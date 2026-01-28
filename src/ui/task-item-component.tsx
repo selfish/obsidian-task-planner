@@ -12,6 +12,7 @@ import { FollowUpCreator } from "../core/services/follow-up-creator";
 import { showSuccessNotice, showErrorNotice } from "../lib/user-notice";
 import { Consts } from "../types/constants";
 import { TaskItem, TaskStatus, getTaskId } from "../types/task";
+import { getDueDateInfo } from "../utils/due-date-utils";
 import { getFileDisplayName, setFrontmatterProperty, removeFrontmatterProperty } from "../utils/file-utils";
 import { moment, Moment } from "../utils/moment";
 import { findTaskDate } from "../utils/task-utils";
@@ -85,22 +86,6 @@ function IgnoredBadge({ type }: { type: "task" | "file" }): React.ReactElement {
 
 interface DueDateBadgeProps {
   dueDate: Moment;
-}
-
-function getDueDateInfo(dueDate: Moment): { label: string; variant: "overdue" | "today" | "tomorrow" | "future" } {
-  const today = moment().startOf("day");
-  const tomorrow = today.clone().add(1, "day");
-
-  if (dueDate.isBefore(today)) {
-    return { label: "Overdue", variant: "overdue" };
-  }
-  if (dueDate.isSame(today, "day")) {
-    return { label: "Due: Today", variant: "today" };
-  }
-  if (dueDate.isSame(tomorrow, "day")) {
-    return { label: "Due: Tomorrow", variant: "tomorrow" };
-  }
-  return { label: `Due: ${dueDate.format("MMM D")}`, variant: "future" };
 }
 
 function DueDateBadge({ dueDate }: DueDateBadgeProps): React.ReactElement {
