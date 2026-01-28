@@ -64,5 +64,26 @@
       padding: 2px 4px;
       opacity: 0.8;
     }
+
+    // Due date badge (shown in In Progress column)
+    &.due-date {
+      &.overdue {
+        background: color-mix(in srgb, var(--text-error) 15%, transparent);
+        color: var(--text-error);
+      }
+      &.today {
+        background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
+        color: var(--interactive-accent);
+      }
+      &.tomorrow {
+        background: color-mix(in srgb, var(--text-muted) 15%, transparent);
+        color: var(--text-muted);
+      }
+      &.future {
+        background: var(--background-secondary);
+        color: var(--text-muted);
+        border: 1px solid var(--background-modifier-border);
+      }
+    }
   }
 }

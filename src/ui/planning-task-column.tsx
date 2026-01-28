@@ -23,7 +23,10 @@ const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
   error: "var(--text-error)",
 };
 
-export type PlanningTodoColumnDeps = StandardDependencies;
+export type PlanningTodoColumnDeps = StandardDependencies & {
+  /** Column type for context-specific rendering (e.g., due date badges in in-progress) */
+  columnType?: ColumnType;
+};
 
 export type ColumnType = "backlog" | "overdue" | "today-todo" | "today-in-progress" | "today-done" | "future";
 
@@ -194,7 +197,7 @@ export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, on
             <span className="empty-state-text">{getEmptyStateMessage(columnType)}</span>
           </div>
         ) : (
-          <TaskListComponent deps={deps} todos={todos} />
+          <TaskListComponent deps={{ ...deps, columnType }} todos={todos} />
         )}
       </div>
     </div>

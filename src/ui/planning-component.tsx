@@ -309,7 +309,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       }
       const tagsToRemove = getCustomHorizonTagsToRemove([todo]);
       const description = UndoManager.createMoveDescription(1, getDateLabel(date));
-      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, undefined, undefined, description, tagsToRemove);
+      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
+      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, undefined, TaskStatus.Todo, description, tagsToRemove);
     };
   }
 
@@ -324,7 +325,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr}`);
       const tagsToRemove = getCustomHorizonTagsToRemove(foundTodos);
       const description = UndoManager.createMoveDescription(foundTodos.length, getDateLabel(date));
-      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, undefined, undefined, description, tagsToRemove);
+      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
+      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, undefined, TaskStatus.Todo, description, tagsToRemove);
     };
   }
 
@@ -338,7 +340,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         return;
       }
       const description = UndoManager.createMoveDescription(1, `${getDateLabel(date)} (#${tag})`);
-      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, tag, undefined, description);
+      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
+      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, tag, TaskStatus.Todo, description);
     };
   }
 
@@ -352,7 +355,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const dateStr = date.format("YYYY-MM-DD");
       deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr} with tag #${tag}`);
       const description = UndoManager.createMoveDescription(foundTodos.length, `${getDateLabel(date)} (#${tag})`);
-      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, tag, undefined, description);
+      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
+      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, tag, TaskStatus.Todo, description);
     };
   }
 
@@ -429,6 +433,54 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return todos.filter((todo) => status.includes(todo.status));
   }
 
+  // Get all in-progress tasks regardless of their due date
+  // This matches the sidebar behavior in task-side-panel-component.tsx
+  function getInProgressTodos(): TaskItem<TFile>[] {
+    return filteredTodos.filter((todo) => {
+      return todo.status === TaskStatus.InProgress || todo.status === TaskStatus.AttentionRequired || todo.status === TaskStatus.Delegated;
+    });
+  }
+
+  // Set of in-progress task IDs (to exclude from date-based columns)
+  const inProgressTaskIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const todo of filteredTodos) {
+      if (todo.status === TaskStatus.InProgress || todo.status === TaskStatus.AttentionRequired || todo.status === TaskStatus.Delegated) {
+        ids.add(getTaskId(todo));
+      }
+    }
+    return ids;
+  }, [filteredTodos]);
+
+  // Change status only - don't modify the due date
+  function changeStatusOnly(status: TaskStatus) {
+    return (taskId: string) => {
+      const todo = findTodo(taskId);
+      deps.logger.debug(`Changing status of ${taskId} to ${getStatusLabel(status)}`);
+      if (!todo) {
+        deps.logger.warn(`Todo ${taskId} not found, couldn't change status`);
+        return;
+      }
+      const description = UndoManager.createMoveDescription(1, getStatusLabel(status));
+      void undoableFileOps.batchUpdateTaskStatusWithUndo([{ ...todo, status }], new Map([[taskId, todo.status]]), description);
+    };
+  }
+
+  function batchChangeStatusOnly(status: TaskStatus) {
+    return async (todoIds: string[]) => {
+      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
+      if (foundTodos.length === 0) {
+        deps.logger.warn(`No todos found for batch status change`);
+        return;
+      }
+      deps.logger.debug(`Batch changing status of ${foundTodos.length} todos to ${getStatusLabel(status)}`);
+      const previousStatuses = new Map(foundTodos.map((todo) => [getTaskId(todo), todo.status]));
+      const updatedTodos = foundTodos.map((todo) => ({ ...todo, status }));
+      const description = UndoManager.createMoveDescription(foundTodos.length, getStatusLabel(status));
+      await undoableFileOps.batchUpdateTaskStatusWithUndo(updatedTodos, previousStatuses, description);
+    };
+  }
+
   function todoColumn(
     icon: string,
     title: string,
@@ -471,17 +523,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
     yield todoColumn("circle", "Todo\nNot started", getTodosByDateAndStatus(today, tomorrow, [TaskStatus.Todo]), false, moveToDateAndStatus(today, TaskStatus.Todo), batchMoveToDateAndStatus(today, TaskStatus.Todo), `today cols-${columnCount}`, undefined, "today-todo");
 
-    yield todoColumn(
-      "clock",
-      "In Progress\nWorking on",
-      getTodosByDateAndStatus(today, tomorrow, [TaskStatus.AttentionRequired, TaskStatus.Delegated, TaskStatus.InProgress]),
-      false,
-      moveToDateAndStatus(today, TaskStatus.InProgress),
-      batchMoveToDateAndStatus(today, TaskStatus.InProgress),
-      `today cols-${columnCount}`,
-      undefined,
-      "today-in-progress"
-    );
+    // In Progress column shows ALL tasks with in-progress status regardless of due date
+    // Dropping into this column only changes status, not the due date
+    yield todoColumn("clock", "In Progress\nWorking on", getInProgressTodos(), false, changeStatusOnly(TaskStatus.InProgress), batchChangeStatusOnly(TaskStatus.InProgress), `today cols-${columnCount}`, undefined, "today-in-progress");
 
     if (!hideDone) {
       yield todoColumn(
@@ -549,6 +593,12 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       for (const todo of todos) {
         assignedTaskIds.add(getTaskId(todo));
       }
+    }
+
+    // PRE-CLAIM: In-progress tasks should ONLY appear in the In Progress column.
+    // Exclude them from all date-based columns in the future section.
+    for (const taskId of inProgressTaskIds) {
+      assignedTaskIds.add(taskId);
     }
 
     // PRE-CLAIM: Custom horizons have priority over builtins.
@@ -1054,7 +1104,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         </div>
       )}
       {viewMode !== "today" && (
-        <div className="future" ref={futureSectionRef}>
+        <div className="future-section" ref={futureSectionRef}>
           {Array.from(getColumns())}
         </div>
       )}

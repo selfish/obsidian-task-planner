@@ -2,6 +2,7 @@ import { App, TFile } from "obsidian";
 
 import * as React from "react";
 
+import { ColumnType } from "./planning-task-column";
 import { TodoItemComponent } from "./task-item-component";
 import { TaskPlannerSettings } from "../settings/types";
 import { Consts } from "../types/constants";
@@ -113,6 +114,8 @@ export interface TodoListComponentDeps {
   logger: Logger;
   app: App;
   settings: TaskPlannerSettings;
+  /** Column type for context-specific rendering (e.g., due date badges in in-progress) */
+  columnType?: ColumnType;
 }
 
 export interface TodoListComponentProps {
@@ -145,7 +148,7 @@ export function TaskListComponent({ todos, deps, dontCrossCompleted }: TodoListC
           <div key={fileKey} className="group">
             <GroupHeader file={fileTodos[0].file.file} app={deps.app} onDragStart={(ev) => onGroupDragStart(ev, fileTodos)} />
             {fileTodos.map((todo) => (
-              <TodoItemComponent todo={todo} key={getTaskId(todo)} deps={deps} dontCrossCompleted={dontCrossCompleted} hideFileRef={true} />
+              <TodoItemComponent todo={todo} key={getTaskId(todo)} deps={deps} dontCrossCompleted={dontCrossCompleted} hideFileRef={true} columnType={deps.columnType} />
             ))}
           </div>
         );
