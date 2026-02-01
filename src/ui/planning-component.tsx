@@ -810,17 +810,22 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     let endOfWeek = today.clone();
     const daysUntilNextWeekStart = (firstWeekday - endOfWeek.isoWeekday() + 7) % 7 || 7;
     endOfWeek = endOfWeek.add(daysUntilNextWeekStart, "days");
+    const tomorrow = today.clone().add(1, "day");
 
     // Helper to generate human-friendly label with date subtitle
-    function formatDayLabel(date: Moment, isTomorrow: boolean): string {
-      if (isTomorrow) {
-        return `Tomorrow\n${date.format("MMM D")}`;
+    function formatDayLabel(date: Moment): string {
+      // Check if this is tomorrow
+      if (date.isSame(tomorrow, "day")) {
+        return `Tomorrow\n${date.format("dddd, MMM D")}`;
+      }
+      // Check if this is the start of next week
+      if (date.isSame(endOfWeek, "day")) {
+        return `Next week\n${date.format("dddd, MMM D")}`;
       }
       return `${date.format("dddd")}\n${date.format("MMM D")}`;
     }
 
     // This week's days
-    let isFirstDay = true;
     while (currentDate.isBefore(endOfWeek)) {
       const weekday = currentDate.isoWeekday();
       const setting = weekdaySettings.find((s) => s.day === weekday);
@@ -833,11 +838,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const todos = getTodosByDate(currentDate, nextDay, false, assignedTaskIds);
         markTasksAsAssigned(todos);
         const style = getWipStyle(todos);
-        const label = formatDayLabel(currentDate, isFirstDay);
+        const label = formatDayLabel(currentDate);
+        const isTomorrow = currentDate.isSame(today.clone().add(1, "day"), "day");
 
-        yield todoColumn(isFirstDay ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future");
-
-        isFirstDay = false;
+        yield todoColumn(isTomorrow ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future");
       }
 
       currentDate = currentDate.clone().add(1, "days");
@@ -884,7 +888,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const nextDay = nextWeekDate.clone().add(1, "days");
           const todos = getTodosByDate(nextWeekDate, nextDay, false, assignedTaskIds);
           markTasksAsAssigned(todos);
-          const label = `${nextWeekDate.format("dddd")}\n${nextWeekDate.format("MMM D")}`;
+          const label = formatDayLabel(nextWeekDate);
 
           yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), undefined, undefined, "future");
         }
@@ -1118,3 +1122,4 @@ export function mountPlanningComponent(onElement: HTMLElement, props: PlanningCo
   const client = createRoot(onElement);
   client.render(<PlanningComponent {...props}></PlanningComponent>);
 }
+
