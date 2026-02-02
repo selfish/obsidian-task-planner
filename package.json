@@ -71,7 +71,7 @@
   "dependencies": {
     "@preact/compat": "^18.3.1",
     "obsidian": "^1.11.4",
-    "preact": "^10.26.5"
+    "preact": "^10.28.3"
   },
   "repository": {
     "type": "git",
