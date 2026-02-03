@@ -6,13 +6,14 @@ import * as React from "react";
 
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
-import { PlanningTaskColumn, ColumnType, ColumnHeaderAction } from "./planning-task-column";
+import { PlanningTaskColumn, ColumnType, ColumnHeaderAction, WipLimitConfig } from "./planning-task-column";
 import { UndoToastContainer } from "./undo-toast";
 import { TaskIndex } from "../core/index/task-index";
 import { TaskMatcher } from "../core/matchers/task-matcher";
 import { FileOperations } from "../core/operations/file-operations";
 import { UndoManager } from "../core/operations/undo-manager";
 import { UndoableFileOperations } from "../core/operations/undoable-file-ops";
+import { TaskSpreader } from "../core/services/task-spreader";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
 import { TaskItem, TaskStatus, getTaskId } from "../types/task";
@@ -61,7 +62,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   );
 
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
-  const { searchParameters, hideEmpty, hideDone, wipLimit, viewMode } = planningSettings;
+  const { searchParameters, hideEmpty, hideDone, viewMode } = planningSettings;
+
+  // Derive WIP limit from main settings (single source of truth)
+  const dailyWipLimit = settings.dailyWipLimit;
+  const isWipLimited = dailyWipLimit > 0;
 
   // Show ignored is session-only state (not persisted)
   const [showIgnored, setShowIgnored] = React.useState(false);
@@ -98,6 +103,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }, [deps.undoManager, settings.undo.undoHistorySize, settings.undo.undoHistoryMaxAgeSeconds, settings.undo.enableUndo]);
 
   const undoableFileOps = React.useMemo(() => new UndoableFileOperations({ settings, undoManager }), [settings, undoManager]);
+
+  // Task spreader for workload balancing
+  const taskSpreader = React.useMemo(() => new TaskSpreader<TFile>(settings), [settings]);
 
   // Undo toast state
   const [undoToast, setUndoToast] = React.useState<{ message: string; id: string; isUndone?: boolean } | null>(null);
@@ -481,6 +489,83 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }
 
+  /**
+   * Spread tasks from an overloaded day to future days based on priority.
+   * Lower priority tasks are moved first, critical/highest priority tasks stay in place.
+   */
+  async function spreadTasksFromDate(sourceDate: Moment): Promise<void> {
+    const result = taskSpreader.planSpread(filteredTodos, {
+      sourceDate,
+      respectWipLimit: isWipLimited,
+      preserveCritical: true,
+      maxLookAheadDays: 14,
+    });
+
+    if (result.moves.length === 0) {
+      deps.logger.info("No tasks to spread - all tasks are critical/highest priority or no capacity available");
+      return;
+    }
+
+    deps.logger.info(`Spreading ${result.moves.length} tasks from ${sourceDate.format("MMM D")}`);
+
+    // Execute the moves
+    for (const move of result.moves) {
+      const task = move.task as TaskItem<TFile>;
+      const description = `Spread to ${moment(move.toDate).format("MMM D")}`;
+      await undoableFileOps.combinedMoveWithUndo(
+        [task],
+        settings.dueDateAttribute,
+        move.toDate,
+        undefined,
+        TaskStatus.Todo,
+        description
+      );
+    }
+
+    deps.logger.info(`Spread complete: ${result.summary.tasksSpread} tasks moved, ${result.summary.tasksKept} kept`);
+  }
+
+  /**
+   * Check if a column is overloaded based on WIP limit or absolute thresholds.
+   * Matches the logic in LoadIndicator.getLoadLevel().
+   */
+  function isColumnOverloaded(taskCount: number): boolean {
+    if (!isWipLimited) {
+      // No limit set - use absolute thresholds (same as LoadIndicator)
+      return taskCount > 8;
+    }
+    return taskCount > dailyWipLimit;
+  }
+
+  /**
+   * Create header actions for a future column, including spread action if overloaded.
+   */
+  function createFutureColumnActions(columnDate: Moment, todos: TaskItem<TFile>[]): ColumnHeaderAction[] {
+    const actions: ColumnHeaderAction[] = [];
+
+    // Add spread action if column is overloaded
+    if (isColumnOverloaded(todos.length)) {
+      actions.push({
+        icon: "git-branch",
+        label: `Spread ${todos.length - dailyWipLimit} tasks to future days`,
+        onClick: () => {
+          void spreadTasksFromDate(columnDate);
+        },
+      });
+    }
+
+    return actions;
+  }
+
+  // WIP limit configuration for load indicators
+  const wipLimitConfig: WipLimitConfig = React.useMemo(
+    () => ({
+      isLimited: isWipLimited,
+      dailyLimit: dailyWipLimit,
+    }),
+    [isWipLimited, dailyWipLimit]
+  );
+
   function todoColumn(
     icon: string,
     title: string,
@@ -493,6 +578,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     columnType?: ColumnType,
     headerActions?: ColumnHeaderAction[]
   ) {
+    // Show load indicator for future columns (not today columns, backlog, or overdue)
+    const showLoadIndicator = columnType === "future";
+
     return (
       <PlanningTaskColumn
         hideIfEmpty={hideIfEmpty}
@@ -512,6 +600,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         customColor={customColor as Parameters<typeof PlanningTaskColumn>[0]["customColor"]}
         columnType={columnType}
         headerActions={headerActions}
+        wipLimit={wipLimitConfig}
+        showLoadIndicator={showLoadIndicator}
       />
     );
   }
@@ -543,8 +633,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function getWipStyle(todos: TaskItem<TFile>[]) {
-    if (wipLimit.isLimited) {
-      if (todos.length > wipLimit.dailyLimit) {
+    if (isWipLimited) {
+      if (todos.length > dailyWipLimit) {
         return "wip-exceeded";
       }
     }
@@ -840,8 +930,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const style = getWipStyle(todos);
         const label = formatDayLabel(currentDate);
         const isTomorrow = currentDate.isSame(today.clone().add(1, "day"), "day");
+        const headerActions = createFutureColumnActions(currentDate, todos);
 
-        yield todoColumn(isTomorrow ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future");
+        yield todoColumn(isTomorrow ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future", headerActions);
       }
 
       currentDate = currentDate.clone().add(1, "days");
@@ -863,7 +954,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         markTasksAsAssigned(todos);
         const style = getWipStyle(todos);
         const label = `Next week\n${endOfWeek.format("MMM D")} - ${endOfNextWeek.clone().subtract(1, "days").format("MMM D")}`;
-        yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(endOfWeek), batchMoveToDate(endOfWeek), `${style}`, undefined, "future");
+        const headerActions = createFutureColumnActions(endOfWeek, todos);
+        yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(endOfWeek), batchMoveToDate(endOfWeek), `${style}`, undefined, "future", headerActions);
       }
       currentDate = endOfNextWeek.clone();
     } else {
@@ -889,8 +981,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const todos = getTodosByDate(nextWeekDate, nextDay, false, assignedTaskIds);
           markTasksAsAssigned(todos);
           const label = formatDayLabel(nextWeekDate);
+          const headerActions = createFutureColumnActions(nextWeekDate, todos);
 
-          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), undefined, undefined, "future");
+          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), undefined, undefined, "future", headerActions);
         }
 
         nextWeekDate = nextWeekDate.clone().add(1, "days");
@@ -913,7 +1006,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const todos = getTodosByDate(weekStart, weekEnd, false, assignedTaskIds);
           markTasksAsAssigned(todos);
           const style = getWipStyle(todos);
-          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style, undefined, "future");
+          const headerActions = createFutureColumnActions(weekStart, todos);
+          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style, undefined, "future", headerActions);
         }
         weekStart = weekEnd;
       }
@@ -938,7 +1032,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const todos = getTodosByDate(monthStart, monthEnd, false, assignedTaskIds);
           markTasksAsAssigned(todos);
           const style = getWipStyle(todos);
-          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style, undefined, "future");
+          const headerActions = createFutureColumnActions(monthStart, todos);
+          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style, undefined, "future", headerActions);
         }
         monthStart = monthEnd;
       }
@@ -965,7 +1060,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const todos = getTodosByDate(quarterStart, quarterEnd, false, assignedTaskIds);
           markTasksAsAssigned(todos);
           const style = getWipStyle(todos);
-          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(quarterStart), batchMoveToDate(quarterStart), style, undefined, "future");
+          const headerActions = createFutureColumnActions(quarterStart, todos);
+          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(quarterStart), batchMoveToDate(quarterStart), style, undefined, "future", headerActions);
         }
         quarterStart = quarterEnd;
       }
@@ -982,7 +1078,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const label = `${nextYearStart.year()}\nNext year`;
       const todos = getTodosByDate(nextYearStart, nextYearEnd, false, assignedTaskIds);
       markTasksAsAssigned(todos);
-      yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextYearStart), batchMoveToDate(nextYearStart), undefined, undefined, "future");
+      const headerActions = createFutureColumnActions(nextYearStart, todos);
+      yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextYearStart), batchMoveToDate(nextYearStart), undefined, undefined, "future", headerActions);
       currentDate = nextYearEnd;
     }
 
@@ -992,7 +1089,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
       const laterTodos = getTodosByDate(currentDate, null, false, assignedTaskIds);
       markTasksAsAssigned(laterTodos);
-      yield todoColumn("calendar-plus", `Later\nSomeday · ${currentDate.format("MMM D, YYYY")} and later`, laterTodos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), undefined, undefined, "future");
+      const headerActions = createFutureColumnActions(currentDate, laterTodos);
+      yield todoColumn("calendar-plus", `Later\nSomeday · ${currentDate.format("MMM D, YYYY")} and later`, laterTodos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), undefined, undefined, "future", headerActions);
     }
 
     // Render custom horizons with position "end"

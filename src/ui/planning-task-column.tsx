@@ -2,6 +2,7 @@ import { TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { LoadIndicator } from "./load-indicator";
 import { StandardDependencies } from "./standard-dependencies";
 import { TaskListComponent } from "./task-list-component";
 import { HorizonColor } from "../settings/types";
@@ -36,6 +37,11 @@ export interface ColumnHeaderAction {
   onClick: () => void;
 }
 
+export interface WipLimitConfig {
+  isLimited: boolean;
+  dailyLimit: number;
+}
+
 export interface PlanningTodoColumnProps {
   icon: string;
   title: string;
@@ -48,6 +54,10 @@ export interface PlanningTodoColumnProps {
   customColor?: HorizonColor;
   columnType?: ColumnType;
   headerActions?: ColumnHeaderAction[];
+  /** WIP limit configuration for load indicator */
+  wipLimit?: WipLimitConfig;
+  /** Whether to show the load indicator (default: true for future columns) */
+  showLoadIndicator?: boolean;
 }
 
 function getEmptyStateMessage(columnType?: ColumnType): string {
@@ -68,7 +78,7 @@ function getEmptyStateMessage(columnType?: ColumnType): string {
   }
 }
 
-export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType, headerActions }: PlanningTodoColumnProps): React.ReactElement | null {
+export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType, headerActions, wipLimit, showLoadIndicator }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
 
   // Parse title for main title and optional subtitle (separated by \n)
@@ -189,6 +199,9 @@ export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, on
               </button>
             ))}
           </div>
+        )}
+        {showLoadIndicator && wipLimit && columnType === "future" && (
+          <LoadIndicator taskCount={todos.length} wipLimit={wipLimit.dailyLimit} isLimited={wipLimit.isLimited} />
         )}
       </div>
       <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>

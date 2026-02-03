@@ -199,7 +199,7 @@
 
     // Overdue column header - left aligned because of action buttons
     &:has(> .content.overdue) > .header {
-      align-items: flex-start;
+      //align-items: flex-start;
 
       .header-row {
         justify-content: flex-start;

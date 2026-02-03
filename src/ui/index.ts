@@ -1,4 +1,5 @@
 export * from "./folder-suggest";
+export * from "./load-indicator";
 export * from "./onboarding-modal";
 export * from "./planning-settings";
 export * from "./planning-settings-store";
