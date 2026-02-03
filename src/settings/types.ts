@@ -83,7 +83,7 @@ export interface TaskPlannerSettings {
   version: number;
   ignoredFolders: string[];
   ignoreArchivedTasks: boolean;
-  defaultDailyWipLimit: number;
+  dailyWipLimit: number;
   dueDateAttribute: string;
   completedDateAttribute: string;
   selectedAttribute: string;
@@ -104,7 +104,7 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
   version: 4,
   ignoredFolders: [],
   ignoreArchivedTasks: true,
-  defaultDailyWipLimit: 5,
+  dailyWipLimit: 8,
   dueDateAttribute: "due",
   completedDateAttribute: "completed",
   selectedAttribute: "selected",

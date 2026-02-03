@@ -395,10 +395,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       .setName("Daily work-in-progress limit")
       .setDesc("Maximum tasks in progress per day (0 = unlimited)")
       .addText((txt) =>
-        txt.setValue(this.plugin.settings.defaultDailyWipLimit.toString()).onChange(async (txtValue) => {
+        txt.setValue(this.plugin.settings.dailyWipLimit.toString()).onChange(async (txtValue) => {
           const value = Number.parseInt(txtValue);
-          this.plugin.settings.defaultDailyWipLimit = Number.isNaN(value) ? 0 : value;
+          this.plugin.settings.dailyWipLimit = Number.isNaN(value) ? 0 : value;
           await this.plugin.saveSettings();
+          this.plugin.refreshPlanningViews();
         })
       );
 
