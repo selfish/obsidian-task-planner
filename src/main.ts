@@ -19,9 +19,10 @@ import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCo
 import { FileTaskParser, FolderTaskParser, StatusOperations, TaskIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice, showInfoNotice } from "./lib";
-import { DEFAULT_SETTINGS, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
+import { DEFAULT_SETTINGS, TaskPlannerSettings } from "./settings";
+import { LazySettingsTab } from "./settings/settings-tab-lazy";
 import { Logger } from "./types";
-import { OnboardingModal } from "./ui/onboarding-modal";
+// OnboardingModal is lazy-loaded since it's only shown once
 import { QuickAddModal } from "./ui/quick-add-modal";
 import { PlanningView, TodoListView, TodoReportView } from "./views";
 
@@ -65,7 +66,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.addCommand(openPlanningCommand);
     this.addCommand(openReportCommand);
     this.addCommand(quickAddCommand);
-    this.addSettingTab(new TaskPlannerSettingsTab(this.app, this));
+    this.addSettingTab(new LazySettingsTab(this.app, this));
 
     this.addRibbonIcon("calendar-glyph", "Open planning", () => {
       openPlanningCommand.callback();
@@ -81,7 +82,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
       // Show onboarding modal for first-time users
       if (!this.settings.hasSeenOnboarding) {
-        this.showOnboardingModal();
+        void this.showOnboardingModal();
       }
 
       // Warn about native menus (icons won't show in context menus)
@@ -190,10 +191,8 @@ export default class TaskPlannerPlugin extends Plugin {
   }
 
   private loadFiles(): void {
-    setTimeout(() => {
-      const files = this.app.vault.getMarkdownFiles().map((file) => new ObsidianFile(this.app, file));
-      void this.taskIndex.filesLoaded(files);
-    }, 50);
+    const files = this.app.vault.getMarkdownFiles().map((file) => new ObsidianFile(this.app, file));
+    void this.taskIndex.filesLoaded(files);
   }
 
   private registerUriHandler(): void {
@@ -232,7 +231,9 @@ export default class TaskPlannerPlugin extends Plugin {
     modal.open();
   }
 
-  private showOnboardingModal(): void {
+  private async showOnboardingModal(): Promise<void> {
+    // Lazy-load onboarding modal since it's only shown once
+    const { OnboardingModal } = await import("./ui/onboarding-modal");
     const modal = new OnboardingModal(this.app, this.settings, (addedExamples: boolean) => {
       this.settings.hasSeenOnboarding = true;
       void this.saveSettings().then(() => {

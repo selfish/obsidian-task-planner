@@ -7,30 +7,27 @@ export interface CustomAtShortcut {
 }
 
 export interface AtShortcutSettings {
-  enableAtShortcuts: boolean; // Master toggle (default: true)
-  enableDateShortcuts: boolean; // @today, @tomorrow, etc. (default: true)
-  enablePriorityShortcuts: boolean; // @critical, @high, @medium, @low, @lowest (default: true)
-  enableBuiltinShortcuts: boolean; // @selected (default: true)
+  enableAtShortcuts: boolean;
+  enableDateShortcuts: boolean;
+  enablePriorityShortcuts: boolean;
+  enableBuiltinShortcuts: boolean;
   customShortcuts: CustomAtShortcut[];
 }
 
 export interface CustomHorizon {
   label: string;
-  date: string; // ISO date (YYYY-MM-DD) - required
-  tag?: string; // Tag to apply when dropping tasks to this horizon
-  color?: HorizonColor; // Color tint for the column
-  position: "before" | "after" | "end" | "inline"; // before = before backlog, after = after backlog, end = after time horizons, inline = at its date position
+  date: string;
+  tag?: string;
+  color?: HorizonColor;
+  position: "before" | "after" | "end" | "inline";
 }
 
 export type NextWeekMode = "collapsed" | "same-as-this-week" | "rolling-week";
 
 export interface HorizonVisibility {
-  // Basic horizons
   showBacklog: boolean;
   showPast: boolean;
   showOverdue: boolean;
-
-  // Individual weekdays (this week)
   showMonday: boolean;
   showTuesday: boolean;
   showWednesday: boolean;
@@ -38,21 +35,11 @@ export interface HorizonVisibility {
   showFriday: boolean;
   showSaturday: boolean;
   showSunday: boolean;
-
-  // Next week display mode
   nextWeekMode: NextWeekMode;
-
-  // Week/Month counts (weeksToShow now counts weeks AFTER next week)
-  weeksToShow: number; // 0-4
-  monthsToShow: number; // 0-3
-
-  // Quarters (shows all remaining quarters until end of year)
+  weeksToShow: number;
+  monthsToShow: number;
   showQuarters: boolean;
-
-  // Year
   showNextYear: boolean;
-
-  // Later horizon
   showLater: boolean;
 }
 
@@ -61,22 +48,22 @@ export interface QuickAddSettings {
   inboxFilePath: string;
   placement: "prepend" | "append" | "before-regex" | "after-regex";
   templaterDelay: number;
-  taskPattern: string; // Template for task, e.g., "### {time}\n- [ ] {task}"
-  locationRegex: string; // Regex pattern to find insertion point (used with before-regex/after-regex)
+  taskPattern: string;
+  locationRegex: string;
 }
 
 export interface FollowUpSettings {
-  textPrefix: string; // Default: "Follow up: "
-  copyTags: boolean; // Default: true
-  copyPriority: boolean; // Default: false
+  textPrefix: string;
+  copyTags: boolean;
+  copyPriority: boolean;
 }
 
 export interface UndoSettings {
-  enableUndo: boolean; // Default: true
-  undoHistorySize: number; // Default: 10
-  undoHistoryMaxAgeSeconds: number; // Default: 300
-  showUndoToast: boolean; // Default: true
-  undoToastDurationMs: number; // Default: 5000
+  enableUndo: boolean;
+  undoHistorySize: number;
+  undoHistoryMaxAgeSeconds: number;
+  showUndoToast: boolean;
+  undoToastDurationMs: number;
 }
 
 export interface TaskPlannerSettings {

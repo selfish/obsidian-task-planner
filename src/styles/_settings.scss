@@ -1,21 +1,13 @@
-// Settings tab styles
-
-// Utility class for hiding elements
 .th-hidden {
   display: none !important;
 }
 
-// Settings tab container
 .th-settings-tab {
-  // Remove default top padding on first heading
   > .setting-item:first-child {
     padding-top: 0;
   }
 }
 
-// ============================================================================
-// SUBSECTIONS - Groups of related settings with a subtle label
-// ============================================================================
 .th-subsection {
   margin-top: var(--size-4-4);
   margin-bottom: var(--size-4-2);
@@ -24,7 +16,6 @@
   border-radius: var(--radius-m);
   border: 1px solid var(--background-modifier-border);
 
-  // First setting inside subsection has no top border
   .setting-item:first-of-type {
     border-top: none;
     padding-top: 0;
@@ -42,9 +33,6 @@
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-// ============================================================================
-// COLLAPSIBLE SECTIONS - For Advanced settings
-// ============================================================================
 .th-collapsible {
   margin-top: var(--size-4-6);
   border: 1px solid var(--background-modifier-border);
@@ -71,10 +59,8 @@
     outline-offset: -2px;
   }
 
-  &.is-collapsed {
-    .th-collapsible-chevron {
-      transform: rotate(-90deg);
-    }
+  &.is-collapsed .th-collapsible-chevron {
+    transform: rotate(-90deg);
   }
 }
 
@@ -105,7 +91,6 @@
     display: none;
   }
 
-  // Remove background from subsections inside collapsible
   .th-subsection {
     background: transparent;
     border: none;
@@ -125,9 +110,6 @@
   }
 }
 
-// ============================================================================
-// TOOLTIP ICONS
-// ============================================================================
 .th-tooltip-icon {
   display: inline-flex;
   align-items: center;
@@ -146,9 +128,6 @@
   }
 }
 
-// ============================================================================
-// WEEKDAY SELECTOR
-// ============================================================================
 .th-weekday-selector {
   margin: var(--size-4-2) 0 var(--size-4-3) 0;
 }
@@ -214,9 +193,6 @@
   }
 }
 
-// ============================================================================
-// CUSTOM HORIZON CARDS
-// ============================================================================
 .th-horizons-container {
   display: flex;
   flex-direction: column;
@@ -344,9 +320,6 @@
   font-size: var(--font-ui-small);
 }
 
-// ============================================================================
-// CUSTOM SHORTCUT CARDS
-// ============================================================================
 .th-shortcuts-container {
   display: flex;
   flex-direction: column;
@@ -446,9 +419,6 @@
   }
 }
 
-// ============================================================================
-// COLOR PICKER
-// ============================================================================
 .th-color-picker {
   position: relative;
   display: inline-flex;
@@ -576,9 +546,6 @@
   }
 }
 
-// ============================================================================
-// ERROR MESSAGE
-// ============================================================================
 .th-error {
   color: var(--text-error);
   font-size: var(--font-ui-small);

@@ -1,7 +1,8 @@
-import { App, setIcon } from "obsidian";
+import { App } from "obsidian";
 
 import * as React from "react";
 
+import { useIconRef } from "./hooks";
 import { PlanningSettings } from "./planning-settings";
 
 export interface PlanningSettingsComponentProps {
@@ -17,117 +18,62 @@ export interface PlanningSettingsComponentProps {
   onQuickAdd?: () => void;
 }
 
-export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
+export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps): React.ReactElement {
   const { hideEmpty, hideDone, searchParameters, viewMode } = planningSettings;
   const { searchPhrase } = searchParameters;
 
-  function toggleHideEmpty() {
-    setPlanningSettings({
-      ...planningSettings,
-      hideEmpty: !hideEmpty,
-    });
+  function toggleHideEmpty(): void {
+    setPlanningSettings({ ...planningSettings, hideEmpty: !hideEmpty });
   }
 
-  function toggleHideDone() {
-    setPlanningSettings({
-      ...planningSettings,
-      hideDone: !hideDone,
-    });
+  function toggleHideDone(): void {
+    setPlanningSettings({ ...planningSettings, hideDone: !hideDone });
   }
 
-  function toggleShowIgnored() {
+  function toggleShowIgnored(): void {
     setShowIgnored(!showIgnored);
   }
 
-  function toggleTodayFocus() {
+  function toggleTodayFocus(): void {
+    setPlanningSettings({ ...planningSettings, viewMode: viewMode === "today" ? "default" : "today" });
+  }
+
+  function toggleFutureFocus(): void {
+    setPlanningSettings({ ...planningSettings, viewMode: viewMode === "future" ? "default" : "future" });
+  }
+
+  function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>): void {
     setPlanningSettings({
       ...planningSettings,
-      viewMode: viewMode === "today" ? "default" : "today",
+      searchParameters: { ...searchParameters, searchPhrase: ev.target.value },
     });
   }
 
-  function toggleFutureFocus() {
-    setPlanningSettings({
-      ...planningSettings,
-      viewMode: viewMode === "future" ? "default" : "future",
-    });
-  }
-
-  function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>) {
-    setPlanningSettings({
-      ...planningSettings,
-      searchParameters: {
-        ...searchParameters,
-        searchPhrase: ev.target.value,
-      },
-    });
-  }
-
-  function onOpenSettings() {
+  function onOpenSettings(): void {
     if (app) {
-      // Access internal Obsidian API for settings
       const appWithSettings = app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } };
       appWithSettings.setting.open();
       appWithSettings.setting.openTabById("task-planner");
     }
   }
 
-  const settingsIconRef = React.useRef<HTMLButtonElement>(null);
-  const refreshIconRef = React.useRef<HTMLButtonElement>(null);
-  const reportIconRef = React.useRef<HTMLButtonElement>(null);
-  const quickAddIconRef = React.useRef<HTMLButtonElement>(null);
-  const hideEmptyIconRef = React.useRef<HTMLSpanElement>(null);
-  const hideDoneIconRef = React.useRef<HTMLSpanElement>(null);
-  const showIgnoredIconRef = React.useRef<HTMLSpanElement>(null);
-  const todayFocusIconRef = React.useRef<HTMLSpanElement>(null);
-  const futureFocusIconRef = React.useRef<HTMLSpanElement>(null);
+  const settingsIconRef = useIconRef("settings");
+  const refreshIconRef = useIconRef("refresh-cw");
+  const reportIconRef = useIconRef("list-checks");
+  const quickAddIconRef = useIconRef("plus");
+  const hideEmptyIconRef = useIconRef("columns-3");
+  const hideDoneIconRef = useIconRef("circle-check-big");
+  const showIgnoredIconRef = useIconRef("eye-off");
+  const todayFocusIconRef = useIconRef("sun");
+  const futureFocusIconRef = useIconRef("calendar-range");
 
-  React.useEffect(() => {
-    if (settingsIconRef.current && app) {
-      settingsIconRef.current.replaceChildren();
-      setIcon(settingsIconRef.current, "settings");
-    }
-    if (refreshIconRef.current && app) {
-      refreshIconRef.current.replaceChildren();
-      setIcon(refreshIconRef.current, "refresh-cw");
-    }
-    if (reportIconRef.current && app) {
-      reportIconRef.current.replaceChildren();
-      setIcon(reportIconRef.current, "list-checks");
-    }
-    if (quickAddIconRef.current && app) {
-      quickAddIconRef.current.replaceChildren();
-      setIcon(quickAddIconRef.current, "plus");
-    }
-    if (hideEmptyIconRef.current) {
-      hideEmptyIconRef.current.replaceChildren();
-      setIcon(hideEmptyIconRef.current, "columns-3");
-    }
-    if (hideDoneIconRef.current) {
-      hideDoneIconRef.current.replaceChildren();
-      setIcon(hideDoneIconRef.current, "circle-check-big");
-    }
-    if (showIgnoredIconRef.current) {
-      showIgnoredIconRef.current.replaceChildren();
-      setIcon(showIgnoredIconRef.current, "eye-off");
-    }
-    if (todayFocusIconRef.current) {
-      todayFocusIconRef.current.replaceChildren();
-      setIcon(todayFocusIconRef.current, "sun");
-    }
-    if (futureFocusIconRef.current) {
-      futureFocusIconRef.current.replaceChildren();
-      setIcon(futureFocusIconRef.current, "calendar-range");
-    }
-  }, [app]);
-
-  const completionPercent = totalTasks > 0 ? Math.round(((completedToday || 0) / totalTasks) * 100) : 0;
+  const completionPercent = totalTasks && totalTasks > 0 ? Math.round(((completedToday || 0) / totalTasks) * 100) : 0;
 
   return (
     <div className="header">
       <div className="title">
         <h1>Task Planner</h1>
-        {(totalTasks > 0 || completedToday > 0) && (
+        {((totalTasks && totalTasks > 0) || (completedToday && completedToday > 0)) && (
           <div className="stats">
             <span className="stat">{completedToday || 0} done</span>
             <span className="stat separator">•</span>
@@ -140,7 +86,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
       </div>
       <div className="controls">
         <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
-        <span className={"spacer"}></span>
+        <span className="spacer"></span>
         {onQuickAdd && <button ref={quickAddIconRef} className="settings-btn" onClick={onQuickAdd} aria-label="Quick add task" title="Quick add task" />}
         <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty horizons" title="Hide empty horizons">
           <span ref={hideEmptyIconRef} className="icon" />
@@ -154,7 +100,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
           <span ref={showIgnoredIconRef} className="icon" />
           <span className="led" />
         </button>
-        <span className={"spacer"}></span>
+        <span className="spacer"></span>
         <button className={`toggle-btn ${viewMode === "today" ? "active" : ""}`} onClick={toggleTodayFocus} aria-label="Today focus" title="Today focus">
           <span ref={todayFocusIconRef} className="icon" />
           <span className="led" />
@@ -163,7 +109,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
           <span ref={futureFocusIconRef} className="icon" />
           <span className="led" />
         </button>
-        <span className={"spacer"}></span>
+        <span className="spacer"></span>
         {onOpenReport && <button ref={reportIconRef} className="settings-btn" onClick={onOpenReport} aria-label="Open report" title="Open report" />}
         {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh" title="Refresh" />}
         <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Settings" title="Settings" />

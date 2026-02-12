@@ -1,13 +1,5 @@
 import { AbstractInputSuggest, App, TFile } from "obsidian";
 
-/**
- * Suggest class for wikilink completion in contenteditable elements.
- * Triggers when user types [[ and shows file suggestions.
- *
- * Note: This class relies heavily on browser Selection/Range APIs
- * which are not fully supported in jsdom, making it difficult to unit test.
- * It is excluded from coverage requirements.
- */
 export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
   private inputEl: HTMLDivElement;
 

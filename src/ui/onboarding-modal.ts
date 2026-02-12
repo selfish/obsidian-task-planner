@@ -5,10 +5,6 @@ import { moment } from "../utils/moment";
 
 type OnboardingScreen = "welcome" | "concept" | "examples";
 
-/**
- * Modal for onboarding new users to Task Planner.
- * Shows a 3-screen flow explaining the plugin's core concepts.
- */
 export class OnboardingModal extends Modal {
   private currentScreen: OnboardingScreen = "welcome";
   private settings: TaskPlannerSettings;

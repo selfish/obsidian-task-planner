@@ -4,13 +4,24 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { createMoveOperations, getDateLabel } from "./planning-move-ops";
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
 import { PlanningTaskColumn, ColumnType, ColumnHeaderAction } from "./planning-task-column";
+import {
+  TaskFilterContext,
+  getTodosByDate as filterByDate,
+  getTodosWithNoDate as filterNoDate,
+  getTodosByDateAndStatus as filterByDateStatus,
+  getInProgressTodos,
+  getInProgressTaskIds,
+  getOverdueTodos as filterOverdue,
+  getCustomDateHorizonTodos as filterCustomHorizon,
+  markTasksAsAssigned,
+} from "./planning-task-filters";
 import { UndoToastContainer } from "./undo-toast";
 import { TaskIndex } from "../core/index/task-index";
 import { TaskMatcher } from "../core/matchers/task-matcher";
-import { FileOperations } from "../core/operations/file-operations";
 import { UndoManager } from "../core/operations/undo-manager";
 import { UndoableFileOperations } from "../core/operations/undoable-file-ops";
 import { TaskPlannerSettings } from "../settings/types";
@@ -85,8 +96,6 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     }
   }, [hideEmpty, showIgnored]);
 
-  const fileOperations = new FileOperations(settings);
-
   // Undo manager setup
   const undoManager = React.useMemo(() => {
     if (deps.undoManager) return deps.undoManager;
@@ -98,6 +107,12 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }, [deps.undoManager, settings.undo.undoHistorySize, settings.undo.undoHistoryMaxAgeSeconds, settings.undo.enableUndo]);
 
   const undoableFileOps = React.useMemo(() => new UndoableFileOperations({ settings, undoManager }), [settings, undoManager]);
+
+  // Move operations - created once and memoized
+  const moveOps = React.useMemo(
+    () => createMoveOperations({ settings, undoableFileOps, findTodo }),
+    [settings, undoableFileOps, findTodo]
+  );
 
   // Undo toast state
   const [undoToast, setUndoToast] = React.useState<{ message: string; id: string; isUndone?: boolean } | null>(null);
@@ -216,270 +231,22 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }, [deps.taskIndex]);
 
-  function getTodosByDate(from: Moment | null, to: Moment | null, includeSelected: boolean = false, excludeIds?: Set<string>): TaskItem<TFile>[] {
-    const dateIsInRange = (date: Moment | null) => date && (from === null || date.isSameOrAfter(from)) && (to === null || date.isBefore(to));
-    function todoInRange<T>(todo: TaskItem<T>) {
-      const isDone = todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled;
-      const isSelected = todo.attributes && !!todo.attributes[settings.selectedAttribute];
-      const dueDate = findTaskDate(todo, settings.dueDateAttribute);
-      const completedDate = findTaskDate(todo, settings.completedDateAttribute);
-      const dueDateIsInRange = dateIsInRange(dueDate);
-      const completedDateIsInRange = dateIsInRange(completedDate);
+  // Filter context for task filtering utilities
+  const filterCtx: TaskFilterContext = React.useMemo(() => ({ settings, filteredTodos }), [settings, filteredTodos]);
 
-      if (isDone) {
-        // Show completed tasks if completed in date range (for Done column)
-        return completedDateIsInRange;
-      }
+  // Shorthand filter functions bound to current context
+  const getTodosByDate = (from: Moment | null, to: Moment | null, includeSelected = false, excludeIds?: Set<string>) =>
+    filterByDate(filterCtx, from, to, includeSelected, excludeIds);
+  const getTodosWithNoDate = (excludeIds?: Set<string>) => filterNoDate(filterCtx, excludeIds);
+  const getTodosByDateAndStatus = (from: Moment, to: Moment, statuses: TaskStatus[]) => filterByDateStatus(filterCtx, from, to, statuses);
+  const getOverdueTodos = (excludeIds?: Set<string>) => filterOverdue(filterCtx, moment().startOf("day"), excludeIds);
+  const getCustomDateHorizonTodos = (date: string, tag?: string, excludeIds?: Set<string>) => filterCustomHorizon(filterCtx, date, tag, excludeIds, moment);
 
-      const isInRangeOrSelected = dueDateIsInRange || (includeSelected && isSelected);
-      return isInRangeOrSelected;
-    }
-    const todosInRange = filteredTodos.filter((todo) => {
-      if (excludeIds && excludeIds.has(getTaskId(todo))) return false;
-      return todo.attributes && todoInRange(todo);
-    });
-    return todosInRange;
-  }
-
-  function getTodosWithNoDate(excludeIds?: Set<string>): TaskItem<TFile>[] {
-    return filteredTodos.filter((todo) => {
-      if (excludeIds && excludeIds.has(getTaskId(todo))) return false;
-      return !findTaskDate(todo, settings.dueDateAttribute) && todo.attributes && !todo.attributes[settings.selectedAttribute] && todo.status !== TaskStatus.Canceled && todo.status !== TaskStatus.Complete;
-    });
-  }
-
-  // Helper to un-complete a task if it's currently done
-  async function _ensureNotCompleted(todo: TaskItem<TFile>) {
-    if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) {
-      todo.status = TaskStatus.Todo;
-      await fileOperations.updateTaskStatus(todo, settings.completedDateAttribute);
-    }
-  }
-
-  // Helper to batch un-complete tasks
-  async function _batchEnsureNotCompleted(todos: TaskItem<TFile>[]) {
-    const completedTodos = todos.filter((todo) => todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled);
-    if (completedTodos.length > 0) {
-      completedTodos.forEach((todo) => (todo.status = TaskStatus.Todo));
-      await fileOperations.batchUpdateTaskStatus(completedTodos, settings.completedDateAttribute);
-    }
-  }
-  // Silence unused function warnings (reserved for future use)
-  void _ensureNotCompleted;
-  void _batchEnsureNotCompleted;
-
-  function getDateLabel(date: Moment): string {
-    const today = moment().startOf("day");
-    const tomorrow = today.clone().add(1, "day");
-    if (date.isSame(today, "day")) return "Today";
-    if (date.isSame(tomorrow, "day")) return "Tomorrow";
-    return date.format("MMM D");
-  }
-
-  // Get custom horizon tags that should be removed when moving to a builtin horizon
-  // This ensures tasks can be moved OUT of custom horizons into builtin horizons
-  function getCustomHorizonTagsToRemove(todos: TaskItem<TFile>[]): string[] {
-    if (!settings.customHorizons || settings.customHorizons.length === 0) return [];
-
-    const tagsToRemove: string[] = [];
-
-    for (const horizon of settings.customHorizons) {
-      const horizonTag = horizon.tag;
-      if (!horizonTag) continue;
-
-      // If any todo has this custom horizon's tag, it should be removed
-      // so the task moves from the custom horizon to the builtin
-      const todoHasTag = todos.some((todo) => todo.tags?.includes(horizonTag));
-      if (todoHasTag) {
-        tagsToRemove.push(horizonTag);
-      }
-    }
-
-    return tagsToRemove;
-  }
-
-  function moveToDate(date: Moment) {
-    return (taskId: string) => {
-      const todo = findTodo(taskId);
-      const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Moving ${taskId} to ${dateStr}`);
-      if (!todo) {
-        deps.logger.warn(`Todo ${taskId} not found, couldn't move`);
-        return;
-      }
-      const tagsToRemove = getCustomHorizonTagsToRemove([todo]);
-      const description = UndoManager.createMoveDescription(1, getDateLabel(date));
-      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
-      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, undefined, TaskStatus.Todo, description, tagsToRemove);
-    };
-  }
-
-  function batchMoveToDate(date: Moment) {
-    return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
-      if (foundTodos.length === 0) {
-        deps.logger.warn(`No todos found for batch move`);
-        return;
-      }
-      const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr}`);
-      const tagsToRemove = getCustomHorizonTagsToRemove(foundTodos);
-      const description = UndoManager.createMoveDescription(foundTodos.length, getDateLabel(date));
-      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
-      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, undefined, TaskStatus.Todo, description, tagsToRemove);
-    };
-  }
-
-  function moveToDateAndTag(date: Moment, tag: string) {
-    return (taskId: string) => {
-      const todo = findTodo(taskId);
-      const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Moving ${taskId} to ${dateStr} with tag #${tag}`);
-      if (!todo) {
-        deps.logger.warn(`Todo ${taskId} not found, couldn't move`);
-        return;
-      }
-      const description = UndoManager.createMoveDescription(1, `${getDateLabel(date)} (#${tag})`);
-      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
-      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, tag, TaskStatus.Todo, description);
-    };
-  }
-
-  function batchMoveToDateAndTag(date: Moment, tag: string) {
-    return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
-      if (foundTodos.length === 0) {
-        deps.logger.warn(`No todos found for batch move`);
-        return;
-      }
-      const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr} with tag #${tag}`);
-      const description = UndoManager.createMoveDescription(foundTodos.length, `${getDateLabel(date)} (#${tag})`);
-      // Reset status to Todo when moving to a date column (e.g., dragging out of In-Progress)
-      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, tag, TaskStatus.Todo, description);
-    };
-  }
-
-  function removeDate() {
-    return (taskId: string) => {
-      const todo = findTodo(taskId);
-      if (!todo) {
-        return;
-      }
-      const description = UndoManager.createMoveDescription(1, "Backlog");
-      void undoableFileOps.batchRemoveAttributeWithUndo([todo], settings.dueDateAttribute, description);
-    };
-  }
-
-  function batchRemoveDate() {
-    return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
-      if (foundTodos.length === 0) return;
-      deps.logger.debug(`Batch removing date from ${foundTodos.length} todos`);
-      const description = UndoManager.createMoveDescription(foundTodos.length, "Backlog");
-      await undoableFileOps.batchRemoveAttributeWithUndo(foundTodos, settings.dueDateAttribute, description);
-    };
-  }
-
-  function getStatusLabel(status: TaskStatus): string {
-    switch (status) {
-      case TaskStatus.Todo:
-        return "Todo";
-      case TaskStatus.InProgress:
-        return "In Progress";
-      case TaskStatus.Complete:
-        return "Done";
-      case TaskStatus.Canceled:
-        return "Canceled";
-      case TaskStatus.Delegated:
-        return "Delegated";
-      case TaskStatus.AttentionRequired:
-        return "Attention Required";
-      default:
-        return "Unknown";
-    }
-  }
-
-  function moveToDateAndStatus(date: Moment, status: TaskStatus) {
-    return (taskId: string) => {
-      const todo = findTodo(taskId);
-      const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Moving ${taskId} to ${dateStr}`);
-      if (!todo) {
-        deps.logger.warn(`Todo ${taskId} not found, couldn't move`);
-        return;
-      }
-      const description = UndoManager.createMoveDescription(1, `${getDateLabel(date)} (${getStatusLabel(status)})`);
-      void undoableFileOps.combinedMoveWithUndo([todo], settings.dueDateAttribute, dateStr, undefined, status, description);
-    };
-  }
-
-  function batchMoveToDateAndStatus(date: Moment, status: TaskStatus) {
-    return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
-      if (foundTodos.length === 0) {
-        deps.logger.warn(`No todos found for batch move`);
-        return;
-      }
-      const dateStr = date.format("YYYY-MM-DD");
-      deps.logger.debug(`Batch moving ${foundTodos.length} todos to ${dateStr} with status ${status}`);
-      const description = UndoManager.createMoveDescription(foundTodos.length, `${getDateLabel(date)} (${getStatusLabel(status)})`);
-      await undoableFileOps.combinedMoveWithUndo(foundTodos, settings.dueDateAttribute, dateStr, undefined, status, description);
-    };
-  }
-
-  function getTodosByDateAndStatus(from: Moment, to: Moment, status: TaskStatus[]) {
-    const todos = getTodosByDate(from, to, true);
-    return todos.filter((todo) => status.includes(todo.status));
-  }
-
-  // Get all in-progress tasks regardless of their due date
-  // This matches the sidebar behavior in task-side-panel-component.tsx
-  function getInProgressTodos(): TaskItem<TFile>[] {
-    return filteredTodos.filter((todo) => {
-      return todo.status === TaskStatus.InProgress || todo.status === TaskStatus.AttentionRequired || todo.status === TaskStatus.Delegated;
-    });
-  }
+  // Shorthand aliases for move operations
+  const { moveToDate, batchMoveToDate, moveToDateAndTag, batchMoveToDateAndTag, moveToDateAndStatus, batchMoveToDateAndStatus, changeStatusOnly, batchChangeStatusOnly, removeDate, batchRemoveDate } = moveOps;
 
   // Set of in-progress task IDs (to exclude from date-based columns)
-  const inProgressTaskIds = React.useMemo(() => {
-    const ids = new Set<string>();
-    for (const todo of filteredTodos) {
-      if (todo.status === TaskStatus.InProgress || todo.status === TaskStatus.AttentionRequired || todo.status === TaskStatus.Delegated) {
-        ids.add(getTaskId(todo));
-      }
-    }
-    return ids;
-  }, [filteredTodos]);
-
-  // Change status only - don't modify the due date
-  function changeStatusOnly(status: TaskStatus) {
-    return (taskId: string) => {
-      const todo = findTodo(taskId);
-      deps.logger.debug(`Changing status of ${taskId} to ${getStatusLabel(status)}`);
-      if (!todo) {
-        deps.logger.warn(`Todo ${taskId} not found, couldn't change status`);
-        return;
-      }
-      const description = UndoManager.createMoveDescription(1, getStatusLabel(status));
-      void undoableFileOps.batchUpdateTaskStatusWithUndo([{ ...todo, status }], new Map([[taskId, todo.status]]), description);
-    };
-  }
-
-  function batchChangeStatusOnly(status: TaskStatus) {
-    return async (todoIds: string[]) => {
-      const foundTodos = todoIds.map((id) => findTodo(id)).filter((todo): todo is TaskItem<TFile> => todo !== undefined);
-      if (foundTodos.length === 0) {
-        deps.logger.warn(`No todos found for batch status change`);
-        return;
-      }
-      deps.logger.debug(`Batch changing status of ${foundTodos.length} todos to ${getStatusLabel(status)}`);
-      const previousStatuses = new Map(foundTodos.map((todo) => [getTaskId(todo), todo.status]));
-      const updatedTodos = foundTodos.map((todo) => ({ ...todo, status }));
-      const description = UndoManager.createMoveDescription(foundTodos.length, getStatusLabel(status));
-      await undoableFileOps.batchUpdateTaskStatusWithUndo(updatedTodos, previousStatuses, description);
-    };
-  }
+  const inProgressTaskIds = React.useMemo(() => getInProgressTaskIds(filteredTodos), [filteredTodos]);
 
   function todoColumn(
     icon: string,
@@ -525,7 +292,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
     // In Progress column shows ALL tasks with in-progress status regardless of due date
     // Dropping into this column only changes status, not the due date
-    yield todoColumn("clock", "In Progress\nWorking on", getInProgressTodos(), false, changeStatusOnly(TaskStatus.InProgress), batchChangeStatusOnly(TaskStatus.InProgress), `today cols-${columnCount}`, undefined, "today-in-progress");
+    yield todoColumn("clock", "In Progress\nWorking on", getInProgressTodos(filteredTodos), false, changeStatusOnly(TaskStatus.InProgress), batchChangeStatusOnly(TaskStatus.InProgress), `today cols-${columnCount}`, undefined, "today-in-progress");
 
     if (!hideDone) {
       yield todoColumn(
@@ -551,55 +318,13 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return "";
   }
 
-  function getOverdueTodos(excludeIds?: Set<string>): TaskItem<TFile>[] {
-    const today = moment().startOf("day");
-    return filteredTodos.filter((todo) => {
-      if (excludeIds && excludeIds.has(getTaskId(todo))) return false;
-      if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) {
-        return false;
-      }
-      const dueDate = findTaskDate(todo, settings.dueDateAttribute);
-      return dueDate && dueDate.isBefore(today);
-    });
-  }
-
-  function getCustomDateHorizonTodos(targetDate: string, tag?: string, excludeIds?: Set<string>): TaskItem<TFile>[] {
-    const target = moment(targetDate);
-    if (!target.isValid()) return [];
-
-    const start = target.startOf("day");
-    const end = start.clone().add(1, "days");
-    const todos = getTodosByDate(start, end, false, excludeIds);
-
-    // If a tag is specified, only include tasks that have that tag
-    if (tag) {
-      return todos.filter((todo) => todo.tags?.includes(tag));
-    }
-
-    return todos;
-  }
-
   function* getColumns() {
     const { horizonVisibility, customHorizons } = settings;
 
     const today = moment().startOf("day");
 
     // Track assigned task IDs to prevent duplicates across horizons
-    // Custom horizons have highest priority, then standard horizons in order
-    const assignedTaskIds = new Set<string>();
-
-    // Helper to add todos to the exclusion set
-    function markTasksAsAssigned(todos: TaskItem<TFile>[]) {
-      for (const todo of todos) {
-        assignedTaskIds.add(getTaskId(todo));
-      }
-    }
-
-    // PRE-CLAIM: In-progress tasks should ONLY appear in the In Progress column.
-    // Exclude them from all date-based columns in the future section.
-    for (const taskId of inProgressTaskIds) {
-      assignedTaskIds.add(taskId);
-    }
+    const assignedTaskIds = new Set<string>(inProgressTaskIds);
 
     // PRE-CLAIM: Custom horizons have priority over builtins.
     // Calculate and claim their tasks FIRST, before any builtin processing.
@@ -610,7 +335,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         // Get todos matching this custom horizon (respects earlier custom horizon claims)
         const todos = getCustomDateHorizonTodos(horizon.date, horizon.tag, assignedTaskIds);
         customHorizonTodos.set(i, todos);
-        markTasksAsAssigned(todos); // Pre-claim these tasks
+        markTasksAsAssigned(todos, assignedTaskIds); // Pre-claim these tasks
       }
     }
 
@@ -745,13 +470,13 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
     if (horizonVisibility.showBacklog) {
       const backlogTodos = getTodosWithNoDate(assignedTaskIds);
-      markTasksAsAssigned(backlogTodos);
+      markTasksAsAssigned(backlogTodos, assignedTaskIds);
       yield todoColumn("inbox", "Backlog\nNo due date", backlogTodos, false, removeDate(), batchRemoveDate(), "backlog", undefined, "backlog");
     }
 
     if (horizonVisibility.showOverdue || horizonVisibility.showPast) {
       const overdueTodos = getOverdueTodos(assignedTaskIds);
-      markTasksAsAssigned(overdueTodos);
+      markTasksAsAssigned(overdueTodos, assignedTaskIds);
       const overdueHeaderActions: ColumnHeaderAction[] = [
         {
           icon: "calendar-check",
@@ -781,7 +506,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const dueDate = findTaskDate(todo, settings.dueDateAttribute);
         return dueDate && dueDate.isSameOrAfter(today) && dueDate.isBefore(tomorrow);
       });
-      markTasksAsAssigned(todayTodos);
+      markTasksAsAssigned(todayTodos, assignedTaskIds);
       const todayLabel = `Today\n${today.format("MMM D")}`;
       yield todoColumn("sunrise", todayLabel, todayTodos, false, moveToDate(today), batchMoveToDate(today), "today-horizon", undefined, "future");
     }
@@ -831,7 +556,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
         const nextDay = currentDate.clone().add(1, "days");
         const todos = getTodosByDate(currentDate, nextDay, false, assignedTaskIds);
-        markTasksAsAssigned(todos);
+        markTasksAsAssigned(todos, assignedTaskIds);
         const style = getWipStyle(todos);
         const label = formatDayLabel(currentDate, isFirstDay);
 
@@ -856,7 +581,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         yield* yieldInlineHorizonsBefore(endOfNextWeek);
 
         const todos = getTodosByDate(endOfWeek, endOfNextWeek, false, assignedTaskIds);
-        markTasksAsAssigned(todos);
+        markTasksAsAssigned(todos, assignedTaskIds);
         const style = getWipStyle(todos);
         const label = `Next week\n${endOfWeek.format("MMM D")} - ${endOfNextWeek.clone().subtract(1, "days").format("MMM D")}`;
         yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(endOfWeek), batchMoveToDate(endOfWeek), `${style}`, undefined, "future");
@@ -883,7 +608,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
           const nextDay = nextWeekDate.clone().add(1, "days");
           const todos = getTodosByDate(nextWeekDate, nextDay, false, assignedTaskIds);
-          markTasksAsAssigned(todos);
+          markTasksAsAssigned(todos, assignedTaskIds);
           const label = `${nextWeekDate.format("dddd")}\n${nextWeekDate.format("MMM D")}`;
 
           yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), undefined, undefined, "future");
@@ -907,7 +632,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
           const label = `In ${i} weeks\n${weekStart.format("MMM D")} - ${weekEnd.clone().subtract(1, "days").format("MMM D")}`;
           const todos = getTodosByDate(weekStart, weekEnd, false, assignedTaskIds);
-          markTasksAsAssigned(todos);
+          markTasksAsAssigned(todos, assignedTaskIds);
           const style = getWipStyle(todos);
           yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style, undefined, "future");
         }
@@ -932,7 +657,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           // Use month name as primary label
           const label = `${monthStart.format("MMMM")}\n${monthStart.format("MMM D")} - ${monthEnd.clone().subtract(1, "days").format("MMM D")}`;
           const todos = getTodosByDate(monthStart, monthEnd, false, assignedTaskIds);
-          markTasksAsAssigned(todos);
+          markTasksAsAssigned(todos, assignedTaskIds);
           const style = getWipStyle(todos);
           yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style, undefined, "future");
         }
@@ -959,7 +684,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const quarterNum = Math.ceil((quarterStart.month() + 1) / 3);
           const label = `Q${quarterNum} ${quarterStart.year()}\n${quarterStart.format("MMM D")} - ${quarterEnd.clone().subtract(1, "days").format("MMM D")}`;
           const todos = getTodosByDate(quarterStart, quarterEnd, false, assignedTaskIds);
-          markTasksAsAssigned(todos);
+          markTasksAsAssigned(todos, assignedTaskIds);
           const style = getWipStyle(todos);
           yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(quarterStart), batchMoveToDate(quarterStart), style, undefined, "future");
         }
@@ -977,7 +702,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
       const label = `${nextYearStart.year()}\nNext year`;
       const todos = getTodosByDate(nextYearStart, nextYearEnd, false, assignedTaskIds);
-      markTasksAsAssigned(todos);
+      markTasksAsAssigned(todos, assignedTaskIds);
       yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextYearStart), batchMoveToDate(nextYearStart), undefined, undefined, "future");
       currentDate = nextYearEnd;
     }
@@ -987,7 +712,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       yield* yieldInlineHorizonsBefore(moment("9999-12-31"));
 
       const laterTodos = getTodosByDate(currentDate, null, false, assignedTaskIds);
-      markTasksAsAssigned(laterTodos);
+      markTasksAsAssigned(laterTodos, assignedTaskIds);
       yield todoColumn("calendar-plus", `Later\nSomeday · ${currentDate.format("MMM D, YYYY")} and later`, laterTodos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), undefined, undefined, "future");
     }
 
@@ -1070,7 +795,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }, []);
 
-  const boardClass = viewMode !== "default" ? `board mode-${viewMode}` : "board";
+  const boardClass = `board${viewMode !== "default" ? ` mode-${viewMode}` : ""}`;
 
   return (
     <div className={boardClass}>

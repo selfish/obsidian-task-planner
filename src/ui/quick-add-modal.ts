@@ -5,9 +5,6 @@ import { StatusOperations } from "../core/operations/status-operations";
 import { TaskCreator } from "../core/services/task-creator";
 import { TaskPlannerSettings } from "../settings/types";
 
-/**
- * Modal for quick task entry with styled link support.
- */
 export class QuickAddModal extends Modal {
   private inputEl!: HTMLDivElement;
   private taskCreator: TaskCreator;
@@ -136,10 +133,6 @@ export class QuickAddModal extends Modal {
     selection.addRange(range);
   }
 
-  /**
-   * Converts the contenteditable content to markdown.
-   * Transforms styled spans back to markdown syntax.
-   */
   private getMarkdownContent(): string {
     let result = "";
 

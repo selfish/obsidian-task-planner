@@ -7,19 +7,11 @@ export enum LogLevel {
   ERROR = 3,
 }
 
-/**
- * No-op logger implementation.
- * Obsidian plugins should not use console logging in production.
- * All methods intentionally do nothing.
- */
+// No-op logger - Obsidian plugins should not use console logging in production
 export class ConsoleLogger implements Logger {
   constructor(_logLevel: LogLevel) {}
-
   debug(_msg: string, _context?: Record<string, unknown>): void {}
-
   info(_msg: string, _context?: Record<string, unknown>): void {}
-
   warn(_msg: string, _context?: Record<string, unknown>): void {}
-
   error(_error: Error | string, _context?: Record<string, unknown>): void {}
 }

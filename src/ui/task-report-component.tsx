@@ -4,6 +4,7 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { useIconRef } from "./hooks";
 import { TaskListComponent } from "./task-list-component";
 import { TaskIndex } from "../core/index/task-index";
 import { TaskMatcher } from "../core/matchers/task-matcher";
@@ -56,15 +57,7 @@ function moveToPreviousMonday(date: Moment): Moment {
 }
 
 function findTaskCompletionDate(todo: TaskItem<TFile>, settings: TaskPlannerSettings): Moment | null {
-  let d = findTaskDate(todo, settings.completedDateAttribute);
-  if (d) {
-    return d;
-  }
-  d = findTaskDate(todo, settings.dueDateAttribute);
-  if (d) {
-    return d;
-  }
-  return null;
+  return findTaskDate(todo, settings.completedDateAttribute) ?? findTaskDate(todo, settings.dueDateAttribute);
 }
 
 function formatInterval(from: Moment, to: Moment) {
@@ -121,16 +114,16 @@ function getDateContainers(minDate: Moment, numberOfWeeks: number): DateContaine
 
 function filterTasksByStatus(todos: TaskItem<TFile>[], statusFilter: StatusFilter): TaskItem<TFile>[] {
   return todos.filter((todo) => {
-    if (statusFilter === "all") {
-      return todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled;
+    switch (statusFilter) {
+      case "all":
+        return todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled;
+      case "completed":
+        return todo.status === TaskStatus.Complete;
+      case "canceled":
+        return todo.status === TaskStatus.Canceled;
+      default:
+        return false;
     }
-    if (statusFilter === "completed") {
-      return todo.status === TaskStatus.Complete;
-    }
-    if (statusFilter === "canceled") {
-      return todo.status === TaskStatus.Canceled;
-    }
-    return false;
   });
 }
 
@@ -186,36 +179,24 @@ function assembleTasksByDate(todos: TaskItem<TFile>[], numberOfWeeks: number, se
   return groupTasks(todos, containers, settings);
 }
 
-function ReportHeader({ reportSettings, setReportSettings, stats, _app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; _app: App; onOpenPlanning?: () => void }) {
+interface ReportHeaderProps {
+  reportSettings: ReportSettings;
+  setReportSettings: (settings: ReportSettings) => void;
+  stats: { total: number; completed: number; canceled: number };
+  onOpenPlanning?: () => void;
+}
+
+function ReportHeader({ reportSettings, setReportSettings, stats, onOpenPlanning }: ReportHeaderProps): React.ReactElement {
   const { searchPhrase, statusFilter } = reportSettings;
+  const planningIconRef = useIconRef("calendar");
+  const chevronRef = useIconRef("chevron-down");
 
-  // Use callback refs to ensure icons render on mount
-  const setPlanningIconRef = React.useCallback((node: HTMLButtonElement | null) => {
-    if (node) {
-      node.replaceChildren();
-      setIcon(node, "calendar");
-    }
-  }, []);
-
-  const setDropdownChevronRef = React.useCallback((node: HTMLSpanElement | null) => {
-    if (node) {
-      node.replaceChildren();
-      setIcon(node, "chevron-down");
-    }
-  }, []);
-
-  function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>) {
-    setReportSettings({
-      ...reportSettings,
-      searchPhrase: ev.target.value,
-    });
+  function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>): void {
+    setReportSettings({ ...reportSettings, searchPhrase: ev.target.value });
   }
 
-  function onStatusFilterChange(ev: React.ChangeEvent<HTMLSelectElement>) {
-    setReportSettings({
-      ...reportSettings,
-      statusFilter: ev.target.value as StatusFilter,
-    });
+  function onStatusFilterChange(ev: React.ChangeEvent<HTMLSelectElement>): void {
+    setReportSettings({ ...reportSettings, statusFilter: ev.target.value as StatusFilter });
   }
 
   return (
@@ -238,17 +219,23 @@ function ReportHeader({ reportSettings, setReportSettings, stats, _app, onOpenPl
             <option value="completed">Completed</option>
             <option value="canceled">Canceled</option>
           </select>
-          <span ref={setDropdownChevronRef} className="status-filter-chevron" />
+          <span ref={chevronRef} className="status-filter-chevron" />
         </span>
-        {onOpenPlanning && <button ref={setPlanningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" title="Open planning board" />}
+        {onOpenPlanning && <button ref={planningIconRef} className="settings-btn" onClick={onOpenPlanning} aria-label="Open planning board" title="Open planning board" />}
       </div>
     </div>
   );
 }
 
-function ReportSection({ container, deps, isCollapsed, onToggle }: { container: Container; deps: TaskReportComponentDeps; isCollapsed: boolean; onToggle: () => void }) {
-  // Use callback ref to ensure icon renders on mount and updates on collapse change
-  const setChevronRef = React.useCallback(
+interface ReportSectionProps {
+  container: Container;
+  deps: TaskReportComponentDeps;
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+function ReportSection({ container, deps, isCollapsed, onToggle }: ReportSectionProps): React.ReactElement {
+  const chevronRef = React.useCallback(
     (node: HTMLSpanElement | null) => {
       if (node) {
         node.replaceChildren();
@@ -261,7 +248,7 @@ function ReportSection({ container, deps, isCollapsed, onToggle }: { container: 
   return (
     <div className={`report-section ${isCollapsed ? "collapsed" : ""}`}>
       <button className="section-header" onClick={onToggle}>
-        <span ref={setChevronRef} className="chevron"></span>
+        <span ref={chevronRef} className="chevron"></span>
         <span className="section-title">{container.title}</span>
         <span className="section-count">{container.todos.length}</span>
       </button>
@@ -349,7 +336,7 @@ export function TaskReportComponent({ deps, onOpenPlanning }: TaskReportComponen
 
   return (
     <div className="report-container">
-      <ReportHeader reportSettings={reportSettings} setReportSettings={setReportSettings} stats={stats} _app={deps.app} onOpenPlanning={onOpenPlanning} />
+      <ReportHeader reportSettings={reportSettings} setReportSettings={setReportSettings} stats={stats} onOpenPlanning={onOpenPlanning} />
       <div className="report-actions">
         <button className="action-btn" onClick={allCollapsed ? expandAll : collapseAll}>
           {allCollapsed ? "Expand all" : "Collapse all"}

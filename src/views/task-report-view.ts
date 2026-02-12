@@ -32,10 +32,6 @@ export class TodoReportView extends ItemView {
     return Promise.resolve();
   }
 
-  onClose(): Promise<void> {
-    return Promise.resolve();
-  }
-
   render(): void {
     mountTaskReportComponent(this.containerEl, {
       deps: {

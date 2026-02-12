@@ -2,19 +2,13 @@ import { Notice } from "obsidian";
 
 import { TaskPlannerError, ErrorTier } from "./errors";
 
-/**
- * Duration in milliseconds for different error tiers
- */
 const NOTICE_DURATION: Record<ErrorTier, number> = {
-  CRITICAL: 10000, // 10 seconds - critical errors need attention
-  HIGH: 7000, // 7 seconds
-  MEDIUM: 5000, // 5 seconds
-  LOW: 3000, // 3 seconds
+  CRITICAL: 10000,
+  HIGH: 7000,
+  MEDIUM: 5000,
+  LOW: 3000,
 };
 
-/**
- * Prefix for different error tiers
- */
 const NOTICE_PREFIX: Record<ErrorTier, string> = {
   CRITICAL: "Task Planner Error: ",
   HIGH: "Task Planner: ",
@@ -22,9 +16,6 @@ const NOTICE_PREFIX: Record<ErrorTier, string> = {
   LOW: "",
 };
 
-/**
- * Shows a user-friendly notice for an error using Obsidian's Notice API
- */
 export function showErrorNotice(error: Error | string, tier: ErrorTier = "MEDIUM"): void {
   let message: string;
   let actualTier: ErrorTier = tier;
@@ -38,22 +29,13 @@ export function showErrorNotice(error: Error | string, tier: ErrorTier = "MEDIUM
     message = error;
   }
 
-  const prefix = NOTICE_PREFIX[actualTier];
-  const duration = NOTICE_DURATION[actualTier];
-
-  new Notice(`${prefix}${message}`, duration);
+  new Notice(`${NOTICE_PREFIX[actualTier]}${message}`, NOTICE_DURATION[actualTier]);
 }
 
-/**
- * Shows a success notice
- */
 export function showSuccessNotice(message: string, duration: number = 3000): void {
   new Notice(message, duration);
 }
 
-/**
- * Shows an informational notice
- */
 export function showInfoNotice(message: string, duration: number = 4000): void {
   new Notice(message, duration);
 }

@@ -27,25 +27,20 @@ export class DailyNoteService {
   constructor(private app: App) {}
 
   getDailyNoteSettings(): DailyNoteSettings | null {
-    // Try Periodic Notes plugin first
     const periodicSettings = this.getPeriodicNotesSettings();
     if (periodicSettings) {
       return periodicSettings;
     }
-
-    // Fall back to core daily notes
     return this.getCoreDailyNotesSettings();
   }
 
   private getPeriodicNotesSettings(): DailyNoteSettings | null {
     try {
-      // Check if Periodic Notes plugin is enabled
       const periodicNotesPlugin = (this.app as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins?.plugins?.["periodic-notes"];
       if (!periodicNotesPlugin) {
         return null;
       }
 
-      // Try to read settings from the plugin instance
       const pluginSettings = (periodicNotesPlugin as { settings?: PeriodicNotesData }).settings;
       if (pluginSettings?.daily?.enabled !== false) {
         return {
@@ -62,7 +57,6 @@ export class DailyNoteService {
 
   private getCoreDailyNotesSettings(): DailyNoteSettings | null {
     try {
-      // Check if Daily Notes core plugin is enabled
       const dailyNotesPlugin = (this.app as unknown as { internalPlugins: { plugins: Record<string, { enabled: boolean; instance?: { options?: CoreDailyNotesData } }> } }).internalPlugins?.plugins?.["daily-notes"];
 
       if (!dailyNotesPlugin?.enabled) {
@@ -98,17 +92,14 @@ export class DailyNoteService {
       return null;
     }
 
-    // Check if file already exists
     const existingFile = this.app.vault.getAbstractFileByPath(notePath);
     if (existingFile instanceof TFile) {
       return existingFile;
     }
 
-    // Create the file
     const settings = this.getDailyNoteSettings();
     let initialContent = "";
 
-    // If there's a template and no Templater, load template content
     if (settings?.template) {
       const templateFile = this.app.vault.getAbstractFileByPath(normalizePath(settings.template));
       if (templateFile instanceof TFile) {
@@ -116,16 +107,13 @@ export class DailyNoteService {
       }
     }
 
-    // Ensure parent folders exist
     const parentPath = notePath.substring(0, notePath.lastIndexOf("/"));
     if (parentPath) {
       await this.ensureFolderExists(parentPath);
     }
 
-    // Create the file
     const newFile = await this.app.vault.create(notePath, initialContent);
 
-    // Wait for Templater to process (if it's installed)
     if (templaterDelay > 0) {
       await this.sleep(templaterDelay);
     }

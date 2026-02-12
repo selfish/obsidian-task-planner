@@ -1,63 +1,7 @@
 import { QuickAddModal } from "../../src/ui/quick-add-modal";
 import { TaskPlannerSettings, DEFAULT_SETTINGS } from "../../src/settings/types";
 import { TaskCreator } from "../../src/core/services/task-creator";
-
-// Helper to add Obsidian extensions to an element
-const addExtensions = (el: HTMLElement) => {
-  const extEl = el as HTMLElement & {
-    addClass: (cls: string) => void;
-    removeClass: (cls: string) => void;
-    createDiv: (options?: { cls?: string; text?: string; attr?: Record<string, string> }) => HTMLElement;
-    createEl: (tag: string, options?: { cls?: string; text?: string; attr?: Record<string, string> }) => HTMLElement;
-    createSpan: (options?: { cls?: string; text?: string }) => HTMLElement;
-    empty: () => void;
-    setText: (text: string) => void;
-  };
-
-  extEl.addClass = function (cls: string) {
-    this.classList.add(cls);
-  };
-  extEl.removeClass = function (cls: string) {
-    this.classList.remove(cls);
-  };
-  extEl.empty = function () {
-    while (this.firstChild) this.removeChild(this.firstChild);
-  };
-  extEl.setText = function (text: string) {
-    this.textContent = text;
-  };
-
-  extEl.createDiv = function (options?: { cls?: string; text?: string; attr?: Record<string, string> }) {
-    const div = document.createElement("div");
-    addExtensions(div);
-    if (options?.cls) div.className = options.cls;
-    if (options?.text) div.textContent = options.text;
-    if (options?.attr) Object.entries(options.attr).forEach(([k, v]) => div.setAttribute(k, v));
-    this.appendChild(div);
-    return div;
-  };
-
-  extEl.createEl = function (tag: string, options?: { cls?: string; text?: string; attr?: Record<string, string> }) {
-    const element = document.createElement(tag);
-    addExtensions(element);
-    if (options?.cls) element.className = options.cls;
-    if (options?.text) element.textContent = options.text;
-    if (options?.attr) Object.entries(options.attr).forEach(([k, v]) => element.setAttribute(k, v));
-    this.appendChild(element);
-    return element;
-  };
-
-  extEl.createSpan = function (options?: { cls?: string; text?: string }) {
-    const span = document.createElement("span");
-    addExtensions(span);
-    if (options?.cls) span.className = options.cls;
-    if (options?.text) span.textContent = options.text;
-    this.appendChild(span);
-    return span;
-  };
-
-  return extEl;
-};
+import { addObsidianExtensions } from "../setup";
 
 // Mock Obsidian
 jest.mock("obsidian", () => ({
@@ -128,7 +72,7 @@ describe("QuickAddModal", () => {
   const createModal = () => {
     const modal = new QuickAddModal(mockApp as never, settings);
     // Add Obsidian extensions to contentEl
-    addExtensions(modal.contentEl);
+    addObsidianExtensions(modal.contentEl);
     return modal;
   };
 
