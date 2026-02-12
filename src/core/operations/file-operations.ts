@@ -48,8 +48,8 @@ export class FileOperations {
     return content.includes("\r\n") ? "\r\n" : "\n";
   }
 
-  async updateAttribute<T>(task: TaskItem<T>, attributeName: string, attributeValue: string | boolean | undefined) {
-    const updateLine = (line: LineStructure) => {
+  async updateAttribute<T>(task: TaskItem<T>, attributeName: string, attributeValue: string | boolean | undefined): Promise<void> {
+    await this.updateContentInFile(task, (line) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       if (attributeValue === false || attributeValue === undefined) {
         delete attributes.attributes[attributeName];
@@ -57,47 +57,42 @@ export class FileOperations {
         attributes.attributes[attributeName] = attributeValue;
       }
       line.line = this.lineParser.attributesToString(attributes);
-    };
-    await this.updateContentInFile(task, updateLine);
+    });
   }
 
-  async removeAttribute<T>(task: TaskItem<T>, attributeName: string) {
-    const updateLine = (line: LineStructure) => {
+  async removeAttribute<T>(task: TaskItem<T>, attributeName: string): Promise<void> {
+    await this.updateContentInFile(task, (line) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       delete attributes.attributes[attributeName];
       line.line = this.lineParser.attributesToString(attributes);
-    };
-    await this.updateContentInFile(task, updateLine);
+    });
   }
 
-  async appendTag<T>(task: TaskItem<T>, tag: string) {
+  async appendTag<T>(task: TaskItem<T>, tag: string): Promise<void> {
     if (task.tags?.includes(tag)) return;
 
-    const updateLine = (line: LineStructure) => {
+    await this.updateContentInFile(task, (line) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       attributes.textWithoutAttributes = `${attributes.textWithoutAttributes} #${tag}`;
       line.line = this.lineParser.attributesToString(attributes);
-    };
-    await this.updateContentInFile(task, updateLine);
+    });
   }
 
-  async removeTag<T>(task: TaskItem<T>, tag: string) {
+  async removeTag<T>(task: TaskItem<T>, tag: string): Promise<void> {
     if (!task.tags?.includes(tag)) return;
 
-    const updateLine = (line: LineStructure) => {
+    await this.updateContentInFile(task, (line) => {
       const attributes = this.lineParser.parseAttributes(line.line);
       attributes.textWithoutAttributes = attributes.textWithoutAttributes.replace(new RegExp(`\\s*#${tag}\\b`, "g"), "").trim();
       line.line = this.lineParser.attributesToString(attributes);
-    };
-    await this.updateContentInFile(task, updateLine);
+    });
   }
 
   async updateTaskStatus<T>(task: TaskItem<T>, completedAttribute: string): Promise<void> {
     const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
     const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
 
-    // Combined update: checkbox + completed attribute in a single file write
-    const updateLine = (line: LineStructure) => {
+    await this.updateContentInFile(task, (line) => {
       line.checkbox = statusToCheckbox(task.status);
 
       const attributes = this.lineParser.parseAttributes(line.line);
@@ -107,11 +102,10 @@ export class FileOperations {
         attributes.attributes[completedAttribute] = completedAttributeValue;
       }
       line.line = this.lineParser.attributesToString(attributes);
-    };
-    await this.updateContentInFile(task, updateLine);
+    });
   }
 
-  private async updateContentInFile<T>(task: TaskItem<T>, updateLine: (line: LineStructure) => void) {
+  private async updateContentInFile<T>(task: TaskItem<T>, updateLine: (line: LineStructure) => void): Promise<void> {
     const file = task.file;
     const lineNumber = task.line;
     if (lineNumber === undefined) {
@@ -218,7 +212,7 @@ export class FileOperations {
     }
   }
 
-  private async batchUpdateFile<T>(tasks: TaskItem<T>[], updateLine: (line: LineStructure, task: TaskItem<T>) => void) {
+  private async batchUpdateFile<T>(tasks: TaskItem<T>[], updateLine: (line: LineStructure, task: TaskItem<T>) => void): Promise<void> {
     if (tasks.length === 0) return;
 
     const file = tasks[0].file;

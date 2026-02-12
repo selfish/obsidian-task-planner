@@ -1,5 +1,6 @@
 import esbuild from "esbuild";
 import process from "process";
+import fs from "fs";
 import builtins from "builtin-modules";
 import { sassPlugin } from "esbuild-sass-plugin";
 
@@ -47,6 +48,8 @@ const jsBuildOptions = {
     "process.env.NODE_ENV": prod ? '"production"' : '"development"',
   },
   minify: prod,
+  metafile: true,
+  drop: prod ? ["console", "debugger"] : [],
 };
 
 // SCSS build options
@@ -59,11 +62,39 @@ const cssBuildOptions = {
   minify: prod,
 };
 
+function analyzeMetafile(metafile) {
+  const inputs = Object.entries(metafile.inputs)
+    .map(([path, data]) => ({ path, bytes: data.bytes }))
+    .sort((a, b) => b.bytes - a.bytes);
+
+  const total = inputs.reduce((sum, f) => sum + f.bytes, 0);
+  const output = Object.values(metafile.outputs)[0];
+
+  console.log("\n📦 Bundle Analysis");
+  console.log("─".repeat(60));
+  console.log(`Output size: ${(output.bytes / 1024).toFixed(1)} KB`);
+  console.log(`Total input: ${(total / 1024).toFixed(1)} KB`);
+  console.log("\nTop 15 largest inputs:");
+  console.log("─".repeat(60));
+
+  inputs.slice(0, 15).forEach((f, i) => {
+    const kb = (f.bytes / 1024).toFixed(1).padStart(7);
+    const pct = ((f.bytes / total) * 100).toFixed(1).padStart(5);
+    const name = f.path.replace("node_modules/", "nm/");
+    console.log(`${(i + 1).toString().padStart(2)}. ${kb} KB (${pct}%)  ${name}`);
+  });
+
+  fs.writeFileSync("meta.json", JSON.stringify(metafile, null, 2));
+  console.log("\nFull metafile written to meta.json");
+  console.log("View at: https://esbuild.github.io/analyze/\n");
+}
+
 if (prod) {
-  await Promise.all([
+  const [jsResult] = await Promise.all([
     esbuild.build(jsBuildOptions),
     esbuild.build(cssBuildOptions),
   ]);
+  analyzeMetafile(jsResult.metafile);
 } else {
   const [jsCtx, cssCtx] = await Promise.all([
     esbuild.context(jsBuildOptions),

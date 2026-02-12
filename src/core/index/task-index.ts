@@ -37,9 +37,6 @@ export class TaskIndex<T> {
   ) {}
 
   private ignoreFile(file: FileAdapter<T>): boolean {
-    // Only exclude archived folders at index level
-    // Frontmatter-based ignore (shouldIgnore) is handled at display level
-    // so "show ignored" mode can display those tasks
     if (this.settings.ignoreArchivedTasks) {
       const isIgnored = this.settings.ignoredFolders.some((folder) => file.isInFolder(folder));
       if (isIgnored) {
@@ -66,9 +63,7 @@ export class TaskIndex<T> {
     const fileIndex = this.files.findIndex((tasksInFile) => tasksInFile.file.id === file.id);
     const fileInIndex = fileIndex >= 0;
 
-    // Check if file should be ignored (e.g., frontmatter changed to task-planner-ignore: true)
     if (this.ignoreFile(file)) {
-      // If file was previously tracked, remove it from the index
       if (fileInIndex) {
         this.deps.logger.debug(`TaskIndex: File now ignored, removing from index: ${file.id}`);
         this.files.splice(fileIndex, 1);
@@ -78,7 +73,6 @@ export class TaskIndex<T> {
       return;
     }
 
-    // If file is not in index but should be tracked, add it
     if (!fileInIndex) {
       this.deps.logger.debug(`TaskIndex: File no longer ignored, adding to index: ${file.id}`);
       try {
@@ -106,23 +100,19 @@ export class TaskIndex<T> {
   async fileRenamed(id: string, file: FileAdapter<T>): Promise<void> {
     this.deps.logger.debug(`TaskIndex: File renamed: ${id} to ${file.id}`);
 
-    // Find the old file entry by the old id
     const index = this.files.findIndex((tasksInFile) => tasksInFile.file.id === id);
     if (index < 0) {
       this.deps.logger.debug(`TaskIndex: File not found in index during rename: ${id}`);
       return;
     }
 
-    // Check if the new location should be ignored
     if (this.ignoreFile(file)) {
-      // File moved to ignored folder, remove it from the index
       this.files.splice(index, 1);
       this.invalidateCache();
       await this.triggerUpdate();
       return;
     }
 
-    // Update the file reference to the new file
     this.files[index].file = file;
     this.invalidateCache();
     await this.triggerUpdate();

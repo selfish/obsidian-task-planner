@@ -2,6 +2,7 @@ import { MarkdownView, Menu, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { useFileDisplayName, useIconRef } from "./hooks";
 import { MarkdownText } from "./markdown-text";
 import { ColumnType } from "./planning-task-column";
 import { StandardDependencies } from "./standard-dependencies";
@@ -14,7 +15,7 @@ import { Consts } from "../types/constants";
 import { TaskItem, TaskStatus, getTaskId } from "../types/task";
 import { getAllDateOptions } from "../utils/date-utils";
 import { getDueDateInfo } from "../utils/due-date-utils";
-import { getFileDisplayName, setFrontmatterProperty, removeFrontmatterProperty } from "../utils/file-utils";
+import { setFrontmatterProperty, removeFrontmatterProperty } from "../utils/file-utils";
 import { Moment } from "../utils/moment";
 import { findTaskDate } from "../utils/task-utils";
 
@@ -32,15 +33,7 @@ const PRIORITY_ICON_MAP: Record<string, string> = {
 };
 
 function PriorityBadge({ priority }: PriorityBadgeProps): React.ReactElement {
-  const iconRef = React.useRef<HTMLSpanElement>(null);
-
-  React.useEffect(() => {
-    if (iconRef.current && PRIORITY_ICON_MAP[priority]) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, PRIORITY_ICON_MAP[priority]);
-    }
-  }, [priority]);
-
+  const iconRef = useIconRef(PRIORITY_ICON_MAP[priority] ?? "minus");
   const label = priority.charAt(0).toUpperCase() + priority.slice(1);
 
   return (
@@ -52,14 +45,7 @@ function PriorityBadge({ priority }: PriorityBadgeProps): React.ReactElement {
 }
 
 function PinnedBadge(): React.ReactElement {
-  const iconRef = React.useRef<HTMLSpanElement>(null);
-
-  React.useEffect(() => {
-    if (iconRef.current) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, "pin");
-    }
-  }, []);
+  const iconRef = useIconRef("pin");
 
   return (
     <span className="badge pinned">
@@ -69,14 +55,7 @@ function PinnedBadge(): React.ReactElement {
 }
 
 function IgnoredBadge({ type }: { type: "task" | "file" }): React.ReactElement {
-  const iconRef = React.useRef<HTMLSpanElement>(null);
-
-  React.useEffect(() => {
-    if (iconRef.current) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, type === "file" ? "file-x" : "eye-off");
-    }
-  }, [type]);
+  const iconRef = useIconRef(type === "file" ? "file-x" : "eye-off");
 
   return (
     <span className="badge ignored" title={type === "file" ? "Note ignored" : "Task ignored"}>
@@ -90,15 +69,8 @@ interface DueDateBadgeProps {
 }
 
 function DueDateBadge({ dueDate }: DueDateBadgeProps): React.ReactElement {
-  const iconRef = React.useRef<HTMLSpanElement>(null);
   const { label, variant } = getDueDateInfo(dueDate);
-
-  React.useEffect(() => {
-    if (iconRef.current) {
-      iconRef.current.replaceChildren();
-      setIcon(iconRef.current, variant === "overdue" ? "alert-triangle" : "calendar");
-    }
-  }, [variant]);
+  const iconRef = useIconRef(variant === "overdue" ? "alert-triangle" : "calendar");
 
   return (
     <span className={`badge due-date ${variant}`} title={`Due: ${dueDate.format("YYYY-MM-DD")}`}>
@@ -131,30 +103,9 @@ export interface TodoItemComponentProps {
 }
 
 export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef, columnType }: TodoItemComponentProps): React.ReactElement {
-  const app = deps.app;
-  const settings = deps.settings;
+  const { app, settings } = deps;
   const fileOperations = new FileOperations(settings);
-
-  // Use state for file display name to handle metadata cache updates
-  const [fileDisplayName, setFileDisplayName] = React.useState(() => getFileDisplayName(todo.file.file, app));
-
-  // Listen for metadata cache changes to update display name
-  React.useEffect(() => {
-    // Update immediately in case cache changed
-    setFileDisplayName(getFileDisplayName(todo.file.file, app));
-
-    // Listen for cache updates on this file
-    const onCacheChanged = (changedFile: TFile) => {
-      if (changedFile.path === todo.file.file.path) {
-        setFileDisplayName(getFileDisplayName(todo.file.file, app));
-      }
-    };
-
-    const ref = app.metadataCache.on("changed", onCacheChanged as () => void);
-    return () => {
-      app.metadataCache.offref(ref);
-    };
-  }, [todo.file.file, app]);
+  const fileDisplayName = useFileDisplayName(todo.file.file, app);
 
   async function openFileAsync(file: TFile, line: number, inOtherLeaf: boolean): Promise<void> {
     let leaf = app.workspace.getLeaf();

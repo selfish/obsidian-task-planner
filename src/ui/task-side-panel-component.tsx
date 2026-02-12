@@ -4,6 +4,7 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { useIconRef } from "./hooks";
 import { TodoItemComponent } from "./task-item-component";
 import { TaskIndex } from "../core/index/task-index";
 import { TaskPlannerSettings } from "../settings/types";
@@ -33,25 +34,14 @@ interface SectionProps {
   children: React.ReactNode;
 }
 
-function Section({ icon, title, count, variant = "default", collapsed, onToggle, children }: SectionProps) {
+function Section({ icon, title, count, variant = "default", collapsed, onToggle, children }: SectionProps): React.ReactElement {
   const isEmpty = count === 0;
+  const iconRef = useIconRef(icon);
 
-  // Use callback refs to ensure icons render on mount
-  const setIconRef = React.useCallback(
+  const chevronRef = React.useCallback(
     (node: HTMLSpanElement | null) => {
       if (node) {
         node.replaceChildren();
-        setIcon(node, icon);
-      }
-    },
-    [icon]
-  );
-
-  const setChevronRef = React.useCallback(
-    (node: HTMLSpanElement | null) => {
-      if (node) {
-        node.replaceChildren();
-        // Don't show chevron when empty
         if (!isEmpty) {
           setIcon(node, collapsed ? "chevron-right" : "chevron-down");
         }
@@ -61,15 +51,13 @@ function Section({ icon, title, count, variant = "default", collapsed, onToggle,
   );
 
   const headerClass = `sidebar-section-header ${variant}${isEmpty ? " empty" : ""}`;
-
-  // Make onToggle a no-op when empty
   const handleClick = isEmpty ? undefined : onToggle;
 
   return (
     <div className={`sidebar-section${isEmpty ? " empty" : ""}`}>
       <button className={headerClass} onClick={handleClick}>
-        <span ref={setChevronRef} className="chevron" />
-        <span ref={setIconRef} className="icon" />
+        <span ref={chevronRef} className="chevron" />
+        <span ref={iconRef} className="icon" />
         <span className="title">{title}</span>
         <span className="count">{count}</span>
       </button>

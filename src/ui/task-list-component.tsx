@@ -2,68 +2,25 @@ import { App, TFile } from "obsidian";
 
 import * as React from "react";
 
+import { useFileDisplayName } from "./hooks";
 import { ColumnType } from "./planning-task-column";
 import { TodoItemComponent } from "./task-item-component";
 import { TaskPlannerSettings } from "../settings/types";
 import { Consts } from "../types/constants";
 import { Logger } from "../types/logger";
 import { TaskItem, TaskStatus, getTaskId } from "../types/task";
-import { getFileDisplayName } from "../utils/file-utils";
 
-// Hook to get file display name with metadata cache updates
-function useFileDisplayName(file: TFile, app: App): string {
-  const [displayName, setDisplayName] = React.useState(() => getFileDisplayName(file, app));
-
-  React.useEffect(() => {
-    setDisplayName(getFileDisplayName(file, app));
-
-    const onCacheChanged = (changedFile: TFile) => {
-      if (changedFile.path === file.path) {
-        setDisplayName(getFileDisplayName(file, app));
-      }
-    };
-
-    const ref = app.metadataCache.on("changed", onCacheChanged as () => void);
-    return () => {
-      app.metadataCache.offref(ref);
-    };
-  }, [file, app]);
-
-  return displayName;
-}
-
-// Component for group header that properly handles metadata cache
-function GroupHeader({ file, app, onDragStart }: { file: TFile; app: App; onDragStart: (ev: React.DragEvent) => void }) {
-  const displayName = useFileDisplayName(file, app);
-
-  const onKeyDown = (evt: React.KeyboardEvent) => {
-    // Allow Enter or Space to initiate drag (or other future actions)
-    if (evt.key === "Enter" || evt.key === " ") {
-      evt.preventDefault();
-      // Group headers are primarily for drag - keyboard users can drag individual tasks
-    }
-  };
-
-  return (
-    <div className="header" draggable="true" onDragStart={onDragStart} onKeyDown={onKeyDown} tabIndex={0} role="group" aria-label={`File group: ${displayName}. Drag to move all tasks from this file.`}>
-      {displayName}
-    </div>
-  );
-}
+const PRIORITY_VALUES: Record<string, number> = {
+  critical: 10,
+  high: 9,
+  medium: 5,
+  low: 3,
+  lowest: -1,
+};
 
 function getPriorityValue(todo: TaskItem<TFile>): number {
-  if (!todo.attributes || !todo.attributes["priority"]) {
-    return 0;
-  }
-  const priority = todo.attributes["priority"] as string;
-  const priorities: Record<string, number> = {
-    critical: 10,
-    high: 9,
-    medium: 5,
-    low: 3,
-    lowest: -1,
-  };
-  return priorities[priority] || 0;
+  const priority = todo.attributes?.["priority"] as string | undefined;
+  return priority ? PRIORITY_VALUES[priority] ?? 0 : 0;
 }
 
 function getStatusValue(todo: TaskItem<TFile>): number {
@@ -78,43 +35,53 @@ function getStatusValue(todo: TaskItem<TFile>): number {
 }
 
 function sortTodos(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
-  if (!todos) {
-    return [];
-  }
+  if (!todos) return [];
   return todos.sort((a, b) => {
     const statusDiff = getStatusValue(b) - getStatusValue(a);
-    if (statusDiff) {
-      return statusDiff;
-    }
+    if (statusDiff) return statusDiff;
     const priorityDiff = getPriorityValue(b) - getPriorityValue(a);
-    if (!priorityDiff) {
-      return a.text.toLocaleLowerCase().localeCompare(b.text.toLocaleLowerCase());
-    }
-    return priorityDiff;
+    if (priorityDiff) return priorityDiff;
+    return a.text.toLocaleLowerCase().localeCompare(b.text.toLocaleLowerCase());
   });
 }
 
 function groupTodosByFile(todos: TaskItem<TFile>[]): Map<string, TaskItem<TFile>[]> {
   const groups = new Map<string, TaskItem<TFile>[]>();
-
   for (const todo of todos) {
     const fileName = todo.file.file.name;
-    let fileTodos = groups.get(fileName);
-    if (!fileTodos) {
-      fileTodos = [];
-      groups.set(fileName, fileTodos);
-    }
+    const fileTodos = groups.get(fileName) ?? [];
+    if (!groups.has(fileName)) groups.set(fileName, fileTodos);
     fileTodos.push(todo);
   }
-
   return groups;
+}
+
+interface GroupHeaderProps {
+  file: TFile;
+  app: App;
+  onDragStart: (ev: React.DragEvent) => void;
+}
+
+function GroupHeader({ file, app, onDragStart }: GroupHeaderProps): React.ReactElement {
+  const displayName = useFileDisplayName(file, app);
+
+  function onKeyDown(evt: React.KeyboardEvent): void {
+    if (evt.key === "Enter" || evt.key === " ") {
+      evt.preventDefault();
+    }
+  }
+
+  return (
+    <div className="header" draggable="true" onDragStart={onDragStart} onKeyDown={onKeyDown} tabIndex={0} role="group" aria-label={`File group: ${displayName}. Drag to move all tasks from this file.`}>
+      {displayName}
+    </div>
+  );
 }
 
 export interface TodoListComponentDeps {
   logger: Logger;
   app: App;
   settings: TaskPlannerSettings;
-  /** Column type for context-specific rendering (e.g., due date badges in in-progress) */
   columnType?: ColumnType;
 }
 
@@ -131,9 +98,7 @@ export function TaskListComponent({ todos, deps, dontCrossCompleted }: TodoListC
   function onGroupDragStart(ev: React.DragEvent, fileTodos: TaskItem<TFile>[]): void {
     const sortedTodoIds = new Set(sortedTodos.map(getTaskId));
     const visibleIncompleteTodos = fileTodos.filter((todo) => {
-      if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) {
-        return false;
-      }
+      if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) return false;
       return sortedTodoIds.has(getTaskId(todo));
     });
     const todoIds = visibleIncompleteTodos.map((todo) => getTaskId(todo)).join(Consts.TaskIdDelimiter);

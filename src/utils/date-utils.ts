@@ -1,34 +1,22 @@
 import { moment, Moment } from "./moment";
 
-/**
- * Date option types for Reschedule and Follow-up menus
- */
 export interface DateOption {
   label: string;
   icon: string;
-  /** Returns the date string (YYYY-MM-DD) or null for backlog */
   getDate: (firstWeekday: number) => string | null;
 }
 
-/**
- * Calculate the start of next week based on the user's configured first weekday
- * @param firstWeekday - 0=Sunday, 1=Monday, etc.
- * @returns Moment representing the start of next week
- */
 export function getStartOfNextWeek(firstWeekday: number): Moment {
   const today = moment().startOf("day");
   // moment().day() returns 0=Sunday, 6=Saturday
   const currentWeekday = today.day();
   let daysUntilNextWeekStart = (firstWeekday - currentWeekday + 7) % 7;
   if (daysUntilNextWeekStart === 0) {
-    daysUntilNextWeekStart = 7; // If today is start of week, go to next week
+    daysUntilNextWeekStart = 7;
   }
   return today.clone().add(daysUntilNextWeekStart, "days");
 }
 
-/**
- * Standard date options for Reschedule and Follow-up menus
- */
 export const DATE_OPTIONS: DateOption[] = [
   {
     label: "Today",
@@ -74,9 +62,6 @@ export const DATE_OPTION_BACKLOG: DateOption = {
   getDate: () => null,
 };
 
-/**
- * All date options in order for menu display
- */
 export function getAllDateOptions(): {
   immediate: DateOption[];
   week: DateOption[];

@@ -2,6 +2,7 @@ import { TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { useIconRef } from "./hooks";
 import { StandardDependencies } from "./standard-dependencies";
 import { TaskListComponent } from "./task-list-component";
 import { HorizonColor } from "../settings/types";
@@ -24,7 +25,6 @@ const HORIZON_COLOR_CSS_VAR: Record<HorizonColor, string> = {
 };
 
 export type PlanningTodoColumnDeps = StandardDependencies & {
-  /** Column type for context-specific rendering (e.g., due date badges in in-progress) */
   columnType?: ColumnType;
 };
 
@@ -71,24 +71,13 @@ function getEmptyStateMessage(columnType?: ColumnType): string {
 export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, onBatchTodoDropped, todos, deps, substyle, customColor, columnType, headerActions }: PlanningTodoColumnProps): React.ReactElement | null {
   const [isHovering, setIsHovering] = React.useState(false);
 
-  // Parse title for main title and optional subtitle (separated by \n)
   const [mainTitle, subtitle] = React.useMemo(() => {
     const parts = title.split("\n");
     return [parts[0], parts[1] || null];
   }, [title]);
 
-  // Use callback ref to ensure icon renders on mount (fixes Preact re-render issue)
-  const setIconRef = React.useCallback(
-    (node: HTMLSpanElement | null) => {
-      if (node && icon) {
-        node.replaceChildren();
-        setIcon(node, icon);
-      }
-    },
-    [icon]
-  );
+  const iconRef = useIconRef(icon);
 
-  // Create callback refs for header action icons
   const createActionIconRef = React.useCallback(
     (iconName: string) => (node: HTMLSpanElement | null) => {
       if (node && iconName) {
@@ -174,7 +163,7 @@ export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, on
     <div className={columnClassList} style={columnStyle}>
       <div className="header">
         <div className="header-row primary">
-          <span ref={setIconRef} className="icon"></span>
+          <span ref={iconRef} className="icon"></span>
           <span className="title">{mainTitle}</span>
         </div>
         <div className="header-row secondary">

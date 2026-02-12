@@ -1,5 +1,3 @@
-// Quick Add Modal styles
-// The modal container itself - Obsidian applies .modal class to the parent
 .modal:has(.quick-add-modal) {
   width: 800px;
   max-width: 90vw;
@@ -36,7 +34,6 @@
       box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 15%, transparent);
     }
 
-    // Placeholder styling
     &:empty::before {
       content: attr(data-placeholder);
       color: var(--text-faint);
@@ -44,7 +41,6 @@
     }
   }
 
-  // Styled link spans
   .quick-add-link {
     color: var(--link-external-color);
     text-decoration: var(--link-decoration);
@@ -119,7 +115,6 @@
   }
 }
 
-// Suggestion styling for wikilinks
 .suggestion-container {
   .suggestion-item {
     .suggestion-title {

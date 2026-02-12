@@ -16,10 +16,9 @@ function countCompleted<T>(subtasks: TaskItem<T>[]): number {
   return subtasks.filter((t) => t.status === TaskStatus.Complete || t.status === TaskStatus.Canceled).length;
 }
 
-export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: TodoSubtasksContainerProps) {
+export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: TodoSubtasksContainerProps): React.ReactElement | null {
   const [isFolded, setIsFolded] = React.useState(true);
 
-  // Filter out subtasks that have been promoted (have their own due dates)
   const visibleSubtasks = React.useMemo(() => {
     if (!subtasks) return [];
     const promoted = deps.promotedSubtaskIds;
@@ -27,8 +26,7 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
     return subtasks.filter((t) => !promoted.has(getTaskId(t)));
   }, [subtasks, deps.promotedSubtaskIds]);
 
-  // Use callback ref for chevron icon
-  const setChevronRef = React.useCallback(
+  const chevronRef = React.useCallback(
     (node: HTMLSpanElement | null) => {
       if (node) {
         node.replaceChildren();
@@ -38,7 +36,7 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
     [isFolded]
   );
 
-  function onClickToggle(evt: React.MouseEvent) {
+  function onClickToggle(evt: React.MouseEvent): void {
     if (evt.defaultPrevented) return;
     evt.preventDefault();
     evt.stopPropagation();
@@ -57,7 +55,7 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
   return (
     <div className={`subtasks-container ${isFolded ? "folded" : "expanded"} ${allDone ? "all-done" : ""}`}>
       <button className="subtasks-toggle" onClick={onClickToggle} aria-expanded={!isFolded}>
-        <span ref={setChevronRef} className="chevron"></span>
+        <span ref={chevronRef} className="chevron"></span>
         <span className="progress">
           <span className="bar" style={{ width: `${progressPercent}%` }}></span>
         </span>

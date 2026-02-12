@@ -1,11 +1,8 @@
-// Onboarding modal styles
-// Target the modal container to control sizing
 .modal:has(.onboarding-modal) {
   width: 420px;
   max-width: 90vw;
 }
 
-// contentEl gets the .onboarding-modal class
 .onboarding-modal {
   display: flex;
   flex-direction: column;

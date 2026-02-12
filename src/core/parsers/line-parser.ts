@@ -2,6 +2,9 @@ import { TaskPlannerSettings } from "../../settings";
 import { AttributesStructure, LineStructure } from "../../types";
 import { Completion } from "../operations/completion";
 
+const PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
+const HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
+
 export class LineParser {
   constructor(private settings?: TaskPlannerSettings) {}
 
@@ -31,12 +34,10 @@ export class LineParser {
     return `${line.indentation}${space(line.listMarker)}${space(line.checkbox)}${space(line.date, ": ")}${line.line}`;
   }
 
-  // Matches Dataview [key:: value] and @key shortcuts (negative lookbehind prevents matching @ inside [[@wiki links]])
   private getAttributeRegex(): RegExp {
     return /\[([^:\]]+)::([^\]]+)\]|(?<!\[)@(\w+)(?![(\w])/g;
   }
 
-  // Returns null for unrecognized @ shortcuts (whitelist-based parsing)
   private parseSingleAttribute(matchStr: string): [string, string | boolean] | null {
     const dataviewRegex = /\[([^:\]]+)::([^\]]+)\]/;
     const dataviewMatch = dataviewRegex.exec(matchStr);
@@ -58,7 +59,7 @@ export class LineParser {
         return null;
       }
 
-      if (atSettings.enablePriorityShortcuts && LineParser.PRIORITY_SHORTCUTS.includes(keyword)) {
+      if (atSettings.enablePriorityShortcuts && PRIORITY_SHORTCUTS.includes(keyword)) {
         return [keyword, true];
       }
 
@@ -90,14 +91,9 @@ export class LineParser {
     return `[${key}:: ${value}]`;
   }
 
-  private static readonly PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
-
-  private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
-
   private parseHashtags(text: string): string[] {
-    const matches = text.matchAll(LineParser.HASHTAG_REGEX);
     const tags: string[] = [];
-    for (const match of matches) {
+    for (const match of text.matchAll(HASHTAG_REGEX)) {
       if (!tags.includes(match[1])) {
         tags.push(match[1]);
       }
@@ -105,7 +101,6 @@ export class LineParser {
     return tags;
   }
 
-  // Priority shortcuts like @high are converted to [priority:: high]
   parseAttributes(text: string): AttributesStructure {
     const regexp = this.getAttributeRegex();
     const matches = text.match(regexp);
@@ -116,19 +111,19 @@ export class LineParser {
 
     let textWithoutAttributes = text;
 
-    matches.forEach((match) => {
+    for (const match of matches) {
       const parsed = this.parseSingleAttribute(match);
-      if (parsed === null) return;
+      if (parsed === null) continue;
       const [attrKey, attrValue] = parsed;
-      if (!attrKey) return;
+      if (!attrKey) continue;
 
-      if (LineParser.PRIORITY_SHORTCUTS.includes(attrKey) && attrValue === true) {
+      if (PRIORITY_SHORTCUTS.includes(attrKey) && attrValue === true) {
         res["priority"] = attrKey;
       } else {
         res[attrKey] = attrValue;
       }
       textWithoutAttributes = textWithoutAttributes.replace(match, "").replace(/\s+/g, " ");
-    });
+    }
 
     return { textWithoutAttributes: textWithoutAttributes.trim(), attributes: res, tags };
   }
@@ -136,10 +131,7 @@ export class LineParser {
   attributesToString(attributesStructure: AttributesStructure): string {
     const { textWithoutAttributes, attributes } = attributesStructure;
     const attributeStr = Object.keys(attributes)
-      .map((key) => {
-        const val = attributes[key];
-        return this.attributeToString(key, val);
-      })
+      .map((key) => this.attributeToString(key, attributes[key]))
       .join(" ");
 
     return attributeStr ? `${textWithoutAttributes} ${attributeStr}`.trim() : textWithoutAttributes;

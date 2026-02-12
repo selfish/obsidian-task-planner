@@ -21,6 +21,7 @@
     gap: var(--space-lg);
     height: 100%;
     overflow: hidden;
+    position: relative;
 
     // Today Focus mode - today section fills all available space
     &.mode-today .today-section {
@@ -33,6 +34,7 @@
     &.mode-future .column {
       min-height: calc(100% / 3 - 6px);
     }
+
   }
 
   .today-section {

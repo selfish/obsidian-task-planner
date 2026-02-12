@@ -9,10 +9,6 @@ interface MarkdownTextProps {
   className?: string;
 }
 
-/**
- * Renders markdown text using Obsidian's native MarkdownRenderer.
- * This provides proper rendering of links, wikilinks, and inline formatting.
- */
 export function MarkdownText({ text, app, sourcePath, className }: MarkdownTextProps): React.ReactElement {
   const containerRef = React.useRef<HTMLSpanElement>(null);
   const componentRef = React.useRef<Component | null>(null);

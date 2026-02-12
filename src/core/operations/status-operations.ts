@@ -3,6 +3,8 @@ import { TaskPlannerSettings } from "../../settings";
 import { AttributesStructure, TaskItem, TaskParsingResult, TaskStatus } from "../../types";
 import { LineParser } from "../parsers/line-parser";
 
+const PRIORITY_KEYWORDS = ["critical", "high", "medium", "low", "lowest"];
+
 export class StatusOperations {
   private lineParser: LineParser;
 
@@ -20,7 +22,7 @@ export class StatusOperations {
   }
 
   private convertDateAttributes(attributes: AttributesStructure): AttributesStructure {
-    Object.keys(attributes.attributes).forEach((key) => {
+    for (const key of Object.keys(attributes.attributes)) {
       const val = attributes.attributes[key];
       if (typeof val === "string") {
         const completion = Completion.completeDate(val);
@@ -34,28 +36,24 @@ export class StatusOperations {
           attributes.attributes[this.settings?.dueDateAttribute || "due"] = completion;
         }
       }
-    });
+    }
     return attributes;
   }
 
   private convertPriorityAttributes(attributes: AttributesStructure): AttributesStructure {
-    Object.keys(attributes.attributes).forEach((key) => {
+    for (const key of Object.keys(attributes.attributes)) {
       const keyLower = key.toLowerCase();
-      if (["critical", "high", "medium", "low", "lowest"].includes(keyLower)) {
+      if (PRIORITY_KEYWORDS.includes(keyLower)) {
         delete attributes.attributes[key];
         attributes.attributes["priority"] = keyLower;
       }
-    });
+    }
     return attributes;
   }
 
   toggleTask(line: string): string {
     const parsedLine = this.lineParser.parseLine(line);
-    if (parsedLine.checkbox) {
-      parsedLine.checkbox = "";
-    } else {
-      parsedLine.checkbox = "[ ]";
-    }
+    parsedLine.checkbox = parsedLine.checkbox ? "" : "[ ]";
     return this.lineParser.lineToString(parsedLine);
   }
 
@@ -85,36 +83,28 @@ export class StatusOperations {
     }
   }
 
-  private getIndentationLevel(str: string) {
+  private getIndentationLevel(str: string): number {
     return (str.match(/ /g)?.length || 0) + (str.match(/\t/g)?.length || 0) * 4;
   }
 
   toTask<T>(line: string, lineNumber: number): TaskParsingResult<T> {
     const parsedLine = this.lineParser.parseLine(line);
     const indentLevel = this.getIndentationLevel(parsedLine.indentation);
-    if (!parsedLine.checkbox)
-      return {
-        lineNumber,
-        isTask: false,
-        indentLevel,
-      };
+
+    if (!parsedLine.checkbox) {
+      return { lineNumber, isTask: false, indentLevel };
+    }
+
     const attributesMatching = this.lineParser.parseAttributes(parsedLine.line);
     const task = {
       status: this.markToStatus(parsedLine.checkbox[1]),
       text: attributesMatching.textWithoutAttributes,
       attributes: attributesMatching.attributes,
       tags: attributesMatching.tags,
+      line: lineNumber,
       file: undefined as unknown,
     } as TaskItem<T>;
-    const res: TaskParsingResult<T> = {
-      lineNumber,
-      isTask: true,
-      task,
-      indentLevel: this.getIndentationLevel(parsedLine.indentation),
-    };
-    if (lineNumber !== undefined) {
-      task.line = lineNumber;
-    }
-    return res;
+
+    return { lineNumber, isTask: true, task, indentLevel };
   }
 }

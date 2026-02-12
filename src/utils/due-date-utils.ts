@@ -7,10 +7,6 @@ export interface DueDateInfo {
   variant: DueDateVariant;
 }
 
-/**
- * Determines the display label and variant for a due date.
- * Used for showing contextual due date information in the in-progress column.
- */
 export function getDueDateInfo(dueDate: Moment): DueDateInfo {
   const today = moment().startOf("day");
   const tomorrow = today.clone().add(1, "day");

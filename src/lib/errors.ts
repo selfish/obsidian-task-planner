@@ -1,11 +1,5 @@
-/**
- * Error tier levels for categorizing error severity
- */
 export type ErrorTier = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
-/**
- * Base error class for all Task Planner errors
- */
 export class TaskPlannerError extends Error {
   constructor(
     message: string,
@@ -14,16 +8,12 @@ export class TaskPlannerError extends Error {
   ) {
     super(message);
     this.name = "TaskPlannerError";
-    // Maintains proper stack trace for where error was thrown (only in V8)
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
     }
   }
 }
 
-/**
- * Error thrown when file operations fail (read, write, delete)
- */
 export class FileOperationError extends TaskPlannerError {
   constructor(
     message: string,
@@ -37,9 +27,6 @@ export class FileOperationError extends TaskPlannerError {
   }
 }
 
-/**
- * Error thrown when parsing operations fail
- */
 export class ParseError extends TaskPlannerError {
   constructor(
     message: string,
@@ -53,9 +40,6 @@ export class ParseError extends TaskPlannerError {
   }
 }
 
-/**
- * Error thrown when settings save operations fail
- */
 export class SettingsSaveError extends TaskPlannerError {
   constructor(message: string, tier: ErrorTier = "HIGH", context?: Record<string, unknown>) {
     super(message, tier, context);

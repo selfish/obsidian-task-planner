@@ -12,25 +12,17 @@ export class FileTaskParser<TFile> {
 
   private createTaskTreeStructure(lines: string[], parsingResults: TaskParsingResult<TFile>[]): void {
     const parentStack: TaskParsingResult<TFile>[] = [];
-    const parent = (): TaskParsingResult<TFile> | undefined => parentStack[parentStack.length - 1];
-    const pushParent = (p: TaskParsingResult<TFile>): void => {
-      parentStack.push(p);
-    };
-    const popParent = (): void => {
-      parentStack.pop();
-    };
 
-    parsingResults.forEach((current) => {
+    for (const current of parsingResults) {
       if (lines[current.lineNumber]?.match(/^\s*$/)) {
-        return;
+        continue;
       }
 
-      let currentParent = parent();
-      while (currentParent && current.indentLevel <= currentParent.indentLevel) {
-        popParent();
-        currentParent = parent();
+      while (parentStack.length > 0 && current.indentLevel <= parentStack[parentStack.length - 1].indentLevel) {
+        parentStack.pop();
       }
 
+      const currentParent = parentStack[parentStack.length - 1];
       if (currentParent?.task && current.isTask && current.task) {
         if (!currentParent.task.subtasks) {
           currentParent.task.subtasks = [];
@@ -39,9 +31,9 @@ export class FileTaskParser<TFile> {
       }
 
       if (current.isTask) {
-        pushParent(current);
+        parentStack.push(current);
       }
-    });
+    }
   }
 
   private setFileOnSubtasks(task: TaskItem<TFile>, file: FileAdapter<TFile>): void {
@@ -81,23 +73,15 @@ export class FileTaskParser<TFile> {
     }
 
     const lines = content.split("\n");
-
-    // Track code block state to skip tasks inside fenced code blocks
     let insideCodeBlock = false;
 
     const parsingResults = lines.map((line, number) => {
-      // Check for code block fence (``` with optional language specifier)
       if (this.isCodeBlockFence(line)) {
         insideCodeBlock = !insideCodeBlock;
       }
 
-      // Skip parsing tasks inside code blocks
       if (insideCodeBlock && !this.isCodeBlockFence(line)) {
-        return {
-          lineNumber: number,
-          isTask: false,
-          indentLevel: 0,
-        };
+        return { lineNumber: number, isTask: false, indentLevel: 0 };
       }
 
       return this.statusOperations.toTask<TFile>(line, number);
@@ -110,7 +94,6 @@ export class FileTaskParser<TFile> {
     for (const result of taskParsingResults) {
       if (result.task) {
         result.task.file = file;
-        // Also set file on subtasks recursively
         this.setFileOnSubtasks(result.task, file);
         tasks.push(result.task);
       }

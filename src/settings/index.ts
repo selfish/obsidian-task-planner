@@ -1,2 +1,2 @@
-export * from "./settings-tab";
+export * from "./settings-tab-lazy";
 export * from "./types";

@@ -100,8 +100,15 @@ export function TodoStatusComponent({ todo, deps, settings }: TodoStatusComponen
     }
   };
 
-  const statusLabel =
-    todo.status === TaskStatus.Complete ? "completed" : todo.status === TaskStatus.Canceled ? "canceled" : todo.status === TaskStatus.InProgress ? "in progress" : todo.status === TaskStatus.Delegated ? "delegated" : todo.status === TaskStatus.AttentionRequired ? "attention required" : "todo";
+  const STATUS_LABELS: Record<TaskStatus, string> = {
+    [TaskStatus.Complete]: "completed",
+    [TaskStatus.Canceled]: "canceled",
+    [TaskStatus.InProgress]: "in progress",
+    [TaskStatus.Delegated]: "delegated",
+    [TaskStatus.AttentionRequired]: "attention required",
+    [TaskStatus.Todo]: "todo",
+  };
+  const statusLabel = STATUS_LABELS[todo.status] ?? "todo";
 
   return <div ref={iconRef} className="checkbox" onClick={onclick} onAuxClick={onauxclick} onKeyDown={onKeyDown} tabIndex={0} role="checkbox" aria-checked={todo.status === TaskStatus.Complete} aria-label={`Task status: ${statusLabel}. Press to toggle.`} />;
 }

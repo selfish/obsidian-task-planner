@@ -33,10 +33,6 @@ export class TodoListView extends ItemView {
     return "check-small";
   }
 
-  onClose(): Promise<void> {
-    return Promise.resolve();
-  }
-
   render(): void {
     mountSidePanelComponent(this.containerEl, {
       deps: {

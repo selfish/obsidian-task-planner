@@ -46,7 +46,7 @@ export interface UndoManagerConfig {
 
 const DEFAULT_CONFIG: UndoManagerConfig = {
   maxHistorySize: 10,
-  maxHistoryAgeMs: 300000, // 5 minutes
+  maxHistoryAgeMs: 300000,
   enabled: true,
 };
 
@@ -76,7 +76,7 @@ export class UndoManager {
     if (!this.config.enabled) return;
 
     this.history.push(operation);
-    this.redoStack = []; // Clear redo stack on new operation
+    this.redoStack = [];
     this.pruneOldOperations();
     void this.onOperationRecorded.fire(operation);
   }
@@ -95,11 +95,6 @@ export class UndoManager {
     return this.history.length > 0 ? this.history[this.history.length - 1] : null;
   }
 
-  /**
-   * Pops the last operation from history and moves it to redo stack.
-   * Returns the operation that should be undone.
-   * The caller is responsible for actually applying the undo.
-   */
   popForUndo(): UndoOperation | null {
     if (!this.canUndo()) return null;
 
@@ -109,11 +104,6 @@ export class UndoManager {
     return operation;
   }
 
-  /**
-   * Pops the last operation from redo stack and moves it back to history.
-   * Returns the operation that should be redone.
-   * The caller is responsible for actually applying the redo.
-   */
   popForRedo(): UndoOperation | null {
     if (!this.canRedo()) return null;
 
@@ -132,15 +122,12 @@ export class UndoManager {
     const now = Date.now();
     const maxAge = this.config.maxHistoryAgeMs;
 
-    // Remove operations older than maxAge
     this.history = this.history.filter((op) => now - op.timestamp < maxAge);
 
-    // Keep only maxHistorySize most recent operations
     if (this.history.length > this.config.maxHistorySize) {
       this.history = this.history.slice(-this.config.maxHistorySize);
     }
 
-    // Also prune redo stack based on age
     this.redoStack = this.redoStack.filter((op) => now - op.timestamp < maxAge);
   }
 
@@ -152,16 +139,10 @@ export class UndoManager {
     return this.redoStack.length;
   }
 
-  /**
-   * Generate a unique ID for an operation
-   */
   static generateOperationId(): string {
     return `undo-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
 
-  /**
-   * Create a description for a move operation
-   */
   static createMoveDescription(taskCount: number, destination: string): string {
     if (taskCount === 1) {
       return `Moved task to ${destination}`;
@@ -169,9 +150,6 @@ export class UndoManager {
     return `Moved ${taskCount} tasks to ${destination}`;
   }
 
-  /**
-   * Create a description for a status change operation
-   */
   static createStatusDescription(taskCount: number, newStatus: TaskStatus): string {
     const statusName = TaskStatus[newStatus] || "Unknown";
     if (taskCount === 1) {

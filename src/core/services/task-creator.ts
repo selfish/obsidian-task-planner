@@ -33,7 +33,7 @@ export class TaskCreator {
     const now = moment();
 
     return taskPattern
-      .replace(/\\n/g, "\n") // Convert literal \n to actual newlines
+      .replace(/\\n/g, "\n")
       .replace(/\{task\}/g, task)
       .replace(/\{time\}/g, now.format("HH:mm"))
       .replace(/\{date\}/g, now.format("YYYY-MM-DD"))
@@ -43,30 +43,23 @@ export class TaskCreator {
   private insertContent(content: string, taskLine: string): string {
     const { placement, locationRegex } = this.settings.quickAdd;
 
-    // Handle regex-based placement
     if ((placement === "before-regex" || placement === "after-regex") && locationRegex) {
       const result = this.insertAtRegex(content, taskLine, locationRegex, placement === "before-regex");
       if (result !== null) {
         return result;
       }
-      // If no match found, fall back to prepend
       return this.prependAfterFrontmatter(content, taskLine);
     }
 
-    // Normal prepend/append behavior
     if (placement === "prepend") {
       return this.prependAfterFrontmatter(content, taskLine);
     }
 
-    // Append
     return content.endsWith("\n") ? content + taskLine : content + "\n" + taskLine;
   }
 
   private insertAtRegex(content: string, taskLine: string, pattern: string, before: boolean): string | null {
-    // Get frontmatter end position so we can skip it
     const fmEnd = this.getFrontmatterEndPosition(content);
-
-    // Search only in content after frontmatter
     const searchContent = content.slice(fmEnd);
 
     try {
@@ -74,7 +67,6 @@ export class TaskCreator {
       const match = regex.exec(searchContent);
 
       if (match && match.index !== undefined) {
-        // Adjust match index to account for frontmatter
         const actualIndex = fmEnd + match.index;
 
         if (before) {
@@ -101,27 +93,21 @@ export class TaskCreator {
       return 0;
     }
 
-    // Return position after the closing ---
     return endOfFrontmatter + 4;
   }
 
   private prependAfterFrontmatter(content: string, taskLine: string): string {
-    // Check if content starts with frontmatter
     if (!content.startsWith("---")) {
       return taskLine + "\n" + content;
     }
 
-    // Find the closing --- of frontmatter
     const endOfFrontmatter = content.indexOf("\n---", 3);
     if (endOfFrontmatter === -1) {
-      // No closing ---, treat as no frontmatter
       return taskLine + "\n" + content;
     }
 
-    // Find the position after the closing ---
-    const insertPosition = endOfFrontmatter + 4; // +4 for "\n---"
+    const insertPosition = endOfFrontmatter + 4;
 
-    // Skip any newlines immediately after frontmatter
     let actualInsertPosition = insertPosition;
     while (actualInsertPosition < content.length && content[actualInsertPosition] === "\n") {
       actualInsertPosition++;
@@ -158,13 +144,11 @@ export class TaskCreator {
       return existingFile;
     }
 
-    // Ensure parent folders exist
     const parentPath = filePath.substring(0, filePath.lastIndexOf("/"));
     if (parentPath) {
       await this.ensureFolderExists(parentPath);
     }
 
-    // Create the inbox file
     return await this.app.vault.create(filePath, "");
   }
 
