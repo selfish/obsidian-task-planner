@@ -1,94 +1,24 @@
 .task-planner {
   .load-indicator {
-    width: 100%;
-    height: 3px;
-    background: var(--background-modifier-border);
-    border-radius: 2px;
-    overflow: visible;
-    position: relative;
-    margin-top: var(--space-xs);
-
-    .load-indicator-bar {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.3s ease, background-color 0.3s ease;
-    }
-
-    // Overflow indicator for when over limit
-    .load-indicator-overflow {
-      position: absolute;
-      right: -2px;
-      top: -2px;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--text-error);
-      border: 1px solid var(--background-primary);
-      animation: pulse-glow 2s ease-in-out infinite;
-    }
-
-    // Load level colors
-    &.light .load-indicator-bar {
-      background: var(--text-success);
-    }
-
-    &.normal .load-indicator-bar {
-      background: color-mix(in srgb, var(--text-success) 50%, var(--text-warning));
-    }
-
-    &.heavy .load-indicator-bar {
-      background: var(--text-warning);
-    }
-
-    &.overloaded .load-indicator-bar {
-      background: var(--text-error);
-      width: 100% !important; // Always full when overloaded
-    }
+    display: none;
   }
 
-  // Pulse animation for overloaded indicator
-  @keyframes pulse-glow {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.7;
-      transform: scale(1.2);
-    }
-  }
-
-  // Hotspot styling for overloaded columns
-  .column:has(.load-indicator.overloaded) {
-    > .header {
-      .header-row.primary .icon,
-      .header-row.primary .title {
-        color: var(--text-error);
-      }
+  .show-load-colors {
+    .column:has(.load-indicator.light) > .content {
+      border-color: color-mix(in srgb, var(--text-success) 20%, var(--background-modifier-border));
     }
 
-    > .content {
+    .column:has(.load-indicator.normal) > .content {
+      border-color: color-mix(in srgb, var(--text-success) 25%, var(--background-modifier-border));
+    }
+
+    .column:has(.load-indicator.heavy) > .content {
+      border-color: color-mix(in srgb, var(--text-warning) 35%, var(--background-modifier-border));
+    }
+
+    .column:has(.load-indicator.overloaded) > .content {
       border-color: color-mix(in srgb, var(--text-error) 40%, var(--background-modifier-border));
-      background: color-mix(in srgb, var(--text-error) 3%, var(--background-primary));
-
-      &.hover {
-        border-color: var(--text-error);
-        background: color-mix(in srgb, var(--text-error) 8%, var(--background-modifier-hover));
-      }
-    }
-  }
-
-  // Heavy load styling (warning state)
-  .column:has(.load-indicator.heavy) {
-    > .header {
-      .header-row.primary .icon,
-      .header-row.primary .title {
-        color: var(--text-warning);
-      }
-    }
-
-    > .content {
-      border-color: color-mix(in srgb, var(--text-warning) 30%, var(--background-modifier-border));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-error) 10%, transparent);
     }
   }
 }

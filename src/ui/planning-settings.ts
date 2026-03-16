@@ -9,6 +9,7 @@ export interface PlanningSettings {
   hideEmpty: boolean;
   hideDone: boolean;
   viewMode: ViewMode;
+  showLoadColors: boolean;
 }
 
 export function getDefaultSettings(): PlanningSettings {
@@ -19,5 +20,6 @@ export function getDefaultSettings(): PlanningSettings {
     hideEmpty: true,
     hideDone: false,
     viewMode: "default",
+    showLoadColors: false,
   };
 }

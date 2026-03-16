@@ -62,7 +62,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   );
 
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
-  const { searchParameters, hideEmpty, hideDone, viewMode } = planningSettings;
+  const { searchParameters, hideEmpty, hideDone, viewMode, showLoadColors } = planningSettings;
 
   // Derive WIP limit from main settings (single source of truth)
   const dailyWipLimit = settings.dailyWipLimit;
@@ -546,7 +546,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     // Add spread action if column is overloaded
     if (isColumnOverloaded(todos.length)) {
       actions.push({
-        icon: "git-branch",
+        icon: "arrow-right-from-line",
         label: `Spread ${todos.length - dailyWipLimit} tasks to future days`,
         onClick: () => {
           void spreadTasksFromDate(columnDate);
@@ -1172,7 +1172,10 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     };
   }, []);
 
-  const boardClass = viewMode !== "default" ? `board mode-${viewMode}` : "board";
+  const boardClasses = ["board"];
+  if (viewMode !== "default") boardClasses.push(`mode-${viewMode}`);
+  if (showLoadColors) boardClasses.push("show-load-colors");
+  const boardClass = boardClasses.join(" ");
 
   return (
     <div className={boardClass}>
