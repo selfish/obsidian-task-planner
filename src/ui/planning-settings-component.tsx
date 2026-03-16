@@ -18,7 +18,7 @@ export interface PlanningSettingsComponentProps {
 }
 
 export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
-  const { hideEmpty, hideDone, searchParameters, viewMode } = planningSettings;
+  const { hideEmpty, hideDone, searchParameters, viewMode, showLoadColors } = planningSettings;
   const { searchPhrase } = searchParameters;
 
   function toggleHideEmpty() {
@@ -53,6 +53,13 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     });
   }
 
+  function toggleShowLoadColors() {
+    setPlanningSettings({
+      ...planningSettings,
+      showLoadColors: !showLoadColors,
+    });
+  }
+
   function onSearchChange(ev: React.ChangeEvent<HTMLInputElement>) {
     setPlanningSettings({
       ...planningSettings,
@@ -81,6 +88,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const showIgnoredIconRef = React.useRef<HTMLSpanElement>(null);
   const todayFocusIconRef = React.useRef<HTMLSpanElement>(null);
   const futureFocusIconRef = React.useRef<HTMLSpanElement>(null);
+  const loadColorsIconRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     if (settingsIconRef.current && app) {
@@ -118,6 +126,10 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     if (futureFocusIconRef.current) {
       futureFocusIconRef.current.replaceChildren();
       setIcon(futureFocusIconRef.current, "calendar-range");
+    }
+    if (loadColorsIconRef.current) {
+      loadColorsIconRef.current.replaceChildren();
+      setIcon(loadColorsIconRef.current, "thermometer");
     }
   }, [app]);
 
@@ -161,6 +173,10 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
         </button>
         <button className={`toggle-btn ${viewMode === "future" ? "active" : ""}`} onClick={toggleFutureFocus} aria-label="Future focus" title="Future focus">
           <span ref={futureFocusIconRef} className="icon" />
+          <span className="led" />
+        </button>
+        <button className={`toggle-btn ${showLoadColors ? "active" : ""}`} onClick={toggleShowLoadColors} aria-label="Show load colors" title="Show load colors">
+          <span ref={loadColorsIconRef} className="icon" />
           <span className="led" />
         </button>
         <span className={"spacer"}></span>
