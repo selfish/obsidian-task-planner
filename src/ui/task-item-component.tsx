@@ -140,7 +140,8 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef,
 
   // Listen for metadata cache changes to update display name
   React.useEffect(() => {
-    // Update immediately in case cache changed
+    // Update immediately in case cache changed; metadataCache is an external Obsidian system.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local state with Obsidian metadataCache (external system)
     setFileDisplayName(getFileDisplayName(todo.file.file, app));
 
     // Listen for cache updates on this file

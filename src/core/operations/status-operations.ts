@@ -104,7 +104,7 @@ export class StatusOperations {
       text: attributesMatching.textWithoutAttributes,
       attributes: attributesMatching.attributes,
       tags: attributesMatching.tags,
-      file: undefined as unknown,
+      file: undefined,
     } as TaskItem<T>;
     const res: TaskParsingResult<T> = {
       lineNumber,
