@@ -72,12 +72,14 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const [showIgnored, setShowIgnored] = React.useState(false);
   const hideEmptyBeforeIgnoredRef = React.useRef<boolean | null>(null);
 
-  // Auto-toggle hideEmpty when entering/exiting show ignored mode
+  // Auto-toggle hideEmpty when entering/exiting show ignored mode.
+  // Synchronizes persisted settings (external system) with session-only showIgnored state.
   React.useEffect(() => {
     if (showIgnored) {
       // Entering show ignored mode - save current hideEmpty and force it on
       hideEmptyBeforeIgnoredRef.current = hideEmpty;
       if (!hideEmpty) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally syncing persisted setting with session-only showIgnored toggle
         setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: true }));
       }
     } else if (hideEmptyBeforeIgnoredRef.current !== null) {

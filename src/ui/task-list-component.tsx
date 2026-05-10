@@ -15,6 +15,8 @@ function useFileDisplayName(file: TFile, app: App): string {
   const [displayName, setDisplayName] = React.useState(() => getFileDisplayName(file, app));
 
   React.useEffect(() => {
+    // Re-sync display name when file/app change; metadataCache is an external Obsidian system.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local state with Obsidian metadataCache (external system)
     setDisplayName(getFileDisplayName(file, app));
 
     const onCacheChanged = (changedFile: TFile) => {
