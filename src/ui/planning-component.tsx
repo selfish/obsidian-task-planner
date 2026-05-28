@@ -514,14 +514,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     for (const move of result.moves) {
       const task = move.task as TaskItem<TFile>;
       const description = `Spread to ${moment(move.toDate).format("MMM D")}`;
-      await undoableFileOps.combinedMoveWithUndo(
-        [task],
-        settings.dueDateAttribute,
-        move.toDate,
-        undefined,
-        TaskStatus.Todo,
-        description
-      );
+      await undoableFileOps.combinedMoveWithUndo([task], settings.dueDateAttribute, move.toDate, undefined, TaskStatus.Todo, description);
     }
 
     deps.logger.info(`Spread complete: ${result.summary.tasksSpread} tasks moved, ${result.summary.tasksKept} kept`);
@@ -1225,4 +1218,3 @@ export function mountPlanningComponent(onElement: HTMLElement, props: PlanningCo
   const client = createRoot(onElement);
   client.render(<PlanningComponent {...props}></PlanningComponent>);
 }
-

@@ -1,6 +1,6 @@
-import { TaskItem, TaskStatus } from "../../types/task";
 import { TaskPlannerSettings, HorizonVisibility } from "../../settings/types";
-import { moment, Moment } from "../../utils/moment";
+import { TaskItem, TaskStatus } from "../../types/task";
+import { Moment } from "../../utils/moment";
 import { findTaskDate } from "../../utils/task-utils";
 
 /**
@@ -170,10 +170,12 @@ export class TaskSpreader<TFile> {
       const dueDate = findTaskDate(task, this.settings.dueDateAttribute);
       if (dueDate && dueDate.isSameOrAfter(start) && dueDate.isBefore(end)) {
         const dateStr = dueDate.format("YYYY-MM-DD");
-        if (!tasksByDate.has(dateStr)) {
-          tasksByDate.set(dateStr, []);
+        let dayTasks = tasksByDate.get(dateStr);
+        if (!dayTasks) {
+          dayTasks = [];
+          tasksByDate.set(dateStr, dayTasks);
         }
-        tasksByDate.get(dateStr)!.push(task);
+        dayTasks.push(task);
       }
     }
 
@@ -213,13 +215,7 @@ export class TaskSpreader<TFile> {
    * Does not execute the moves, just calculates them.
    */
   planSpread(tasks: TaskItem<TFile>[], options: SpreadOptions): SpreadResult {
-    const {
-      sourceDate,
-      targetRange,
-      respectWipLimit = true,
-      preserveCritical = true,
-      maxLookAheadDays = 14,
-    } = options;
+    const { sourceDate, targetRange, respectWipLimit = true, preserveCritical = true, maxLookAheadDays = 14 } = options;
 
     const wipLimit = this.settings.dailyWipLimit;
     const isLimited = wipLimit > 0 && respectWipLimit;
@@ -265,9 +261,7 @@ export class TaskSpreader<TFile> {
     const tasksToMove = moveableTasks.slice(0, moveableTasks.length - tasksToKeepCount);
 
     // Find available days for spreading (excluding source day)
-    const availableDays = analysis.days.filter(
-      (d) => d.dateStr !== sourceDateStr && d.date.isAfter(sourceDate)
-    );
+    const availableDays = analysis.days.filter((d) => d.dateStr !== sourceDateStr && d.date.isAfter(sourceDate));
 
     // Track capacity as we assign tasks
     const dayCapacity = new Map<string, number>();

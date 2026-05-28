@@ -200,9 +200,7 @@ export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, on
             ))}
           </div>
         )}
-        {showLoadIndicator && wipLimit && columnType === "future" && (
-          <LoadIndicator taskCount={todos.length} wipLimit={wipLimit.dailyLimit} isLimited={wipLimit.isLimited} />
-        )}
+        {showLoadIndicator && wipLimit && columnType === "future" && <LoadIndicator taskCount={todos.length} wipLimit={wipLimit.dailyLimit} isLimited={wipLimit.isLimited} />}
       </div>
       <div className={contentClasses} onDragOver={onDragOver} onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDrop={onDrop}>
         {todos.length === 0 ? (
