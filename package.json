@@ -46,7 +46,6 @@
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "8.59.2",
     "@typescript-eslint/parser": "8.59.2",
-    "builtin-modules": "^5.0.0",
     "esbuild": "0.27.3",
     "esbuild-sass-plugin": "3.6.0",
     "eslint": "^9.39.2",

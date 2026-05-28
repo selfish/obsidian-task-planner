@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
 import process from "process";
-import builtins from "builtin-modules";
+import { builtinModules } from "module";
 import { sassPlugin } from "esbuild-sass-plugin";
 
 const banner = `/*
@@ -35,7 +35,7 @@ const jsBuildOptions = {
     "@codemirror/search",
     "@codemirror/state",
     "@codemirror/view",
-    ...builtins,
+    ...builtinModules,
   ],
   format: "cjs",
   target: "es2018",

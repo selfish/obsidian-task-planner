@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -42,13 +44,13 @@ jobs:
             exit 1
           fi
 
-      - name: Create release archive and checksums
-        run: |
-          mkdir -p release
-          cp main.js manifest.json styles.css release/
-          cd release && zip -r ../obsidian-task-planner-${{ steps.get_version.outputs.VERSION }}.zip .
-          cd ..
-          sha256sum main.js manifest.json styles.css obsidian-task-planner-${{ steps.get_version.outputs.VERSION }}.zip > checksums.txt
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -59,8 +61,6 @@ jobs:
             main.js
             manifest.json
             styles.css
-            obsidian-task-planner-${{ steps.get_version.outputs.VERSION }}.zip
-            checksums.txt
           draft: false
           prerelease: false
         env:
@@ -74,5 +74,3 @@ jobs:
           echo "- \`main.js\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`manifest.json\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`styles.css\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Release archive (zip)" >> $GITHUB_STEP_SUMMARY
-          echo "- Checksums" >> $GITHUB_STEP_SUMMARY
