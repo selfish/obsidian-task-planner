@@ -8,8 +8,6 @@
 
 A professional task management plugin for Obsidian that helps you track tasks across your vault, organize your day with intelligent planning, and manage your workload effectively.
 
-> **Note:** This plugin is a fork of [Proletarian Wizard](https://github.com/cfe84/obsidian-pw) by cfe84. See [LICENSE](LICENSE) for attribution.
-
 ## Features
 
 ### Planning Board
