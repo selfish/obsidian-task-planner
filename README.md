@@ -45,6 +45,8 @@ This auto-conversion can be disabled in settings if you prefer manual control.
 
 ## Installation
 
+Requires Obsidian 1.13.0 or newer.
+
 ### From Obsidian Community Plugins
 1. Open Obsidian Settings
 2. Navigate to Community Plugins

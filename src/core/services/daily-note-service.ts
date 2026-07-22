@@ -1,84 +1,15 @@
 import { App, TFile, normalizePath } from "obsidian";
 
+import { DailyNoteSettings, readDailyNoteSettings } from "../../integrations/daily-notes";
 import { moment } from "../../utils/moment";
 
-export interface DailyNoteSettings {
-  folder: string;
-  format: string;
-  template?: string;
-}
-
-interface PeriodicNotesData {
-  daily?: {
-    enabled?: boolean;
-    format?: string;
-    folder?: string;
-    template?: string;
-  };
-}
-
-interface CoreDailyNotesData {
-  folder?: string;
-  format?: string;
-  template?: string;
-}
+export type { DailyNoteSettings } from "../../integrations/daily-notes";
 
 export class DailyNoteService {
   constructor(private app: App) {}
 
   getDailyNoteSettings(): DailyNoteSettings | null {
-    // Try Periodic Notes plugin first
-    const periodicSettings = this.getPeriodicNotesSettings();
-    if (periodicSettings) {
-      return periodicSettings;
-    }
-
-    // Fall back to core daily notes
-    return this.getCoreDailyNotesSettings();
-  }
-
-  private getPeriodicNotesSettings(): DailyNoteSettings | null {
-    try {
-      // Check if Periodic Notes plugin is enabled
-      const periodicNotesPlugin = (this.app as unknown as { plugins: { plugins: Record<string, unknown> } }).plugins?.plugins?.["periodic-notes"];
-      if (!periodicNotesPlugin) {
-        return null;
-      }
-
-      // Try to read settings from the plugin instance
-      const pluginSettings = (periodicNotesPlugin as { settings?: PeriodicNotesData }).settings;
-      if (pluginSettings?.daily?.enabled !== false) {
-        return {
-          folder: pluginSettings?.daily?.folder || "",
-          format: pluginSettings?.daily?.format || "YYYY-MM-DD",
-          template: pluginSettings?.daily?.template,
-        };
-      }
-    } catch {
-      // Fall through to null
-    }
-    return null;
-  }
-
-  private getCoreDailyNotesSettings(): DailyNoteSettings | null {
-    try {
-      // Check if Daily Notes core plugin is enabled
-      const dailyNotesPlugin = (this.app as unknown as { internalPlugins: { plugins: Record<string, { enabled: boolean; instance?: { options?: CoreDailyNotesData } }> } }).internalPlugins?.plugins?.["daily-notes"];
-
-      if (!dailyNotesPlugin?.enabled) {
-        return null;
-      }
-
-      const options = dailyNotesPlugin.instance?.options;
-      return {
-        folder: options?.folder || "",
-        format: options?.format || "YYYY-MM-DD",
-        template: options?.template,
-      };
-    } catch {
-      // Fall through to null
-    }
-    return null;
+    return readDailyNoteSettings();
   }
 
   getTodayNotePath(): string | null {
@@ -99,8 +30,8 @@ export class DailyNoteService {
     }
 
     // Check if file already exists
-    const existingFile = this.app.vault.getAbstractFileByPath(notePath);
-    if (existingFile instanceof TFile) {
+    const existingFile = this.app.vault.getFileByPath(notePath);
+    if (existingFile) {
       return existingFile;
     }
 
@@ -110,8 +41,8 @@ export class DailyNoteService {
 
     // If there's a template and no Templater, load template content
     if (settings?.template) {
-      const templateFile = this.app.vault.getAbstractFileByPath(normalizePath(settings.template));
-      if (templateFile instanceof TFile) {
+      const templateFile = this.app.vault.getFileByPath(normalizePath(settings.template));
+      if (templateFile) {
         initialContent = await this.app.vault.read(templateFile);
       }
     }
@@ -135,7 +66,7 @@ export class DailyNoteService {
 
   private async ensureFolderExists(folderPath: string): Promise<void> {
     const normalizedPath = normalizePath(folderPath);
-    const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
+    const folder = this.app.vault.getFolderByPath(normalizedPath);
     if (!folder) {
       await this.app.vault.createFolder(normalizedPath);
     }

@@ -1,8 +1,7 @@
-import { App, PluginSettingTab, SearchComponent, Setting, setIcon } from "obsidian";
+import { App, PluginSettingTab, SearchComponent, Setting, SettingDefinitionItem, setIcon } from "obsidian";
 
 import TaskPlannerPlugin from "../main";
 import { HorizonColor, CustomHorizon, CustomAtShortcut } from "./types";
-import { FileSuggest } from "../ui/file-suggest";
 import { FolderSuggest } from "../ui/folder-suggest";
 
 const HORIZON_COLORS: { value: HorizonColor; cssVar: string }[] = [
@@ -29,6 +28,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
   constructor(app: App, plugin: TaskPlannerPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+    this.containerEl.classList.add("th-settings-tab");
   }
 
   /**
@@ -85,146 +85,220 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     return contentEl;
   }
 
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.addClass("th-settings-tab");
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      { type: "group", heading: "Essential", items: [] },
+      {
+        type: "group",
+        heading: "Quick Add",
+        cls: "th-subsection",
+        items: [
+          {
+            name: "Destination",
+            desc: "Where to save new tasks created from the planning board",
+            control: {
+              type: "dropdown",
+              key: "quickAdd.destination",
+              options: { inbox: "Inbox file", daily: "Daily note" },
+            },
+          },
+          {
+            name: "Inbox file",
+            desc: "Path to the file where tasks will be saved",
+            visible: () => this.plugin.settings.quickAdd.destination === "inbox",
+            control: { type: "file", key: "quickAdd.inboxFilePath", placeholder: "Example: inbox.md" },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "Task Attributes",
+        cls: "th-subsection",
+        items: [
+          {
+            name: "Due date",
+            desc: "Attribute name for task due dates",
+            control: { type: "text", key: "dueDateAttribute", placeholder: "Due" },
+          },
+          {
+            name: "Completed date",
+            desc: "Attribute name for task completion dates",
+            control: { type: "text", key: "completedDateAttribute", placeholder: "Completed" },
+          },
+          {
+            name: "Pinned",
+            desc: "Attribute name for pinning tasks to the top",
+            control: { type: "text", key: "selectedAttribute", placeholder: "Pinned" },
+          },
+        ],
+      },
+      { type: "group", heading: "Horizons", items: [] },
+      {
+        type: "group",
+        heading: "Special Columns",
+        cls: "th-subsection",
+        items: [
+          {
+            name: "Backlog",
+            desc: "Tasks without a due date",
+            control: { type: "toggle", key: "horizonVisibility.showBacklog" },
+          },
+          {
+            name: "Overdue",
+            desc: "Tasks past their due date",
+            control: { type: "toggle", key: "horizonVisibility.showOverdue" },
+          },
+          {
+            name: "Later",
+            desc: "Tasks beyond visible horizons",
+            control: { type: "toggle", key: "horizonVisibility.showLater" },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "This Week",
+        cls: "th-subsection",
+        items: [
+          { name: "Visible days", render: (setting) => this.renderWeekdaySelector(setting.settingEl) },
+          {
+            name: "Week starts on",
+            desc: "First day of your work week",
+            control: {
+              type: "dropdown",
+              key: "firstWeekday",
+              options: {
+                "1": "Monday",
+                "2": "Tuesday",
+                "3": "Wednesday",
+                "4": "Thursday",
+                "5": "Friday",
+                "6": "Saturday",
+                "7": "Sunday",
+              },
+            },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "Next Week",
+        cls: "th-subsection",
+        items: [
+          {
+            name: "Display mode",
+            desc: "How to display days in the next week section",
+            control: {
+              type: "dropdown",
+              key: "horizonVisibility.nextWeekMode",
+              defaultValue: "same-as-this-week",
+              options: {
+                "same-as-this-week": "Selected days (same as this week)",
+                "rolling-week": "Rolling 7 days from today",
+                collapsed: "Single column (all of next week)",
+              },
+            },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "Future Horizons",
+        cls: "th-subsection",
+        items: [
+          {
+            name: "Weeks after next",
+            desc: "Additional weeks to show beyond next week",
+            control: {
+              type: "dropdown",
+              key: "horizonVisibility.weeksToShow",
+              options: { "0": "None", "1": "1 week (in 2 weeks)", "2": "2 weeks (in 2-3 weeks)", "3": "3 weeks (in 2-4 weeks)" },
+            },
+          },
+          {
+            name: "Months ahead",
+            desc: "Show upcoming months",
+            control: {
+              type: "dropdown",
+              key: "horizonVisibility.monthsToShow",
+              options: { "0": "None", "1": "1 month", "2": "2 months", "3": "3 months" },
+            },
+          },
+          {
+            name: "Quarters",
+            desc: "Show remaining quarters of the year",
+            control: { type: "toggle", key: "horizonVisibility.showQuarters" },
+          },
+          {
+            name: "Next year",
+            desc: "Show a column for next year",
+            control: { type: "toggle", key: "horizonVisibility.showNextYear" },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "Custom Horizons",
+        cls: "th-subsection",
+        items: [{ name: "Custom horizons", render: (setting) => this.renderCustomHorizons(setting.settingEl) }],
+      },
+      {
+        name: "Advanced Settings",
+        render: (setting) => {
+          setting.settingEl.empty();
+          setting.settingEl.removeClass("setting-item");
+          this.renderAdvancedSettings(setting.settingEl);
+        },
+      },
+    ];
+  }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // ESSENTIAL SETTINGS
-    // ═══════════════════════════════════════════════════════════════════════════
-    new Setting(containerEl).setName("Essential").setHeading();
-
-    // --- Quick add settings ---
-    const quickAddSection = this.createSubsection(containerEl, "Quick Add");
-
-    new Setting(quickAddSection)
-      .setName("Destination")
-      .setDesc("Where to save new tasks created from the planning board")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("inbox", "Inbox file");
-        dropdown.addOption("daily", "Daily note");
-        dropdown.setValue(this.plugin.settings.quickAdd.destination);
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.quickAdd.destination = value as "inbox" | "daily";
-          await this.plugin.saveSettings();
-          this.display();
-        });
-      });
-
-    if (this.plugin.settings.quickAdd.destination === "inbox") {
-      new Setting(quickAddSection)
-        .setName("Inbox file")
-        .setDesc("Path to the file where tasks will be saved")
-        .addSearch((search) => {
-          new FileSuggest(search.inputEl, this.app);
-          search.setPlaceholder("Example: inbox.md");
-          search.setValue(this.plugin.settings.quickAdd.inboxFilePath);
-          search.onChange(async (value) => {
-            this.plugin.settings.quickAdd.inboxFilePath = value;
-            await this.plugin.saveSettings();
-          });
-        });
+  getControlValue(key: string): unknown {
+    let value: unknown = this.plugin.settings;
+    for (const segment of key.split(".")) {
+      if (typeof value !== "object" || value === null) return undefined;
+      value = (value as Record<string, unknown>)[segment];
     }
 
-    // --- Task attributes ---
-    const attributesSection = this.createSubsection(containerEl, "Task Attributes");
+    if (key === "firstWeekday" || key === "horizonVisibility.weeksToShow" || key === "horizonVisibility.monthsToShow") {
+      return value?.toString();
+    }
+    return value;
+  }
 
-    new Setting(attributesSection)
-      .setName("Due date")
-      .setDesc("Attribute name for task due dates")
-      .addText((text) =>
-        text
-          .setPlaceholder("Due")
-          .setValue(this.plugin.settings.dueDateAttribute)
-          .onChange(async (value) => {
-            if (value && !value.contains(" ")) {
-              this.plugin.settings.dueDateAttribute = value;
-              await this.plugin.saveSettings();
-            }
-          })
-      );
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const attributeKeys = ["dueDateAttribute", "completedDateAttribute", "selectedAttribute"];
+    if (attributeKeys.includes(key) && (typeof value !== "string" || !value || value.includes(" "))) return;
 
-    new Setting(attributesSection)
-      .setName("Completed date")
-      .setDesc("Attribute name for task completion dates")
-      .addText((text) =>
-        text
-          .setPlaceholder("Completed")
-          .setValue(this.plugin.settings.completedDateAttribute)
-          .onChange(async (value) => {
-            if (value && !value.contains(" ")) {
-              this.plugin.settings.completedDateAttribute = value;
-              await this.plugin.saveSettings();
-            }
-          })
-      );
+    let normalizedValue = value;
+    if (key === "firstWeekday" || key === "horizonVisibility.weeksToShow" || key === "horizonVisibility.monthsToShow") {
+      normalizedValue = Number.parseInt(String(value));
+    }
 
-    new Setting(attributesSection)
-      .setName("Pinned")
-      .setDesc("Attribute name for pinning tasks to the top")
-      .addText((text) =>
-        text
-          .setPlaceholder("Pinned")
-          .setValue(this.plugin.settings.selectedAttribute)
-          .onChange(async (value) => {
-            if (value && !value.contains(" ")) {
-              this.plugin.settings.selectedAttribute = value;
-              await this.plugin.saveSettings();
-            }
-          })
-      );
+    const path = key.split(".");
+    const property = path.pop();
+    let target = this.plugin.settings as unknown as Record<string, unknown>;
+    for (const segment of path) {
+      target = target[segment] as Record<string, unknown>;
+    }
+    if (property !== undefined) target[property] = normalizedValue;
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // HORIZONS SETTINGS
-    // ═══════════════════════════════════════════════════════════════════════════
-    new Setting(containerEl).setName("Horizons").setHeading();
+    await this.plugin.saveSettings();
 
-    // --- Special columns ---
-    const specialSection = this.createSubsection(containerEl, "Special Columns");
+    if (key.startsWith("horizonVisibility.") || key === "firstWeekday") {
+      this.plugin.refreshPlanningViews();
+    }
+    if (key === "quickAdd.destination" || key === "firstWeekday") {
+      this.update();
+    }
+  }
 
-    new Setting(specialSection)
-      .setName("Backlog")
-      .setDesc("Tasks without a due date")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.horizonVisibility.showBacklog).onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.showBacklog = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        })
-      );
-
-    new Setting(specialSection)
-      .setName("Overdue")
-      .setDesc("Tasks past their due date")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.horizonVisibility.showOverdue).onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.showOverdue = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        })
-      );
-
-    new Setting(specialSection)
-      .setName("Later")
-      .setDesc("Tasks beyond visible horizons")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.horizonVisibility.showLater).onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.showLater = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        })
-      );
-
-    // --- This week ---
-    const thisWeekSection = this.createSubsection(containerEl, "This Week");
-
-    // LED-style weekday selector
-    const weekdaySelector = thisWeekSection.createDiv({ cls: "th-weekday-selector" });
-    const weekdayLabel = weekdaySelector.createDiv({ cls: "th-weekday-label" });
-    weekdayLabel.setText("Visible days");
-
-    const weekdayGrid = weekdaySelector.createDiv({ cls: "th-weekday-grid" });
+  private renderWeekdaySelector(containerEl: HTMLElement): void {
+    containerEl.empty();
+    containerEl.removeClass("setting-item");
+    containerEl.addClass("th-weekday-selector");
+    containerEl.createDiv({ cls: "th-weekday-label", text: "Visible days" });
+    const weekdayGrid = containerEl.createDiv({ cls: "th-weekday-grid" });
 
     const allWeekdays = [
       { key: "showMonday", label: "Mon", full: "Monday", dayNum: 1 },
@@ -236,151 +310,58 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       { key: "showSunday", label: "Sun", full: "Sunday", dayNum: 7 },
     ];
 
-    // Reorder weekdays to start from the selected first weekday
     const firstWeekday = this.plugin.settings.firstWeekday || 1;
-    const weekdays = [...allWeekdays.filter((d) => d.dayNum >= firstWeekday), ...allWeekdays.filter((d) => d.dayNum < firstWeekday)];
+    const weekdays = [...allWeekdays.filter((day) => day.dayNum >= firstWeekday), ...allWeekdays.filter((day) => day.dayNum < firstWeekday)];
 
-    weekdays.forEach((day) => {
+    for (const day of weekdays) {
       const isChecked = this.plugin.settings.horizonVisibility[day.key as keyof typeof this.plugin.settings.horizonVisibility] as boolean;
       const dayButton = weekdayGrid.createEl("button", {
         cls: `th-weekday-btn ${isChecked ? "th-weekday-btn--active" : ""}`,
         attr: { "aria-label": day.full },
       });
-      const labelSpan = dayButton.createSpan({ cls: "th-weekday-btn-label" });
-      labelSpan.setText(day.label);
+      dayButton.createSpan({ cls: "th-weekday-btn-label", text: day.label });
       dayButton.createSpan({ cls: "th-weekday-btn-led" });
 
       dayButton.addEventListener("click", () => {
-        const newValue = !isChecked;
-        (this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = newValue;
+        (this.plugin.settings.horizonVisibility as unknown as Record<string, boolean>)[day.key] = !isChecked;
         void this.plugin.saveSettings().then(() => {
           this.plugin.refreshPlanningViews();
-          this.display();
+          this.update();
         });
       });
-    });
+    }
+  }
 
-    new Setting(thisWeekSection)
-      .setName("Week starts on")
-      .setDesc("First day of your work week")
-      .addDropdown((dropDown) => {
-        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        for (const [index, display] of days.entries()) {
-          dropDown.addOption((index + 1).toString(), display);
-        }
-        dropDown.setValue((this.plugin.settings.firstWeekday || 1).toString());
-        dropDown.onChange(async (value: string) => {
-          this.plugin.settings.firstWeekday = parseInt(value);
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-          this.display();
-        });
-      });
-
-    // --- Next week ---
-    const nextWeekSection = this.createSubsection(containerEl, "Next Week");
-
-    new Setting(nextWeekSection)
-      .setName("Display mode")
-      .setDesc("How to display days in the next week section")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("same-as-this-week", "Selected days (same as this week)");
-        dropdown.addOption("rolling-week", "Rolling 7 days from today");
-        dropdown.addOption("collapsed", "Single column (all of next week)");
-        dropdown.setValue(this.plugin.settings.horizonVisibility.nextWeekMode ?? "same-as-this-week");
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.nextWeekMode = value as "collapsed" | "same-as-this-week" | "rolling-week";
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        });
-      });
-
-    // --- Future horizons ---
-    const futureSection = this.createSubsection(containerEl, "Future Horizons");
-
-    new Setting(futureSection)
-      .setName("Weeks after next")
-      .setDesc("Additional weeks to show beyond next week")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("0", "None");
-        dropdown.addOption("1", "1 week (in 2 weeks)");
-        dropdown.addOption("2", "2 weeks (in 2-3 weeks)");
-        dropdown.addOption("3", "3 weeks (in 2-4 weeks)");
-        dropdown.setValue(this.plugin.settings.horizonVisibility.weeksToShow.toString());
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.weeksToShow = parseInt(value);
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        });
-      });
-
-    new Setting(futureSection)
-      .setName("Months ahead")
-      .setDesc("Show upcoming months")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("0", "None");
-        dropdown.addOption("1", "1 month");
-        dropdown.addOption("2", "2 months");
-        dropdown.addOption("3", "3 months");
-        dropdown.setValue(this.plugin.settings.horizonVisibility.monthsToShow.toString());
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.monthsToShow = parseInt(value);
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        });
-      });
-
-    new Setting(futureSection)
-      .setName("Quarters")
-      .setDesc("Show remaining quarters of the year")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.horizonVisibility.showQuarters).onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.showQuarters = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        })
-      );
-
-    new Setting(futureSection)
-      .setName("Next year")
-      .setDesc("Show a column for next year")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.horizonVisibility.showNextYear).onChange(async (value) => {
-          this.plugin.settings.horizonVisibility.showNextYear = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshPlanningViews();
-        })
-      );
-
-    // --- Custom horizons ---
-    const customSection = this.createSubsection(containerEl, "Custom Horizons");
-
-    const horizonsContainer = customSection.createDiv({ cls: "th-horizons-container" });
+  private renderCustomHorizons(containerEl: HTMLElement): void {
+    containerEl.empty();
+    containerEl.removeClass("setting-item");
+    const horizonsContainer = containerEl.createDiv({ cls: "th-horizons-container" });
 
     this.plugin.settings.customHorizons.forEach((horizon, index) => {
       this.renderHorizonCard(horizonsContainer, horizon, index);
     });
 
-    new Setting(customSection).addButton((button) => {
+    new Setting(containerEl).addButton((button) => {
       button.setButtonText("Add custom horizon");
       button.setCta();
       button.onClick(async () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const dateStr = tomorrow.toISOString().split("T")[0];
 
         this.plugin.settings.customHorizons.push({
           label: "New Horizon",
-          date: dateStr,
+          date: tomorrow.toISOString().split("T")[0],
           position: "end",
         });
 
         await this.plugin.saveSettings();
         this.plugin.refreshPlanningViews();
-        this.display();
+        this.update();
       });
     });
+  }
 
+  private renderAdvancedSettings(containerEl: HTMLElement): void {
     // ═══════════════════════════════════════════════════════════════════════════
     // ADVANCED SETTINGS (Collapsible)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -423,7 +404,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.settings.quickAdd.placement = value as "prepend" | "append" | "before-regex" | "after-regex";
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         });
       });
 
@@ -484,7 +465,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         toggle.setValue(atSettings.enableAtShortcuts).onChange(async (value) => {
           this.plugin.settings.atShortcutSettings.enableAtShortcuts = value;
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         })
       );
 
@@ -542,7 +523,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
             value: true,
           });
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         });
       });
 
@@ -575,7 +556,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           const newFolder = folderSearchInput.getValue();
           if (!newFolder) return;
 
-          const folder = this.app.vault.getAbstractFileByPath(newFolder);
+          const folder = this.app.vault.getFolderByPath(newFolder);
           if (folder === null) {
             this.showError(indexingSection, `Folder doesn't exist: ${newFolder}`);
             return;
@@ -585,7 +566,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
             this.plugin.settings.ignoredFolders.push(newFolder);
             await this.plugin.saveSettings();
             folderSearchInput?.setValue("");
-            this.display();
+            this.update();
           }
         });
       });
@@ -595,7 +576,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         button.setButtonText("Remove").onClick(async () => {
           this.plugin.settings.ignoredFolders = this.plugin.settings.ignoredFolders.filter((f) => f !== folder);
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         })
       );
     });
@@ -631,7 +612,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.settings.undo.enableUndo).onChange(async (value) => {
           this.plugin.settings.undo.enableUndo = value;
           await this.plugin.saveSettings();
-          this.display();
+          this.update();
         })
       );
 
@@ -828,7 +809,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     deleteBtn.addEventListener("click", () => {
       this.plugin.settings.atShortcutSettings.customShortcuts.splice(index, 1);
       void this.plugin.saveSettings().then(() => {
-        this.display();
+        this.update();
       });
     });
   }
@@ -868,7 +849,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       this.plugin.settings.customHorizons.splice(index, 1);
       void this.plugin.saveSettings().then(() => {
         this.plugin.refreshPlanningViews();
-        this.display();
+        this.update();
       });
     });
 

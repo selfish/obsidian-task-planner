@@ -1,4 +1,4 @@
-import { App, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
 
 import * as React from "react";
 
@@ -11,13 +11,12 @@ export interface PlanningSettingsComponentProps {
   setShowIgnored: (value: boolean) => void;
   totalTasks?: number;
   completedToday?: number;
-  app?: App;
   onRefresh?: () => void;
   onOpenReport?: () => void;
   onQuickAdd?: () => void;
 }
 
-export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
+export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
   const { hideEmpty, hideDone, searchParameters, viewMode, showLoadColors } = planningSettings;
   const { searchPhrase } = searchParameters;
 
@@ -70,16 +69,6 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     });
   }
 
-  function onOpenSettings() {
-    if (app) {
-      // Access internal Obsidian API for settings
-      const appWithSettings = app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } };
-      appWithSettings.setting.open();
-      appWithSettings.setting.openTabById("task-planner");
-    }
-  }
-
-  const settingsIconRef = React.useRef<HTMLButtonElement>(null);
   const refreshIconRef = React.useRef<HTMLButtonElement>(null);
   const reportIconRef = React.useRef<HTMLButtonElement>(null);
   const quickAddIconRef = React.useRef<HTMLButtonElement>(null);
@@ -91,19 +80,15 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const loadColorsIconRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
-    if (settingsIconRef.current && app) {
-      settingsIconRef.current.replaceChildren();
-      setIcon(settingsIconRef.current, "settings");
-    }
-    if (refreshIconRef.current && app) {
+    if (refreshIconRef.current) {
       refreshIconRef.current.replaceChildren();
       setIcon(refreshIconRef.current, "refresh-cw");
     }
-    if (reportIconRef.current && app) {
+    if (reportIconRef.current) {
       reportIconRef.current.replaceChildren();
       setIcon(reportIconRef.current, "list-checks");
     }
-    if (quickAddIconRef.current && app) {
+    if (quickAddIconRef.current) {
       quickAddIconRef.current.replaceChildren();
       setIcon(quickAddIconRef.current, "plus");
     }
@@ -131,7 +116,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
       loadColorsIconRef.current.replaceChildren();
       setIcon(loadColorsIconRef.current, "thermometer");
     }
-  }, [app]);
+  }, []);
 
   const completionPercent = totalTasks > 0 ? Math.round(((completedToday || 0) / totalTasks) * 100) : 0;
 
@@ -182,7 +167,6 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
         <span className={"spacer"}></span>
         {onOpenReport && <button ref={reportIconRef} className="settings-btn" onClick={onOpenReport} aria-label="Open report" title="Open report" />}
         {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh" title="Refresh" />}
-        <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Settings" title="Settings" />
       </div>
     </div>
   );

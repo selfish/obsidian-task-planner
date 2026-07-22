@@ -82,8 +82,13 @@ const STORAGE_KEY = "task-planner-sidebar-collapsed";
 
 function loadCollapsedState(app: App): Record<string, boolean> {
   try {
-    const stored = app.loadLocalStorage(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
+    const stored = app.loadLocalStorage(STORAGE_KEY) as unknown;
+    const value = typeof stored === "string" && stored ? (JSON.parse(stored) as unknown) : stored;
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"));
   } catch {
     return {};
   }
@@ -91,7 +96,7 @@ function loadCollapsedState(app: App): Record<string, boolean> {
 
 function saveCollapsedState(app: App, state: Record<string, boolean>): void {
   try {
-    app.saveLocalStorage(STORAGE_KEY, JSON.stringify(state));
+    app.saveLocalStorage(STORAGE_KEY, state);
   } catch {
     // Ignore storage errors
   }

@@ -97,8 +97,15 @@ export interface TaskPlannerSettings {
   followUp: FollowUpSettings;
   undo: UndoSettings;
   hasSeenOnboarding: boolean;
-  hasDismissedNativeMenusWarning: boolean;
 }
+
+export type StoredTaskPlannerSettings = Partial<Omit<TaskPlannerSettings, "horizonVisibility" | "atShortcutSettings" | "quickAdd" | "followUp" | "undo">> & {
+  horizonVisibility?: Partial<HorizonVisibility>;
+  atShortcutSettings?: Partial<AtShortcutSettings>;
+  quickAdd?: Partial<QuickAddSettings>;
+  followUp?: Partial<FollowUpSettings>;
+  undo?: Partial<UndoSettings>;
+};
 
 export const DEFAULT_SETTINGS: TaskPlannerSettings = {
   version: 4,
@@ -158,5 +165,33 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
     undoToastDurationMs: 5000,
   },
   hasSeenOnboarding: false,
-  hasDismissedNativeMenusWarning: false,
 };
+
+export function mergeSettings(stored: StoredTaskPlannerSettings | null | undefined): TaskPlannerSettings {
+  const defaults: TaskPlannerSettings = {
+    ...DEFAULT_SETTINGS,
+    ignoredFolders: [...DEFAULT_SETTINGS.ignoredFolders],
+    customHorizons: DEFAULT_SETTINGS.customHorizons.map((horizon) => ({ ...horizon })),
+    horizonVisibility: { ...DEFAULT_SETTINGS.horizonVisibility },
+    atShortcutSettings: {
+      ...DEFAULT_SETTINGS.atShortcutSettings,
+      customShortcuts: DEFAULT_SETTINGS.atShortcutSettings.customShortcuts.map((shortcut) => ({ ...shortcut })),
+    },
+    quickAdd: { ...DEFAULT_SETTINGS.quickAdd },
+    followUp: { ...DEFAULT_SETTINGS.followUp },
+    undo: { ...DEFAULT_SETTINGS.undo },
+  };
+  return {
+    ...defaults,
+    ...stored,
+    horizonVisibility: { ...defaults.horizonVisibility, ...stored?.horizonVisibility },
+    atShortcutSettings: {
+      ...defaults.atShortcutSettings,
+      ...stored?.atShortcutSettings,
+      customShortcuts: stored?.atShortcutSettings?.customShortcuts ?? defaults.atShortcutSettings.customShortcuts,
+    },
+    quickAdd: { ...defaults.quickAdd, ...stored?.quickAdd },
+    followUp: { ...defaults.followUp, ...stored?.followUp },
+    undo: { ...defaults.undo, ...stored?.undo },
+  };
+}

@@ -1181,7 +1181,6 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         setShowIgnored={setShowIgnored}
         totalTasks={totalTasks}
         completedToday={completedToday}
-        app={app}
         onRefresh={onRefresh}
         onOpenReport={onOpenReport}
         onQuickAdd={onQuickAdd}

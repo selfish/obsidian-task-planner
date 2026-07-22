@@ -212,7 +212,7 @@ describe("TaskCreator", () => {
   describe("createTask", () => {
     it("should create task in inbox file", async () => {
       const inboxFile = new TFile("Inbox.md");
-      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(inboxFile);
+      mockApp.vault.getFileByPath = jest.fn().mockReturnValue(inboxFile);
       mockApp.vault.read = jest.fn().mockResolvedValue("# Inbox\n");
       mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);
 
@@ -227,7 +227,7 @@ describe("TaskCreator", () => {
 
     it("should create inbox file if it does not exist", async () => {
       const newFile = new TFile("Inbox.md");
-      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
+      mockApp.vault.getFileByPath = jest.fn().mockReturnValue(null);
       mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
       mockApp.vault.read = jest.fn().mockResolvedValue("");
       mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);
@@ -243,7 +243,7 @@ describe("TaskCreator", () => {
 
     it("should create parent folders for inbox file", async () => {
       const newFile = new TFile("Notes/Inbox.md");
-      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
+      mockApp.vault.getFileByPath = jest.fn().mockReturnValue(null);
       mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
       mockApp.vault.createFolder = jest.fn().mockResolvedValue(undefined);
       mockApp.vault.read = jest.fn().mockResolvedValue("");
@@ -353,7 +353,7 @@ describe("TaskCreator", () => {
   describe("getOrCreateInboxFile", () => {
     it("should create inbox file at root without creating folders", async () => {
       const newFile = new TFile("Inbox.md");
-      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);
+      mockApp.vault.getFileByPath = jest.fn().mockReturnValue(null);
       mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
       mockApp.vault.read = jest.fn().mockResolvedValue("");
       mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);
@@ -371,10 +371,8 @@ describe("TaskCreator", () => {
 
     it("should not create folder if it already exists", async () => {
       const newFile = new TFile("Notes/Inbox.md");
-      mockApp.vault.getAbstractFileByPath = jest.fn().mockImplementation((path: string) => {
-        if (path === "Notes") return { path: "Notes" }; // Folder exists
-        return null; // File doesn't exist
-      });
+      mockApp.vault.getFileByPath = jest.fn().mockReturnValue(null);
+      mockApp.vault.getFolderByPath = jest.fn().mockReturnValue({ path: "Notes" });
       mockApp.vault.create = jest.fn().mockResolvedValue(newFile);
       mockApp.vault.read = jest.fn().mockResolvedValue("");
       mockApp.vault.modify = jest.fn().mockResolvedValue(undefined);

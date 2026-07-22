@@ -9,11 +9,11 @@ export class TFile {
   parent: TFolder | null;
   stat: { ctime: number; mtime: number; size: number };
 
-  constructor(path: string = 'test.md') {
+  constructor(path: string = "test.md") {
     this.path = path;
-    this.name = path.split('/').pop() || path;
-    this.basename = this.name.replace(/\.[^.]+$/, '');
-    this.extension = this.name.split('.').pop() || '';
+    this.name = path.split("/").pop() || path;
+    this.basename = this.name.replace(/\.[^.]+$/, "");
+    this.extension = this.name.split(".").pop() || "";
     this.vault = null; // Avoid circular reference
     this.parent = null;
     this.stat = { ctime: Date.now(), mtime: Date.now(), size: 0 };
@@ -27,9 +27,9 @@ export class TFolder {
   parent: TFolder | null;
   children: (TFile | TFolder)[];
 
-  constructor(path: string = '') {
+  constructor(path: string = "") {
     this.path = path;
-    this.name = path.split('/').pop() || '';
+    this.name = path.split("/").pop() || "";
     this.vault = null; // Avoid circular reference
     this.parent = null;
     this.children = [];
@@ -42,9 +42,9 @@ export class TAbstractFile {
   vault: any;
   parent: TFolder | null;
 
-  constructor(path: string = '') {
+  constructor(path: string = "") {
     this.path = path;
-    this.name = path.split('/').pop() || '';
+    this.name = path.split("/").pop() || "";
     this.vault = null; // Avoid circular reference
     this.parent = null;
   }
@@ -56,7 +56,7 @@ export class Vault {
 
   constructor() {
     this.adapter = {
-      read: jest.fn().mockResolvedValue(''),
+      read: jest.fn().mockResolvedValue(""),
       write: jest.fn().mockResolvedValue(undefined),
       exists: jest.fn().mockResolvedValue(true),
       stat: jest.fn().mockResolvedValue({ ctime: Date.now(), mtime: Date.now(), size: 0 }),
@@ -65,11 +65,11 @@ export class Vault {
       remove: jest.fn().mockResolvedValue(undefined),
       rename: jest.fn().mockResolvedValue(undefined),
     };
-    this.configDir = '.obsidian';
+    this.configDir = ".obsidian";
   }
 
-  read = jest.fn().mockResolvedValue('');
-  cachedRead = jest.fn().mockResolvedValue('');
+  read = jest.fn().mockResolvedValue("");
+  cachedRead = jest.fn().mockResolvedValue("");
   create = jest.fn().mockResolvedValue(new TFile());
   createBinary = jest.fn().mockResolvedValue(new TFile());
   createFolder = jest.fn().mockResolvedValue(undefined);
@@ -79,6 +79,8 @@ export class Vault {
   rename = jest.fn().mockResolvedValue(undefined);
   copy = jest.fn().mockResolvedValue(new TFile());
   getAbstractFileByPath = jest.fn().mockReturnValue(null);
+  getFileByPath = jest.fn().mockReturnValue(null);
+  getFolderByPath = jest.fn().mockReturnValue(null);
   getRoot = jest.fn().mockReturnValue(new TFolder());
   getAllLoadedFiles = jest.fn().mockReturnValue([]);
   getMarkdownFiles = jest.fn().mockReturnValue([]);
@@ -141,6 +143,9 @@ export class App {
     this.workspace = new Workspace();
     this.metadataCache = new MetadataCache();
   }
+
+  loadLocalStorage = jest.fn().mockReturnValue(null);
+  saveLocalStorage = jest.fn();
 }
 
 export class MetadataCache {
@@ -163,8 +168,8 @@ export class Plugin {
 
   loadData = jest.fn().mockResolvedValue({});
   saveData = jest.fn().mockResolvedValue(undefined);
-  addRibbonIcon = jest.fn().mockReturnValue(document.createElement('div'));
-  addStatusBarItem = jest.fn().mockReturnValue(document.createElement('div'));
+  addRibbonIcon = jest.fn().mockReturnValue(document.createElement("div"));
+  addStatusBarItem = jest.fn().mockReturnValue(document.createElement("div"));
   addCommand = jest.fn();
   addSettingTab = jest.fn();
   registerView = jest.fn();
@@ -197,10 +202,15 @@ export class PluginSettingTab {
   constructor(app: App, plugin: Plugin) {
     this.app = app;
     this.plugin = plugin;
-    this.containerEl = document.createElement('div');
+    this.containerEl = document.createElement("div");
   }
 
   display(): void {}
+  getSettingDefinitions(): unknown[] {
+    return [];
+  }
+  update(): void {}
+  refreshDomState(): void {}
   hide(): void {}
 }
 
@@ -212,11 +222,11 @@ export class Setting {
   controlEl: HTMLElement;
 
   constructor(containerEl: HTMLElement) {
-    this.settingEl = document.createElement('div');
-    this.infoEl = document.createElement('div');
-    this.nameEl = document.createElement('div');
-    this.descEl = document.createElement('div');
-    this.controlEl = document.createElement('div');
+    this.settingEl = document.createElement("div");
+    this.infoEl = document.createElement("div");
+    this.nameEl = document.createElement("div");
+    this.descEl = document.createElement("div");
+    this.controlEl = document.createElement("div");
     containerEl.appendChild(this.settingEl);
   }
 
@@ -249,18 +259,18 @@ export class ItemView {
   constructor(leaf: WorkspaceLeaf) {
     this.app = new App();
     this.leaf = leaf;
-    this.containerEl = document.createElement('div');
-    this.contentEl = document.createElement('div');
+    this.containerEl = document.createElement("div");
+    this.contentEl = document.createElement("div");
     this.containerEl.appendChild(this.contentEl);
-    this.icon = 'document';
+    this.icon = "document";
   }
 
   getViewType(): string {
-    return 'item-view';
+    return "item-view";
   }
 
   getDisplayText(): string {
-    return 'Item View';
+    return "Item View";
   }
 
   getIcon(): string {
@@ -283,14 +293,14 @@ export class MarkdownView extends ItemView {
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
     this.editor = {
-      getLine: jest.fn().mockReturnValue(''),
+      getLine: jest.fn().mockReturnValue(""),
       setLine: jest.fn(),
       getCursor: jest.fn().mockReturnValue({ line: 0, ch: 0 }),
       setCursor: jest.fn(),
-      getSelection: jest.fn().mockReturnValue(''),
+      getSelection: jest.fn().mockReturnValue(""),
       replaceSelection: jest.fn(),
       replaceRange: jest.fn(),
-      getValue: jest.fn().mockReturnValue(''),
+      getValue: jest.fn().mockReturnValue(""),
       setValue: jest.fn(),
       lineCount: jest.fn().mockReturnValue(1),
     };
@@ -298,7 +308,7 @@ export class MarkdownView extends ItemView {
   }
 
   getViewType(): string {
-    return 'markdown';
+    return "markdown";
   }
 }
 
@@ -311,10 +321,10 @@ export class Modal {
 
   constructor(app: App) {
     this.app = app;
-    this.containerEl = document.createElement('div');
-    this.contentEl = document.createElement('div');
-    this.modalEl = document.createElement('div');
-    this.titleEl = document.createElement('div');
+    this.containerEl = document.createElement("div");
+    this.contentEl = document.createElement("div");
+    this.modalEl = document.createElement("div");
+    this.titleEl = document.createElement("div");
   }
 
   open(): void {}
@@ -327,7 +337,7 @@ export class Notice {
   noticeEl: HTMLElement;
 
   constructor(_message: string | DocumentFragment, _timeout?: number) {
-    this.noticeEl = document.createElement('div');
+    this.noticeEl = document.createElement("div");
   }
 
   hide(): void {}
@@ -402,11 +412,7 @@ export const Keymap = {
 import momentLib from "moment";
 export const moment = momentLib;
 
-export function debounce<T extends (...args: any[]) => any>(
-  fn: T,
-  delay: number,
-  _immediate?: boolean
-): T & { cancel: () => void } {
+export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number, _immediate?: boolean): T & { cancel: () => void } {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   const debouncedFn = ((...args: Parameters<T>) => {
     if (timeoutId) clearTimeout(timeoutId);
@@ -419,15 +425,15 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 export function normalizePath(path: string): string {
-  return path.replace(/\\/g, '/').replace(/\/+/g, '/');
+  return path.replace(/\\/g, "/").replace(/\/+/g, "/");
 }
 
 export function getLinkpath(linkText: string): string {
-  return linkText.replace(/[#^|].*$/, '');
+  return linkText.replace(/[#^|].*$/, "");
 }
 
-export const request = jest.fn().mockResolvedValue('');
-export const requestUrl = jest.fn().mockResolvedValue({ text: '', json: {} });
+export const request = jest.fn().mockResolvedValue("");
+export const requestUrl = jest.fn().mockResolvedValue({ text: "", json: {} });
 
 export abstract class AbstractInputSuggest<T> {
   protected app: App;

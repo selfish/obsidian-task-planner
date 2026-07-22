@@ -108,7 +108,7 @@ describe("OnboardingModal", () => {
       read: jest.Mock;
       modify: jest.Mock;
       create: jest.Mock;
-      getAbstractFileByPath: jest.Mock;
+      getFileByPath: jest.Mock;
     };
   };
   let settings: TaskPlannerSettings;
@@ -120,7 +120,7 @@ describe("OnboardingModal", () => {
         read: mockVaultRead,
         modify: mockVaultModify,
         create: mockVaultCreate,
-        getAbstractFileByPath: mockGetAbstractFileByPath,
+        getFileByPath: mockGetAbstractFileByPath,
       },
     };
     settings = { ...DEFAULT_SETTINGS };
@@ -603,9 +603,7 @@ describe("OnboardingModal", () => {
 
       // Navigate to examples screen
       (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
-      expect(modal.contentEl.querySelector(".onboarding-title")?.textContent).toBe(
-        "Would you like some example tasks?"
-      );
+      expect(modal.contentEl.querySelector(".onboarding-title")?.textContent).toBe("Would you like some example tasks?");
     });
 
     it("should clear content when navigating between screens", () => {
@@ -643,9 +641,7 @@ describe("OnboardingModal", () => {
 
       // Concept -> Examples
       (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
-      expect(modal.contentEl.querySelector(".onboarding-title")?.textContent).toBe(
-        "Would you like some example tasks?"
-      );
+      expect(modal.contentEl.querySelector(".onboarding-title")?.textContent).toBe("Would you like some example tasks?");
     });
   });
 

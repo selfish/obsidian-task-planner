@@ -1,6 +1,6 @@
-import { App } from 'obsidian';
-import { PlanningSettingsStore } from '../../src/ui/planning-settings-store';
-import { PlanningSettings, getDefaultSettings } from '../../src/ui/planning-settings';
+import { App } from "obsidian";
+import { PlanningSettingsStore } from "../../src/ui/planning-settings-store";
+import { PlanningSettings, getDefaultSettings } from "../../src/ui/planning-settings";
 
 // Extend App mock with localStorage methods
 interface MockApp extends App {
@@ -15,7 +15,7 @@ const createMockApp = (): MockApp => {
   return app;
 };
 
-describe('PlanningSettingsStore', () => {
+describe("PlanningSettingsStore", () => {
   let mockApp: MockApp;
   let store: PlanningSettingsStore;
 
@@ -24,14 +24,14 @@ describe('PlanningSettingsStore', () => {
     store = new PlanningSettingsStore(mockApp);
   });
 
-  describe('constructor', () => {
-    it('should create an instance with app reference', () => {
+  describe("constructor", () => {
+    it("should create an instance with app reference", () => {
       expect(store).toBeInstanceOf(PlanningSettingsStore);
     });
   });
 
-  describe('getSettings', () => {
-    it('should return default settings when nothing is stored', () => {
+  describe("getSettings", () => {
+    it("should return default settings when nothing is stored", () => {
       mockApp.loadLocalStorage.mockReturnValue(null);
 
       const settings = store.getSettings();
@@ -39,7 +39,7 @@ describe('PlanningSettingsStore', () => {
       expect(settings).toEqual(getDefaultSettings());
     });
 
-    it('should load and parse stored settings', () => {
+    it("should load legacy JSON-string settings", () => {
       const storedSettings: Partial<PlanningSettings> = {
         showCompleted: true,
       };
@@ -50,7 +50,15 @@ describe('PlanningSettingsStore', () => {
       expect(settings.showCompleted).toBe(true);
     });
 
-    it('should merge stored settings with defaults', () => {
+    it("should load canonical structured settings", () => {
+      mockApp.loadLocalStorage.mockReturnValue({ showCompleted: true });
+
+      const settings = store.getSettings();
+
+      expect(settings.showCompleted).toBe(true);
+    });
+
+    it("should merge stored settings with defaults", () => {
       const partialSettings = { showCompleted: false };
       mockApp.loadLocalStorage.mockReturnValue(JSON.stringify(partialSettings));
 
@@ -63,22 +71,22 @@ describe('PlanningSettingsStore', () => {
       expect(settings.showBacklog).toBe(defaults.showBacklog);
     });
 
-    it('should use correct storage key', () => {
+    it("should use correct storage key", () => {
       mockApp.loadLocalStorage.mockReturnValue(null);
 
       store.getSettings();
 
-      expect(mockApp.loadLocalStorage).toHaveBeenCalledWith('TaskPlanner.PlanningSettings');
+      expect(mockApp.loadLocalStorage).toHaveBeenCalledWith("TaskPlanner.PlanningSettings");
     });
 
-    it('should handle invalid JSON gracefully', () => {
-      mockApp.loadLocalStorage.mockReturnValue('not valid json');
+    it("should handle invalid JSON gracefully", () => {
+      mockApp.loadLocalStorage.mockReturnValue("not valid json");
 
       expect(() => store.getSettings()).toThrow();
     });
 
-    it('should handle empty string', () => {
-      mockApp.loadLocalStorage.mockReturnValue('');
+    it("should handle empty string", () => {
+      mockApp.loadLocalStorage.mockReturnValue("");
 
       const settings = store.getSettings();
 
@@ -87,8 +95,8 @@ describe('PlanningSettingsStore', () => {
     });
   });
 
-  describe('saveSettings', () => {
-    it('should save settings to local storage', () => {
+  describe("saveSettings", () => {
+    it("should save settings to local storage", () => {
       const settings: PlanningSettings = {
         ...getDefaultSettings(),
         showCompleted: true,
@@ -96,25 +104,21 @@ describe('PlanningSettingsStore', () => {
 
       store.saveSettings(settings);
 
-      expect(mockApp.saveLocalStorage).toHaveBeenCalledWith(
-        'TaskPlanner.PlanningSettings',
-        JSON.stringify(settings)
-      );
+      expect(mockApp.saveLocalStorage).toHaveBeenCalledWith("TaskPlanner.PlanningSettings", settings);
     });
 
-    it('should serialize settings to JSON', () => {
+    it("should save a structured value", () => {
       const settings = getDefaultSettings();
 
       store.saveSettings(settings);
 
       const savedValue = mockApp.saveLocalStorage.mock.calls[0][1];
-      expect(() => JSON.parse(savedValue)).not.toThrow();
-      expect(JSON.parse(savedValue)).toEqual(settings);
+      expect(savedValue).toEqual(settings);
     });
   });
 
-  describe('decorateSetterWithSaveSettings', () => {
-    it('should call the original setter', () => {
+  describe("decorateSetterWithSaveSettings", () => {
+    it("should call the original setter", () => {
       const setter = jest.fn();
       const decoratedSetter = store.decorateSetterWithSaveSettings(setter);
       const settings = getDefaultSettings();
@@ -124,7 +128,7 @@ describe('PlanningSettingsStore', () => {
       expect(setter).toHaveBeenCalledWith(settings);
     });
 
-    it('should save settings after calling setter', () => {
+    it("should save settings after calling setter", () => {
       const setter = jest.fn();
       const decoratedSetter = store.decorateSetterWithSaveSettings(setter);
       const settings = getDefaultSettings();
@@ -134,18 +138,18 @@ describe('PlanningSettingsStore', () => {
       expect(mockApp.saveLocalStorage).toHaveBeenCalled();
     });
 
-    it('should call setter before saving', () => {
+    it("should call setter before saving", () => {
       const callOrder: string[] = [];
-      const setter = jest.fn(() => callOrder.push('setter'));
-      mockApp.saveLocalStorage.mockImplementation(() => callOrder.push('save'));
+      const setter = jest.fn(() => callOrder.push("setter"));
+      mockApp.saveLocalStorage.mockImplementation(() => callOrder.push("save"));
 
       const decoratedSetter = store.decorateSetterWithSaveSettings(setter);
       decoratedSetter(getDefaultSettings());
 
-      expect(callOrder).toEqual(['setter', 'save']);
+      expect(callOrder).toEqual(["setter", "save"]);
     });
 
-    it('should pass correct settings to save', () => {
+    it("should pass correct settings to save", () => {
       const setter = jest.fn();
       const decoratedSetter = store.decorateSetterWithSaveSettings(setter);
       const settings: PlanningSettings = {
@@ -156,17 +160,14 @@ describe('PlanningSettingsStore', () => {
 
       decoratedSetter(settings);
 
-      expect(mockApp.saveLocalStorage).toHaveBeenCalledWith(
-        'TaskPlanner.PlanningSettings',
-        JSON.stringify(settings)
-      );
+      expect(mockApp.saveLocalStorage).toHaveBeenCalledWith("TaskPlanner.PlanningSettings", settings);
     });
 
-    it('should return a function', () => {
+    it("should return a function", () => {
       const setter = jest.fn();
       const decoratedSetter = store.decorateSetterWithSaveSettings(setter);
 
-      expect(typeof decoratedSetter).toBe('function');
+      expect(typeof decoratedSetter).toBe("function");
     });
   });
 });

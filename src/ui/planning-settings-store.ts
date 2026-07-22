@@ -2,32 +2,26 @@ import { App } from "obsidian";
 
 import { PlanningSettings, getDefaultSettings } from "./planning-settings";
 
-// Type augmentation for Obsidian's App - these methods exist but aren't in public types
-declare module "obsidian" {
-  interface App {
-    loadLocalStorage(key: string): string | null;
-    saveLocalStorage(key: string, value: string | undefined): void;
-  }
-}
-
 const storageKey = "TaskPlanner.PlanningSettings";
 
 export class PlanningSettingsStore {
   constructor(private app: App) {}
 
   getSettings(): PlanningSettings {
-    const serializedValue = this.app.loadLocalStorage(storageKey);
+    const storedValue = this.app.loadLocalStorage(storageKey) as unknown;
     const value = getDefaultSettings();
-    if (serializedValue && typeof serializedValue === "string") {
-      const saved = JSON.parse(serializedValue);
+    if (typeof storedValue === "string" && storedValue) {
+      // Legacy versions stored a JSON string instead of a structured value.
+      const saved = JSON.parse(storedValue) as Partial<PlanningSettings>;
       Object.assign(value, saved);
+    } else if (storedValue !== null && typeof storedValue === "object" && !Array.isArray(storedValue)) {
+      Object.assign(value, storedValue);
     }
     return value;
   }
 
   saveSettings(settings: PlanningSettings): void {
-    const serializedValue = JSON.stringify(settings);
-    this.app.saveLocalStorage(storageKey, serializedValue);
+    this.app.saveLocalStorage(storageKey, settings);
   }
 
   decorateSetterWithSaveSettings(setter: (value: PlanningSettings) => void): (value: PlanningSettings) => void {

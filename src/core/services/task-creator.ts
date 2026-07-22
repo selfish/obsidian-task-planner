@@ -153,8 +153,8 @@ export class TaskCreator {
   private async getOrCreateInboxFile(): Promise<TFile> {
     const filePath = normalizePath(this.settings.quickAdd.inboxFilePath);
 
-    const existingFile = this.app.vault.getAbstractFileByPath(filePath);
-    if (existingFile instanceof TFile) {
+    const existingFile = this.app.vault.getFileByPath(filePath);
+    if (existingFile) {
       return existingFile;
     }
 
@@ -170,7 +170,7 @@ export class TaskCreator {
 
   private async ensureFolderExists(folderPath: string): Promise<void> {
     const normalizedPath = normalizePath(folderPath);
-    const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
+    const folder = this.app.vault.getFolderByPath(normalizedPath);
     if (!folder) {
       await this.app.vault.createFolder(normalizedPath);
     }

@@ -1,4 +1,4 @@
-import { App, Modal, TFile, normalizePath, setIcon } from "obsidian";
+import { App, Modal, normalizePath, setIcon } from "obsidian";
 
 import { TaskPlannerSettings } from "../settings/types";
 import { moment } from "../utils/moment";
@@ -239,8 +239,8 @@ ${exampleTasks.join("\n")}
     const filePath = normalizePath("Task Planner Examples.md");
 
     // Check if file already exists
-    const existingFile = this.app.vault.getAbstractFileByPath(filePath);
-    if (existingFile instanceof TFile) {
+    const existingFile = this.app.vault.getFileByPath(filePath);
+    if (existingFile) {
       // Append to existing file
       const existingContent = await this.app.vault.read(existingFile);
       await this.app.vault.modify(existingFile, existingContent + "\n\n" + content);
