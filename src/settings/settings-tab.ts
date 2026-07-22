@@ -243,6 +243,17 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         items: [{ name: "Custom horizons", render: (setting) => this.renderCustomHorizons(setting.settingEl) }],
       },
       {
+        type: "group",
+        heading: "Compatibility",
+        cls: "th-subsection",
+        items: [
+          {
+            name: "Context menu icons",
+            desc: "If Task Planner context-menu icons are missing, disable Native menus in Settings → Appearance.",
+          },
+        ],
+      },
+      {
         name: "Advanced Settings",
         render: (setting) => {
           setting.settingEl.empty();

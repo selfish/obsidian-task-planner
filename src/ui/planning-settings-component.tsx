@@ -14,9 +14,10 @@ export interface PlanningSettingsComponentProps {
   onRefresh?: () => void;
   onOpenReport?: () => void;
   onQuickAdd?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
+export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, onRefresh, onOpenReport, onQuickAdd, onOpenSettings }: PlanningSettingsComponentProps) {
   const { hideEmpty, hideDone, searchParameters, viewMode, showLoadColors } = planningSettings;
   const { searchPhrase } = searchParameters;
 
@@ -72,6 +73,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
   const refreshIconRef = React.useRef<HTMLButtonElement>(null);
   const reportIconRef = React.useRef<HTMLButtonElement>(null);
   const quickAddIconRef = React.useRef<HTMLButtonElement>(null);
+  const settingsIconRef = React.useRef<HTMLButtonElement>(null);
   const hideEmptyIconRef = React.useRef<HTMLSpanElement>(null);
   const hideDoneIconRef = React.useRef<HTMLSpanElement>(null);
   const showIgnoredIconRef = React.useRef<HTMLSpanElement>(null);
@@ -91,6 +93,10 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
     if (quickAddIconRef.current) {
       quickAddIconRef.current.replaceChildren();
       setIcon(quickAddIconRef.current, "plus");
+    }
+    if (settingsIconRef.current) {
+      settingsIconRef.current.replaceChildren();
+      setIcon(settingsIconRef.current, "settings");
     }
     if (hideEmptyIconRef.current) {
       hideEmptyIconRef.current.replaceChildren();
@@ -167,6 +173,7 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
         <span className={"spacer"}></span>
         {onOpenReport && <button ref={reportIconRef} className="settings-btn" onClick={onOpenReport} aria-label="Open report" title="Open report" />}
         {onRefresh && <button ref={refreshIconRef} className="settings-btn" onClick={onRefresh} aria-label="Refresh" title="Refresh" />}
+        {onOpenSettings && <button ref={settingsIconRef} className="settings-btn" onClick={onOpenSettings} aria-label="Task Planner settings" title="How to open Task Planner settings" />}
       </div>
     </div>
   );

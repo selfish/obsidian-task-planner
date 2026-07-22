@@ -33,9 +33,10 @@ export interface PlanningComponentProps {
   onRefresh?: () => void;
   onOpenReport?: () => void;
   onQuickAdd?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport, onQuickAdd }: PlanningComponentProps) {
+export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport, onQuickAdd, onOpenSettings }: PlanningComponentProps) {
   const settingsStore = React.useMemo(() => new PlanningSettingsStore(app), [app]);
   const savedSettings = React.useMemo(() => settingsStore.getSettings(), [settingsStore]);
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
@@ -1184,6 +1185,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         onRefresh={onRefresh}
         onOpenReport={onOpenReport}
         onQuickAdd={onQuickAdd}
+        onOpenSettings={onOpenSettings}
       />
       {viewMode !== "future" && (
         <div className="today-section">

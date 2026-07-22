@@ -123,11 +123,22 @@ describe("DailyNoteService", () => {
     });
 
     it("honors the configured Templater delay", async () => {
-      const started = Date.now();
+      jest.useFakeTimers();
+      let resolved = false;
 
-      await service.ensureDailyNoteExists(1);
+      const pending = service.ensureDailyNoteExists(1000).then((result) => {
+        resolved = true;
+        return result;
+      });
 
-      expect(Date.now() - started).toBeGreaterThanOrEqual(1);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(resolved).toBe(false);
+
+      await jest.advanceTimersByTimeAsync(1000);
+      await expect(pending).resolves.toBeTruthy();
+      expect(resolved).toBe(true);
+
+      jest.useRealTimers();
     });
   });
 });

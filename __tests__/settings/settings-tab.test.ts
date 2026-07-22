@@ -25,6 +25,13 @@ describe("TaskPlannerSettingsTab", () => {
     expect(definitions.some((definition) => "name" in definition && definition.name === "Advanced Settings")).toBe(true);
   });
 
+  it("keeps native-menu compatibility guidance without private configuration access", () => {
+    const { tab } = createTab();
+    const definitions = tab.getSettingDefinitions();
+
+    expect(JSON.stringify(definitions)).toContain("disable Native menus in Settings → Appearance");
+  });
+
   it("reads and writes nested control keys", async () => {
     const { plugin, tab } = createTab();
 

@@ -1,4 +1,4 @@
-import { ItemView, Platform, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, Platform, TFile, WorkspaceLeaf } from "obsidian";
 
 import { TaskIndex } from "../core";
 import { TaskPlannerSettings } from "../settings";
@@ -57,6 +57,10 @@ export class PlanningView extends ItemView {
         void this.openReport();
       },
       onQuickAdd: this.deps.onQuickAdd,
+      onOpenSettings: () => {
+        // eslint-disable-next-line obsidianmd/ui/sentence-case -- Task Planner is the plugin's proper name.
+        new Notice("Open settings, then select Task Planner under community plugins.");
+      },
     });
   }
 
