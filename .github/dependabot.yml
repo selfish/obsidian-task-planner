@@ -31,7 +31,7 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
-          - "eslint-plugin-react*"
+          - "@eslint-react/*"
       linting:
         patterns:
           - "eslint"
