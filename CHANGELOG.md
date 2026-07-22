@@ -14,6 +14,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 - Replaced the direct `eslint-plugin-react` development dependency with the maintained `@eslint-react/eslint-plugin` alternative while preserving the existing lint baseline.
 - Updated vulnerable development and build dependencies without changing generated plugin assets.
+- Pinned third-party GitHub Actions to immutable commit SHAs and migrated Codecov test-result uploads to the supported unified action.
 
 ## Historical releases
 
