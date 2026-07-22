@@ -6,18 +6,48 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 
 jobs:
-  release:
-    name: 📦 Release
+  build:
+    name: 🔎 Verify and build
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify tag is on main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Release tags must point to a commit on main"
+            exit 1
+          fi
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify release metadata
+        env:
+          TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          MANIFEST_VERSION=$(jq -r '.version' manifest.json)
+          MIN_APP_VERSION=$(jq -r '.minAppVersion' manifest.json)
+          VERSION_MIN_APP=$(jq -r --arg version "$TAG_VERSION" '.[$version] // empty' versions.json)
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ] || \
+             [ "$MANIFEST_VERSION" != "$TAG_VERSION" ] || \
+             [ "$VERSION_MIN_APP" != "$MIN_APP_VERSION" ]; then
+            echo "::error::Tag, package.json, manifest.json, and versions.json must agree"
+            exit 1
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -28,21 +58,40 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate
+        run: npm run validate
+
+      - name: Audit dependencies
+        run: npm run audit
+
       - name: Build
         run: npm run build
 
-      - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      - name: Upload release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-${{ github.sha }}
+          path: |
+            main.js
+            manifest.json
+            styles.css
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Verify manifest version matches tag
-        run: |
-          MANIFEST_VERSION=$(jq -r '.version' manifest.json)
-          TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
-          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::manifest.json version ($MANIFEST_VERSION) does not match tag ($TAG_VERSION)"
-            exit 1
-          fi
+  release:
+    name: 📦 Publish
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ github.sha }}
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
@@ -55,7 +104,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
-          name: ${{ steps.get_version.outputs.VERSION }}
+          name: ${{ needs.build.outputs.version }}
           generate_release_notes: true
           files: |
             main.js
@@ -68,9 +117,9 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## 🚀 Release ${{ steps.get_version.outputs.VERSION }} Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Release created with:" >> $GITHUB_STEP_SUMMARY
-          echo "- \`main.js\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`manifest.json\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`styles.css\`" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Release ${{ needs.build.outputs.version }} Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Release created with:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`main.js\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`manifest.json\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`styles.css\`" >> "$GITHUB_STEP_SUMMARY"
