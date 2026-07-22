@@ -1,7 +1,7 @@
 import js from "@eslint/js";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
-import react from "eslint-plugin-react";
+import eslintReact from "@eslint-react/eslint-plugin";
 import reactHooks from "eslint-plugin-react-hooks";
 import prettier from "eslint-config-prettier";
 import globals from "globals";
@@ -42,7 +42,7 @@ export default [
     },
     plugins: {
       "@typescript-eslint": tseslint,
-      react,
+      ...eslintReact.configs.recommended.plugins,
       "react-hooks": reactHooks,
       obsidianmd,
       "@microsoft/sdl": sdl,
@@ -50,9 +50,7 @@ export default [
       "@eslint-community/eslint-comments": eslintComments,
     },
     settings: {
-      react: {
-        version: "19",
-      },
+      ...eslintReact.configs.recommended.settings,
       // Tell eslint-plugin-import that react/react-dom are resolved via aliasing
       "import/resolver": {
         node: {
@@ -63,7 +61,19 @@ export default [
     },
     rules: {
       ...tseslint.configs.recommended.rules,
-      ...react.configs.recommended.rules,
+      ...eslintReact.configs.recommended.rules,
+      // Preserve the current lint baseline during the plugin migration. These
+      // rules require behavior-affecting React refactors and should be adopted
+      // separately with focused tests.
+      "@eslint-react/no-array-index-key": "off",
+      "@eslint-react/set-state-in-effect": "off",
+      "@eslint-react/use-state": "off",
+      // Preserve equivalent correctness and security checks from
+      // eslint-plugin-react's recommended baseline.
+      "@eslint-react/dom-no-unsafe-target-blank": "error",
+      "@eslint-react/dom-no-unknown-property": "error",
+      "@eslint-react/jsx-no-children-prop": "error",
+      "@eslint-react/jsx-no-comment-textnodes": "error",
       ...reactHooks.configs.recommended.rules,
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
@@ -81,9 +91,6 @@ export default [
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true, allowBoolean: true }],
       "@typescript-eslint/unbound-method": ["error", { ignoreStatic: true }],
       "no-prototype-builtins": "off",
-      "react/react-in-jsx-scope": "off",
-      "react/prop-types": "off",
-      "react/display-name": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
       "no-console": ["error", { allow: ["warn", "error", "debug"] }],
