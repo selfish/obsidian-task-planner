@@ -5,6 +5,7 @@ export interface TaskChange {
   taskId: string;
   filePath: string;
   lineNumber: number;
+  sourceLine?: string;
   attributeName: string;
   previousValue: string | boolean | undefined;
   newValue: string | boolean | undefined;
@@ -14,6 +15,7 @@ export interface StatusChange {
   taskId: string;
   filePath: string;
   lineNumber: number;
+  sourceLine?: string;
   previousStatus: TaskStatus;
   newStatus: TaskStatus;
   previousCompletedDate?: string;
@@ -24,6 +26,7 @@ export interface TagChange {
   taskId: string;
   filePath: string;
   lineNumber: number;
+  sourceLine?: string;
   tag: string;
   action: "added" | "removed";
 }
@@ -109,6 +112,12 @@ export class UndoManager {
     return operation;
   }
 
+  restoreFailedUndo(operation: UndoOperation): void {
+    if (this.redoStack[this.redoStack.length - 1] !== operation) return;
+    this.redoStack.pop();
+    this.history.push(operation);
+  }
+
   /**
    * Pops the last operation from redo stack and moves it back to history.
    * Returns the operation that should be redone.
@@ -121,6 +130,12 @@ export class UndoManager {
     this.history.push(operation);
     void this.onRedoPerformed.fire(operation);
     return operation;
+  }
+
+  restoreFailedRedo(operation: UndoOperation): void {
+    if (this.history[this.history.length - 1] !== operation) return;
+    this.history.pop();
+    this.redoStack.push(operation);
   }
 
   clearHistory(): void {

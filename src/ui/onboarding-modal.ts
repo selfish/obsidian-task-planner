@@ -1,5 +1,6 @@
 import { App, Modal, TFile, normalizePath, setIcon } from "obsidian";
 
+import { ObsidianFile } from "../lib/file-adapter";
 import { TaskPlannerSettings } from "../settings/types";
 import { moment } from "../utils/moment";
 
@@ -242,8 +243,7 @@ ${exampleTasks.join("\n")}
     const existingFile = this.app.vault.getAbstractFileByPath(filePath);
     if (existingFile instanceof TFile) {
       // Append to existing file
-      const existingContent = await this.app.vault.read(existingFile);
-      await this.app.vault.modify(existingFile, existingContent + "\n\n" + content);
+      await new ObsidianFile(this.app, existingFile).processContent((existingContent) => existingContent + "\n\n" + content);
     } else {
       // Create new file
       await this.app.vault.create(filePath, content);

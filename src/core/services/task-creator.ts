@@ -1,6 +1,7 @@
 import { App, TFile, normalizePath } from "obsidian";
 
 import { DailyNoteService } from "./daily-note-service";
+import { ObsidianFile } from "../../lib/file-adapter";
 import { TaskPlannerSettings } from "../../settings/types";
 import { moment } from "../../utils/moment";
 
@@ -22,10 +23,7 @@ export class TaskCreator {
       throw new Error("Could not determine target file for task");
     }
 
-    const currentContent = await this.app.vault.read(targetFile);
-    const newContent = this.insertContent(currentContent, taskLine);
-
-    await this.app.vault.modify(targetFile, newContent);
+    await new ObsidianFile(this.app, targetFile).processContent((content) => this.insertContent(content, taskLine));
   }
 
   private formatTaskLine(task: string): string {

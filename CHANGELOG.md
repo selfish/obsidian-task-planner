@@ -10,6 +10,11 @@ All notable changes to Task Planner are documented here. The project follows [Se
 - Private-first vulnerability reporting guidance and a documented security support policy.
 - A CI dependency audit that fails on high or critical known vulnerabilities.
 
+### Fixed
+
+- Re-resolve indexed tasks against current vault content before mutations and fail safely when task identity is missing or ambiguous ([#120](https://github.com/selfish/obsidian-task-planner/issues/120)).
+- Route task, follow-up, Quick Add, and onboarding appends through Obsidian's atomic file processor when available.
+
 ### Changed
 
 - Replaced the direct `eslint-plugin-react` development dependency with the maintained `@eslint-react/eslint-plugin` alternative while preserving the existing lint baseline.

@@ -141,6 +141,16 @@ describe('UndoManager', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
       expect(handler).toHaveBeenCalledWith(operation);
     });
+
+    it('restores a failed undo to history', () => {
+      undoManager.recordOperation(createMockOperation('test-1'));
+      const operation = undoManager.popForUndo()!;
+
+      undoManager.restoreFailedUndo(operation);
+
+      expect(undoManager.canUndo()).toBe(true);
+      expect(undoManager.canRedo()).toBe(false);
+    });
   });
 
   describe('popForRedo', () => {
@@ -170,6 +180,17 @@ describe('UndoManager', () => {
 
       await new Promise(resolve => setTimeout(resolve, 0));
       expect(handler).toHaveBeenCalledWith(operation);
+    });
+
+    it('restores a failed redo to the redo stack', () => {
+      undoManager.recordOperation(createMockOperation('test-1'));
+      undoManager.popForUndo();
+      const operation = undoManager.popForRedo()!;
+
+      undoManager.restoreFailedRedo(operation);
+
+      expect(undoManager.canUndo()).toBe(false);
+      expect(undoManager.canRedo()).toBe(true);
     });
   });
 

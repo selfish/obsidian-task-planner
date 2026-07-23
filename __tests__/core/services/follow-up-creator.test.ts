@@ -23,14 +23,12 @@ describe("FollowUpCreator", () => {
     return adapter;
   }
 
-  function createMockTodo(
-    overrides: Partial<TaskItem<string>> = {},
-    fileContent = "- [ ] Original task\n"
-  ): TaskItem<string> {
+  function createMockTodo(overrides: Partial<TaskItem<string>> = {}, fileContent?: string): TaskItem<string> {
+    const text = overrides.text ?? "Original task";
     return {
       status: TaskStatus.Todo,
-      text: "Original task",
-      file: createMockFileAdapter(fileContent),
+      text,
+      file: createMockFileAdapter(fileContent ?? `- [ ] ${text}\n`),
       line: 0,
       ...overrides,
     };
@@ -293,6 +291,16 @@ describe("FollowUpCreator", () => {
       expect(lines[0]).toBe("- [ ] Original task");
       expect(lines[1]).toContain("Follow up: Original task");
       expect(lines[2]).toBe("- [ ] Another task");
+    });
+
+    it('relocates the original task before inserting a follow-up', async () => {
+      const fileContent = 'Inserted text\n- [ ] Original task\n- [ ] Another task\n';
+      const todo = createMockTodo({ line: 0 }, fileContent);
+
+      await followUpCreator.createFollowUp(todo, null, { completeOriginal: true });
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      expect(newContent).toMatch(/^Inserted text\n- \[x\] Original task \[completed:: \d{4}-\d{2}-\d{2}\]\n- \[ \] Follow up: Original task\n- \[ \] Another task\n$/);
     });
 
     it("should insert after subtasks", async () => {

@@ -43,11 +43,17 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Define findTodo early so it can be used by undo handler
   const findTodo = React.useCallback(
-    (taskId: string): TaskItem<TFile> | undefined => {
+    (taskId: string, filePath?: string, sourceLine?: string): TaskItem<TFile> | undefined => {
+      let fallback: TaskItem<TFile> | undefined;
+      let fallbackIsAmbiguous = false;
       function searchRecursive(items: TaskItem<TFile>[]): TaskItem<TFile> | undefined {
         for (const todo of items) {
           if (getTaskId(todo) === taskId) {
             return todo;
+          }
+          if (sourceLine !== undefined && todo.file.path === filePath && todo.sourceLine === sourceLine) {
+            fallbackIsAmbiguous = fallback !== undefined;
+            fallback = todo;
           }
           if (todo.subtasks && todo.subtasks.length > 0) {
             const found = searchRecursive(todo.subtasks);
@@ -56,7 +62,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         }
         return undefined;
       }
-      return searchRecursive(todos);
+      return searchRecursive(todos) ?? (fallbackIsAmbiguous ? undefined : fallback);
     },
     [todos]
   );

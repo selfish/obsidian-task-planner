@@ -157,7 +157,7 @@ describe("Tasks metadata compatibility matrix", () => {
     };
     const task: TaskItem<unknown> = {
       status: TaskStatus.Todo,
-      text: "Task",
+      text: "Task 📅 2026-07-23 ⏫",
       file,
       line: 0,
       tags: [],

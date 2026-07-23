@@ -32,6 +32,22 @@ describe('FileTaskParser', () => {
       expect(todos[0].text).toBe('Task one');
       expect(todos[1].text).toBe('Task two');
       expect(todos[2].text).toBe('Task three');
+      expect(todos[0].sourceLine).toBe('- [ ] Task one');
+      expect(todos[0].sourceLineCount).toBe(1);
+    });
+
+    it('records identical source lines as ambiguous at index time', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('- [ ] Same\n- [ ] Same'));
+
+      expect(todos.map((todo) => todo.sourceLineCount)).toEqual([2, 2]);
+    });
+
+    it('should parse CRLF task text without carriage returns', async () => {
+      const file = createMockFileAdapter('- [ ] Task one\r\n- [ ] Task two');
+
+      const todos = await parser.parseMdFile(file);
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Task one', 'Task two']);
     });
 
     it('should set correct line numbers', async () => {
@@ -195,6 +211,31 @@ describe('FileTaskParser', () => {
       expect(todos[1].text).toBe('Another real task');
     });
 
+    it.each([
+      ['tilde', '~~~markdown\n- [ ] Example task\n~~~\n- [ ] Real task'],
+      ['long backtick', '````markdown\n- [ ] Example task\n```\n````\n- [ ] Real task'],
+    ])('should handle %s fences', async (_name, content) => {
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Real task');
+    });
+
+    it('ignores tasks in tab-indented fences nested under a list item', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('-\t\n\t```md\n\t- [ ] Example only\n\t```\n- [ ] Real task'));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
+    it.each([
+      ['unordered', '- ```md\n  - [ ] Example only\n  ```\n- [ ] Real task'],
+      ['ordered', '1. ```md\n   - [ ] Example only\n   ```\n1. [ ] Real task'],
+    ])('ignores tasks in fences opened on %s list markers', async (_name, content) => {
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
     it('should handle multiple code blocks', async () => {
       const content = [
         '- [ ] Task 1',
@@ -232,6 +273,55 @@ describe('FileTaskParser', () => {
       expect(todos).toHaveLength(2);
       expect(todos[0].text).toBe('Real task');
       expect(todos[1].text).toBe('Another real task');
+    });
+
+    it('does not treat a four-space-indented fence marker as a fence', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('    ~~~\n- [ ] Real task'));
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Real task');
+    });
+
+    it('does not treat a thematic break as a list container', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('* * *\n    ~~~\n- [ ] Real task'));
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Real task');
+    });
+
+    it('ignores tasks in a fence nested inside a list item', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('- [ ] Parent\n    ```md\n    - [ ] Example\n    ```'));
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Parent');
+      expect(todos[0].subtasks).toBeUndefined();
+    });
+
+    it('does not treat inline fence characters as block fences', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('Use ```code``` here\n- [ ] Real task'));
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Real task');
+    });
+
+    it('does not close a fence on trailing backticks in code content', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('```md\nUse ```\n- [ ] Example\n```\n- [ ] Real task'));
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Real task');
+    });
+
+    it('does not open a backtick fence whose info string contains a backtick', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('```bad`info\n- [ ] Real task\n```'));
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].text).toBe('Real task');
+    });
+
+    it('ignores tasks in a fence nested under an empty list item', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('-\n    ```md\n    - [ ] Example\n    ```'));
+
+      expect(todos).toHaveLength(0);
     });
 
     it('should handle unclosed code block at end of file', async () => {

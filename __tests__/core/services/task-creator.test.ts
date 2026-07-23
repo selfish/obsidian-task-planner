@@ -225,6 +225,23 @@ describe("TaskCreator", () => {
       expect(mockApp.vault.modify).toHaveBeenCalledWith(inboxFile, "# Inbox\n- [ ] Buy milk");
     });
 
+    it("uses the latest atomic content when available", async () => {
+      const inboxFile = new TFile("Inbox.md");
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(inboxFile);
+      const process = jest.fn(async (_file: TFile, update: (content: string) => string) => update("# Latest\n"));
+      (mockApp.vault as typeof mockApp.vault & { process: typeof process }).process = process;
+
+      settings.quickAdd.destination = "inbox";
+      settings.quickAdd.placement = "append";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      await taskCreator.createTask("Buy milk");
+
+      expect(process).toHaveBeenCalledWith(inboxFile, expect.any(Function));
+      expect(await process.mock.results[0].value).toBe("# Latest\n- [ ] Buy milk");
+      expect(mockApp.vault.modify).not.toHaveBeenCalled();
+    });
+
     it("should create inbox file if it does not exist", async () => {
       const newFile = new TFile("Inbox.md");
       mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(null);

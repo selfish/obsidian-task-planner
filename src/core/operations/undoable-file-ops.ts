@@ -9,6 +9,9 @@ export interface UndoableFileOperationsDeps {
   undoManager: UndoManager;
 }
 
+type RecordedChange = TaskChange | StatusChange | TagChange;
+type SourceIdentity = Pick<TaskItem<unknown>, "sourceLine" | "sourceLineCount">;
+
 /**
  * A wrapper around FileOperations that records undo information.
  * Use this for drag-and-drop operations where undo support is desired.
@@ -24,6 +27,52 @@ export class UndoableFileOperations {
     this.fileOperations = new FileOperations(deps.settings);
   }
 
+  private updateChangeIdentity<T>(change: RecordedChange, task: TaskItem<T>): void {
+    change.taskId = getTaskId(task);
+    change.filePath = task.file.path;
+    change.lineNumber = task.line ?? 0;
+    change.sourceLine = task.sourceLine;
+  }
+
+  private resolveOperationTasks<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): { resolved: Map<RecordedChange, TaskItem<T>>; originals: Map<TaskItem<T>, SourceIdentity> } {
+    const resolved = new Map<RecordedChange, TaskItem<T>>();
+    const originals = new Map<TaskItem<T>, SourceIdentity>();
+    const tasksById = new Map<string, TaskItem<T> | undefined>();
+    for (const change of [...operation.taskChanges, ...operation.tagChanges, ...operation.statusChanges]) {
+      if (!tasksById.has(change.taskId)) tasksById.set(change.taskId, findTask(change.taskId, change.filePath, change.sourceLine));
+      const task = tasksById.get(change.taskId);
+      if (task) {
+        if (!originals.has(task)) originals.set(task, { sourceLine: task.sourceLine, sourceLineCount: task.sourceLineCount });
+        if (change.sourceLine !== undefined) task.sourceLine = change.sourceLine;
+        resolved.set(change, task);
+      }
+    }
+    return { resolved, originals };
+  }
+
+  private restoreUnappliedIdentity<T>(task: TaskItem<T>, originals: Map<TaskItem<T>, SourceIdentity>, applied: Set<TaskItem<T>>): void {
+    if (!applied.has(task)) Object.assign(task, originals.get(task));
+  }
+
+  private async applyChange<T>(task: TaskItem<T> | undefined, update: (task: TaskItem<T>) => Promise<void>, originals: Map<TaskItem<T>, SourceIdentity>, applied: Set<TaskItem<T>>, failed: Set<TaskItem<T>>): Promise<boolean> {
+    if (!task || failed.has(task)) return false;
+    const status = task.status;
+    try {
+      await update(task);
+      applied.add(task);
+      return true;
+    } catch {
+      task.status = status;
+      this.restoreUnappliedIdentity(task, originals, applied);
+      failed.add(task);
+      return false;
+    }
+  }
+
+  private updateOperationIdentities<T>(resolved: Map<RecordedChange, TaskItem<T>>, applied: Set<TaskItem<T>>): void {
+    for (const [change, task] of resolved) if (applied.has(task)) this.updateChangeIdentity(change, task);
+  }
+
   /**
    * Update attribute with undo tracking
    */
@@ -33,6 +82,7 @@ export class UndoableFileOperations {
       return;
     }
 
+    await this.fileOperations.refreshTasks([task]);
     const previousValue = task.attributes?.[attributeName];
     const taskId = getTaskId(task);
 
@@ -46,6 +96,7 @@ export class UndoableFileOperations {
       previousValue,
       newValue: attributeValue,
     };
+    this.updateChangeIdentity(taskChange, task);
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -69,6 +120,7 @@ export class UndoableFileOperations {
       return;
     }
 
+    await this.fileOperations.refreshTasks([task]);
     const previousValue = task.attributes?.[attributeName];
     const taskId = getTaskId(task);
 
@@ -82,6 +134,7 @@ export class UndoableFileOperations {
       previousValue,
       newValue: undefined,
     };
+    this.updateChangeIdentity(taskChange, task);
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -105,6 +158,7 @@ export class UndoableFileOperations {
       return;
     }
 
+    await this.fileOperations.refreshTasks([task]);
     const taskId = getTaskId(task);
     const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
     const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
@@ -122,6 +176,7 @@ export class UndoableFileOperations {
       previousCompletedDate,
       newCompletedDate,
     };
+    this.updateChangeIdentity(statusChange, task);
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -145,6 +200,7 @@ export class UndoableFileOperations {
       return;
     }
 
+    await this.fileOperations.refreshTasks([task]);
     // Check if tag already exists - if so, skip
     if (task.tags?.includes(tag)) {
       return;
@@ -161,6 +217,7 @@ export class UndoableFileOperations {
       tag,
       action: "added",
     };
+    this.updateChangeIdentity(tagChange, task);
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -186,6 +243,7 @@ export class UndoableFileOperations {
       return;
     }
 
+    await this.fileOperations.refreshTasks(tasks);
     // Capture previous values before the update
     const taskChanges: TaskChange[] = tasks.map((task) => ({
       taskId: getTaskId(task),
@@ -197,6 +255,7 @@ export class UndoableFileOperations {
     }));
 
     await this.fileOperations.batchUpdateAttribute(tasks, attributeName, attributeValue);
+    taskChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -222,6 +281,7 @@ export class UndoableFileOperations {
       return;
     }
 
+    await this.fileOperations.refreshTasks(tasks);
     // Capture previous values
     const taskChanges: TaskChange[] = tasks.map((task) => ({
       taskId: getTaskId(task),
@@ -233,6 +293,7 @@ export class UndoableFileOperations {
     }));
 
     await this.fileOperations.batchRemoveAttribute(tasks, attributeName);
+    taskChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -258,9 +319,11 @@ export class UndoableFileOperations {
       return;
     }
 
+    const previousStatusByTask = new Map(tasks.map((task) => [task, previousStatuses.get(getTaskId(task)) ?? task.status]));
+    await this.fileOperations.refreshTasks(tasks);
     const statusChanges: StatusChange[] = tasks.map((task) => {
       const taskId = getTaskId(task);
-      const previousStatus = previousStatuses.get(taskId) ?? task.status;
+      const previousStatus = previousStatusByTask.get(task);
       const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
       const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
       const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
@@ -278,6 +341,7 @@ export class UndoableFileOperations {
     });
 
     await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
+    statusChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -296,14 +360,16 @@ export class UndoableFileOperations {
    * Batch append tag with undo tracking
    */
   async batchAppendTagWithUndo<T>(tasks: TaskItem<T>[], tag: string, description: string): Promise<void> {
-    // Filter out tasks that already have the tag
-    const tasksNeedingTag = tasks.filter((t) => !t.tags?.includes(tag));
-    if (tasksNeedingTag.length === 0) return;
+    if (tasks.length === 0) return;
 
     if (!this.undoManager.isEnabled()) {
       await this.fileOperations.batchAppendTag(tasks, tag);
       return;
     }
+
+    await this.fileOperations.refreshTasks(tasks);
+    const tasksNeedingTag = tasks.filter((task) => !task.tags?.includes(tag));
+    if (tasksNeedingTag.length === 0) return;
 
     const tagChanges: TagChange[] = tasksNeedingTag.map((task) => ({
       taskId: getTaskId(task),
@@ -314,6 +380,7 @@ export class UndoableFileOperations {
     }));
 
     await this.fileOperations.batchAppendTag(tasks, tag);
+    tagChanges.forEach((change, index) => this.updateChangeIdentity(change, tasksNeedingTag[index]));
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -354,6 +421,8 @@ export class UndoableFileOperations {
       return;
     }
 
+    await this.fileOperations.refreshTasks(tasks);
+
     // Capture all pre-operation state
     const taskChanges: TaskChange[] = tasks.map((task) => ({
       taskId: getTaskId(task),
@@ -365,6 +434,7 @@ export class UndoableFileOperations {
     }));
 
     const tagChanges: TagChange[] = [];
+    const tagChangeTasks: TaskItem<T>[] = [];
     if (tag) {
       const tasksNeedingTag = tasks.filter((t) => !t.tags?.includes(tag));
       for (const task of tasksNeedingTag) {
@@ -375,6 +445,7 @@ export class UndoableFileOperations {
           tag,
           action: "added",
         });
+        tagChangeTasks.push(task);
       }
     }
 
@@ -390,6 +461,7 @@ export class UndoableFileOperations {
             tag: tagToRemove,
             action: "removed",
           });
+          tagChangeTasks.push(task);
         }
       }
     }
@@ -431,6 +503,10 @@ export class UndoableFileOperations {
       await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
     }
 
+    taskChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
+    statusChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
+    tagChanges.forEach((change, index) => this.updateChangeIdentity(change, tagChangeTasks[index]));
+
     // Record combined operation
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -448,124 +524,112 @@ export class UndoableFileOperations {
   /**
    * Apply an undo operation - restores previous values
    */
-  async applyUndo<T>(operation: UndoOperation, findTask: (taskId: string) => TaskItem<T> | undefined): Promise<boolean> {
+  async applyUndo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
+    const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
+    const applied = new Set<TaskItem<T>>();
+    const failed = new Set<TaskItem<T>>();
 
-    // Restore task attribute changes
     for (const change of operation.taskChanges) {
-      const task = findTask(change.taskId);
-      if (task) {
-        try {
-          if (change.previousValue === undefined || change.previousValue === false) {
-            await this.fileOperations.removeAttribute(task, change.attributeName);
-          } else {
-            await this.fileOperations.updateAttribute(task, change.attributeName, change.previousValue);
-          }
-        } catch {
-          success = false;
-        }
-      } else {
-        success = false;
-      }
+      const changed = await this.applyChange(
+        resolved.get(change),
+        async (task) => {
+          if (change.previousValue === undefined || change.previousValue === false) await this.fileOperations.removeAttribute(task, change.attributeName);
+          else await this.fileOperations.updateAttribute(task, change.attributeName, change.previousValue);
+        },
+        originals,
+        applied,
+        failed
+      );
+      success = changed && success;
     }
 
-    // Restore tag changes
     for (const change of operation.tagChanges) {
-      const task = findTask(change.taskId);
-      if (task) {
-        try {
-          if (change.action === "added") {
-            // Tag was added, so remove it
-            await this.fileOperations.removeTag(task, change.tag);
-          } else {
-            // Tag was removed, so add it back
-            await this.fileOperations.appendTag(task, change.tag);
-          }
-        } catch {
-          success = false;
-        }
-      } else {
-        success = false;
-      }
+      const changed = await this.applyChange(
+        resolved.get(change),
+        async (task) => {
+          if (change.action === "added") await this.fileOperations.removeTag(task, change.tag);
+          else await this.fileOperations.appendTag(task, change.tag);
+        },
+        originals,
+        applied,
+        failed
+      );
+      success = changed && success;
     }
 
-    // Restore status changes
     for (const change of operation.statusChanges) {
-      const task = findTask(change.taskId);
-      if (task) {
-        try {
+      const changed = await this.applyChange(
+        resolved.get(change),
+        async (task) => {
           task.status = change.previousStatus;
           await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute);
-        } catch {
-          success = false;
-        }
-      } else {
-        success = false;
-      }
+        },
+        originals,
+        applied,
+        failed
+      );
+      success = changed && success;
     }
 
+    this.updateOperationIdentities(resolved, applied);
+    if (!success) this.undoManager.restoreFailedUndo(operation);
     return success;
   }
 
   /**
    * Apply a redo operation - restores new values
    */
-  async applyRedo<T>(operation: UndoOperation, findTask: (taskId: string) => TaskItem<T> | undefined): Promise<boolean> {
+  async applyRedo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
+    const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
+    const applied = new Set<TaskItem<T>>();
+    const failed = new Set<TaskItem<T>>();
 
-    // Reapply task attribute changes
     for (const change of operation.taskChanges) {
-      const task = findTask(change.taskId);
-      if (task) {
-        try {
-          if (change.newValue === undefined || change.newValue === false) {
-            await this.fileOperations.removeAttribute(task, change.attributeName);
-          } else {
-            await this.fileOperations.updateAttribute(task, change.attributeName, change.newValue);
-          }
-        } catch {
-          success = false;
-        }
-      } else {
-        success = false;
-      }
+      const changed = await this.applyChange(
+        resolved.get(change),
+        async (task) => {
+          if (change.newValue === undefined || change.newValue === false) await this.fileOperations.removeAttribute(task, change.attributeName);
+          else await this.fileOperations.updateAttribute(task, change.attributeName, change.newValue);
+        },
+        originals,
+        applied,
+        failed
+      );
+      success = changed && success;
     }
 
-    // Reapply tag changes
     for (const change of operation.tagChanges) {
-      const task = findTask(change.taskId);
-      if (task) {
-        try {
-          if (change.action === "added") {
-            // Tag was added, so add it again
-            await this.fileOperations.appendTag(task, change.tag);
-          } else {
-            // Tag was removed, so remove it again
-            await this.fileOperations.removeTag(task, change.tag);
-          }
-        } catch {
-          success = false;
-        }
-      } else {
-        success = false;
-      }
+      const changed = await this.applyChange(
+        resolved.get(change),
+        async (task) => {
+          if (change.action === "added") await this.fileOperations.appendTag(task, change.tag);
+          else await this.fileOperations.removeTag(task, change.tag);
+        },
+        originals,
+        applied,
+        failed
+      );
+      success = changed && success;
     }
 
-    // Reapply status changes
     for (const change of operation.statusChanges) {
-      const task = findTask(change.taskId);
-      if (task) {
-        try {
+      const changed = await this.applyChange(
+        resolved.get(change),
+        async (task) => {
           task.status = change.newStatus;
           await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute);
-        } catch {
-          success = false;
-        }
-      } else {
-        success = false;
-      }
+        },
+        originals,
+        applied,
+        failed
+      );
+      success = changed && success;
     }
 
+    this.updateOperationIdentities(resolved, applied);
+    if (!success) this.undoManager.restoreFailedRedo(operation);
     return success;
   }
 }

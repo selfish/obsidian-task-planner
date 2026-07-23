@@ -3,10 +3,10 @@ import { TaskItem, TaskStatus } from '../../src/types/task';
 import { FileAdapter } from '../../src/types/file-adapter';
 import { FileOperationError } from '../../src/lib/errors';
 
-const createMockFileAdapter = (content: string): FileAdapter<unknown> => {
+const createMockFileAdapter = (content: string, id = 'file-1'): FileAdapter<unknown> => {
   let currentContent = content;
   return {
-    id: 'file-1',
+    id,
     path: 'notes/todo.md',
     name: 'todo.md',
     getContent: jest.fn().mockImplementation(() => Promise.resolve(currentContent)),
@@ -286,7 +286,7 @@ describe('FileOperations', () => {
 
     it('should update todos in multiple files', async () => {
       const file1 = createMockFileAdapter('- [ ] Task one');
-      const file2 = createMockFileAdapter('- [ ] Task two');
+      const file2 = createMockFileAdapter('- [ ] Task two', 'file-2');
       const todos = [
         createTodo('Task one', 0, file1),
         createTodo('Task two', 0, file2),
@@ -749,7 +749,7 @@ describe('FileOperations', () => {
 
     it('should update todos in multiple files', async () => {
       const file1 = createMockFileAdapter('- [ ] Task one');
-      const file2 = createMockFileAdapter('- [ ] Task two');
+      const file2 = createMockFileAdapter('- [ ] Task two', 'file-2');
       const todos = [
         createTodo('Task one', 0, file1),
         createTodo('Task two', 0, file2),
@@ -775,6 +775,235 @@ describe('FileOperations', () => {
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toContain('- [ ] Task one #project');
+    });
+  });
+
+  describe('stale task line protection', () => {
+    it.each([
+      ['attribute', (task: TaskItem<unknown>) => operations.updateAttribute(task, 'due', '2026-07-23'), '- [ ] Other\nInserted text\n- [ ] Target [due:: 2026-07-23]'],
+      ['status', (task: TaskItem<unknown>) => operations.updateTaskStatus({ ...task, status: TaskStatus.InProgress }, 'completed'), '- [ ] Other\nInserted text\n- [>] Target'],
+      ['tag', (task: TaskItem<unknown>) => operations.appendTag(task, 'work'), '- [ ] Other\nInserted text\n- [ ] Target #work'],
+    ])('relocates a stale task before a single %s update', async (_name, update, expected) => {
+      const file = createMockFileAdapter('- [ ] Other\nInserted text\n- [ ] Target');
+      const task = createTodo('Target', 0, file);
+
+      await update(task);
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe(expected);
+    });
+
+    it.each([
+      ['attribute', (tasks: TaskItem<unknown>[]) => operations.batchUpdateAttribute(tasks, 'due', '2026-07-23'), 'Inserted text\n- [ ] Target one [due:: 2026-07-23]\n- [ ] Target two [due:: 2026-07-23]'],
+      ['status', (tasks: TaskItem<unknown>[]) => operations.batchUpdateTaskStatus(tasks.map((task) => ({ ...task, status: TaskStatus.InProgress })), 'completed'), 'Inserted text\n- [>] Target one\n- [>] Target two'],
+      ['tag', (tasks: TaskItem<unknown>[]) => operations.batchAppendTag(tasks, 'work'), 'Inserted text\n- [ ] Target one #work\n- [ ] Target two #work'],
+    ])('relocates stale tasks before a batch %s update', async (_name, update, expected) => {
+      const file = createMockFileAdapter('Inserted text\n- [ ] Target one\n- [ ] Target two');
+      const tasks = [createTodo('Target one', 0, file), createTodo('Target two', 1, file)];
+
+      await update(tasks);
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe(expected);
+      expect(file.setContent).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['a deleted preceding line', '- [ ] Other\n- [ ] Target', 2, '- [ ] Other\n- [ ] Target [due:: 2026-07-23]'],
+      ['reordered tasks', '- [ ] Other\n- [ ] Target', 0, '- [ ] Other\n- [ ] Target [due:: 2026-07-23]'],
+    ])('relocates after %s', async (_scenario, content, staleLine, expected) => {
+      const file = createMockFileAdapter(content);
+
+      await operations.updateAttribute(createTodo('Target', staleLine, file), 'due', '2026-07-23');
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe(expected);
+    });
+
+    it('keeps resolving a task across sequential tag and status updates', async () => {
+      const file = createMockFileAdapter('Inserted text\n- [ ] Target');
+      const task = { ...createTodo('Target', 0, file), tags: [] };
+
+      await operations.appendTag(task, 'work');
+      task.status = TaskStatus.InProgress;
+      await operations.updateTaskStatus(task, 'completed');
+
+      expect((file.setContent as jest.Mock).mock.calls[1][0]).toBe('Inserted text\n- [>] Target #work');
+    });
+
+    it('fails closed when duplicate task text is ambiguous', async () => {
+      const file = createMockFileAdapter('- [ ] Same task\n- [ ] Same task');
+      const task = createTodo('Same task', 0, file);
+
+      await expect(operations.updateAttribute(task, 'due', '2026-07-23')).rejects.toThrow(/ambiguous/i);
+      expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when one of two originally identical tasks was deleted', async () => {
+      const file = createMockFileAdapter('- [ ] Same task');
+      const task = { ...createTodo('Same task', 0, file), sourceLine: '- [ ] Same task', sourceLineCount: 2 };
+
+      await expect(operations.updateAttribute(task, 'due', '2026-07-23')).rejects.toThrow(/ambiguous/i);
+      expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it('does not confuse a deleted tagged task with a surviving tagged task', async () => {
+      const file = createMockFileAdapter('- [ ] Deploy #home');
+      const task = createTodo('Deploy #work', 0, file);
+
+      await expect(operations.updateAttribute(task, 'due', '2026-07-23')).rejects.toThrow('Task not found');
+
+      expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it('does not confuse a deleted task with a same-text task carrying different metadata', async () => {
+      const file = createMockFileAdapter('- [ ] Deploy [due:: 2026-07-24]');
+      const task = { ...createTodo('Deploy', 0, file), sourceLine: '- [ ] Deploy [due:: 2026-07-23]' };
+
+      await expect(operations.updateAttribute(task, 'priority', 'high')).rejects.toThrow('Task not found');
+
+      expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it('fails the whole batch before writing when a task is missing', async () => {
+      const file = createMockFileAdapter('- [ ] Present task');
+      const tasks = [createTodo('Present task', 0, file), createTodo('Deleted task', 1, file)];
+
+      await expect(operations.batchAppendTag(tasks, 'work')).rejects.toThrow(/not found/i);
+      expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it('fails a multi-file batch before writing when another file is missing a task', async () => {
+      const file1 = createMockFileAdapter('- [ ] Target one', 'file-1');
+      const file2 = createMockFileAdapter('- [ ] Different task', 'file-2');
+      const task1 = createTodo('Target one', 0, file1);
+      const task2 = createTodo('Missing task', 0, file2);
+
+      await expect(operations.batchUpdateAttribute([task1, task2], 'due', '2026-07-23')).rejects.toThrow('Task not found');
+
+      expect(file1.setContent).not.toHaveBeenCalled();
+      expect(file2.setContent).not.toHaveBeenCalled();
+    });
+
+    it('fails when one task is included twice in a batch', async () => {
+      const file = createMockFileAdapter('- [ ] Target');
+      const task = createTodo('Target', 0, file);
+
+      await expect(operations.batchUpdateAttribute([task, task], 'due', '2026-07-23')).rejects.toThrow('Multiple updates resolved to the same task');
+
+      expect(file.setContent).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [new Error('process failed'), 'write'],
+      [new FileOperationError('read failed', 'notes/todo.md', 'read'), 'read'],
+    ])('preserves atomic processor error context', async (error, operation) => {
+      const file = createMockFileAdapter('- [ ] Target') as FileAdapter<unknown> & { processContent: jest.Mock };
+      file.processContent = jest.fn().mockRejectedValue(error);
+      const task = createTodo('Target', 0, file);
+
+      await expect(operations.updateAttribute(task, 'due', '2026-07-23')).rejects.toMatchObject({
+        operation,
+        context: expect.objectContaining({ lineNumber: 0, taskCount: 1 }),
+      });
+    });
+
+    it('restores task identity when the atomic write fails', async () => {
+      const file = createMockFileAdapter('Inserted\n- [ ] Target') as FileAdapter<unknown> & { processContent: jest.Mock };
+      file.processContent = jest.fn(async (update) => {
+        update('Inserted\n- [ ] Target');
+        throw new Error('write failed');
+      });
+      const task = { ...createTodo('Target', 0, file), sourceLine: '- [ ] Target', sourceLineCount: 1, tags: [] };
+
+      await expect(operations.appendTag(task, 'work')).rejects.toThrow(FileOperationError);
+
+      expect(task).toMatchObject({ line: 0, text: 'Target', sourceLine: '- [ ] Target', sourceLineCount: 1, tags: [] });
+    });
+
+    it('uses current tag state instead of a stale task snapshot', async () => {
+      const appendFile = createMockFileAdapter('- [ ] Target');
+      const appendTask = { ...createTodo('Target', 0, appendFile), tags: ['fresh'] };
+      await operations.appendTag(appendTask, 'fresh');
+      expect(appendFile.setContent).toHaveBeenCalledWith('- [ ] Target #fresh');
+
+      const removeFile = createMockFileAdapter('- [ ] Target #stale');
+      const removeTask = { ...createTodo('Target #stale', 0, removeFile), tags: [] };
+      await operations.batchRemoveTag([removeTask], 'stale');
+      expect(removeFile.setContent).toHaveBeenCalledWith('- [ ] Target');
+    });
+
+    it('ignores task examples inside fenced code blocks when resolving identity', async () => {
+      const file = createMockFileAdapter('```md\n- [ ] Target\n```\n- [ ] Target');
+      const task = createTodo('Target', 3, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe('```md\n- [ ] Target\n```\n- [ ] Target [due:: 2026-07-23]');
+    });
+
+    it('ignores task examples in fences under empty list items', async () => {
+      const file = createMockFileAdapter('-\n    ```md\n    - [ ] Target\n    ```\n- [ ] Target');
+      const task = createTodo('Target', 4, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect(file.setContent).toHaveBeenCalledWith('-\n    ```md\n    - [ ] Target\n    ```\n- [ ] Target [due:: 2026-07-23]');
+    });
+
+    it('ignores task examples in tab-indented fences under empty list items', async () => {
+      const file = createMockFileAdapter('-\t\n\t```md\n\t- [ ] Target\n\t```\n- [ ] Target');
+      const task = createTodo('Target', 4, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect(file.setContent).toHaveBeenCalledWith('-\t\n\t```md\n\t- [ ] Target\n\t```\n- [ ] Target [due:: 2026-07-23]');
+    });
+
+    it.each([
+      ['- ```md\n  - [ ] Target\n  ```\n- [ ] Target', 3],
+      ['1. ```md\n   - [ ] Target\n   ```\n1. [ ] Target', 3],
+    ])('ignores task examples in fences opened on list markers', async (content, line) => {
+      const file = createMockFileAdapter(content);
+      const task = createTodo('Target', line, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-23]`);
+    });
+
+    it.each([
+      ['tilde', '~~~md\n- [ ] Target\n~~~\n- [ ] Target', '~~~md\n- [ ] Target\n~~~\n- [ ] Target [due:: 2026-07-23]'],
+      ['long backtick', '````md\n- [ ] Target\n```\n````\n- [ ] Target', '````md\n- [ ] Target\n```\n````\n- [ ] Target [due:: 2026-07-23]'],
+    ])('handles %s fences without matching task examples', async (_name, content, expected) => {
+      const file = createMockFileAdapter(content);
+      const task = createTodo('Target', content.split(/\r\n|\r|\n/).length - 1, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect(file.setContent).toHaveBeenCalledWith(expected);
+    });
+
+    it('preserves mixed line endings and unrelated bytes exactly', async () => {
+      const file = createMockFileAdapter('before\r\n- [ ] Target\ninside\r- [ ] Other');
+      const task = createTodo('Target', 1, file);
+
+      await operations.appendTag(task, 'work');
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe('before\r\n- [ ] Target #work\ninside\r- [ ] Other');
+    });
+
+    it('uses an atomic content processor when the adapter provides one', async () => {
+      const file = createMockFileAdapter('- [ ] Stale snapshot') as FileAdapter<unknown> & {
+        processContent(update: (content: string) => string): Promise<void>;
+      };
+      file.processContent = jest.fn(async (update) => {
+        update('Intervening edit\n- [ ] Target');
+      });
+      const task = createTodo('Target', 0, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect(file.processContent).toHaveBeenCalledTimes(1);
+      expect(file.getContent).not.toHaveBeenCalled();
+      expect(file.setContent).not.toHaveBeenCalled();
     });
   });
 
@@ -829,7 +1058,7 @@ describe('FileOperations', () => {
 
     it('should update todos in multiple files', async () => {
       const file1 = createMockFileAdapter('- [ ] Task one #shared');
-      const file2 = createMockFileAdapter('- [ ] Task two #shared');
+      const file2 = createMockFileAdapter('- [ ] Task two #shared', 'file-2');
       const todos: TaskItem<unknown>[] = [
         { status: TaskStatus.Todo, text: 'Task one #shared', file: file1, line: 0, tags: ['shared'] },
         { status: TaskStatus.Todo, text: 'Task two #shared', file: file2, line: 0, tags: ['shared'] },

@@ -17,6 +17,8 @@ export interface TaskItem<TFile> {
   attributes?: Record<string, string | boolean>;
   tags?: string[];
   line?: number;
+  sourceLine?: string;
+  sourceLineCount?: number;
   subtasks?: TaskItem<TFile>[];
 }
 

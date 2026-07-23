@@ -1,6 +1,7 @@
 import { TaskPlannerSettings } from "../../settings/types";
 import { TaskItem } from "../../types/task";
 import { moment } from "../../utils/moment";
+import { FileOperations } from "../operations/file-operations";
 
 export interface FollowUpOptions {
   /** Mark the original task as complete after creating the follow-up */
@@ -118,33 +119,26 @@ export class FollowUpCreator<T> {
       throw new Error("Cannot insert follow-up: original task has no line number");
     }
 
-    const content = await todo.file.getContent();
-    const eol = content.includes("\r\n") ? "\r\n" : "\n";
-    const lines = content.split(eol);
+    await new FileOperations(this.settings).processTask(todo, (lines, lineNumber, separators) => {
+      if (completeOriginal) {
+        lines[lineNumber] = this.markTaskComplete(lines[lineNumber]);
+      }
 
-    // Mark original task as complete if requested
-    if (completeOriginal) {
-      lines[todo.line] = this.markTaskComplete(lines[todo.line]);
-    }
+      let insertLine = lineNumber + 1;
+      const originalIndent = this.getIndentation(lines[lineNumber]);
+      while (insertLine < lines.length) {
+        const currentLine = lines[insertLine];
+        if (currentLine.trim() === "" || this.getIndentation(currentLine) <= originalIndent) break;
+        insertLine++;
+      }
 
-    // Find insertion point (after original task, accounting for subtasks)
-    let insertLine = todo.line + 1;
-    const originalIndent = this.getIndentation(lines[todo.line]);
-
-    // Skip past any subtasks (lines with greater indentation)
-    while (insertLine < lines.length) {
-      const currentLine = lines[insertLine];
-      // Stop at empty lines or lines with same/less indentation
-      if (currentLine.trim() === "") break;
-      const lineIndent = this.getIndentation(currentLine);
-      if (lineIndent <= originalIndent) break;
-      insertLine++;
-    }
-
-    // Insert the follow-up task with same indentation as original
-    const indentedTaskLine = " ".repeat(originalIndent) + taskLine;
-    lines.splice(insertLine, 0, indentedTaskLine);
-
-    await todo.file.setContent(lines.join(eol));
+      lines.splice(insertLine, 0, " ".repeat(originalIndent) + taskLine);
+      const eol = separators[lineNumber] ?? separators[lineNumber - 1] ?? "\n";
+      if (insertLine === separators.length + 1) {
+        separators[insertLine - 1] = eol;
+      } else {
+        separators.splice(insertLine, 0, eol);
+      }
+    });
   }
 }
