@@ -979,6 +979,16 @@ describe('FileOperations', () => {
       expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-23]`);
     });
 
+    it('ignores task examples after excess list padding', async () => {
+      const content = '-     item\n    ```\n    - [ ] Target\n    ```\n- [ ] Target';
+      const file = createMockFileAdapter(content);
+      const task = createTodo('Target', 4, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-23]`);
+    });
+
     it.each([
       ['tilde', '~~~md\n- [ ] Target\n~~~\n- [ ] Target', '~~~md\n- [ ] Target\n~~~\n- [ ] Target [due:: 2026-07-23]'],
       ['long backtick', '````md\n- [ ] Target\n```\n````\n- [ ] Target', '````md\n- [ ] Target\n```\n````\n- [ ] Target [due:: 2026-07-23]'],

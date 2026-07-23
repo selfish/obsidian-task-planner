@@ -243,6 +243,13 @@ describe('FileTaskParser', () => {
       expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
     });
 
+    it('treats excess list padding as content indentation', async () => {
+      const content = '-     item\n    ```\n    - [ ] Example only\n    ```\n- [ ] Real task';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
     it('should handle multiple code blocks', async () => {
       const content = [
         '- [ ] Task 1',

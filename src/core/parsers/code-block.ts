@@ -19,7 +19,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
     const indent = expanded.match(/^ */)?.[0].length ?? 0;
     if (open && indent < open.minIndent) open = undefined;
     const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded);
-    const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?:[ \t]+|$)/.exec(expanded);
+    const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?:[ \t]{1,4}(?![ \t])|[ \t]|$)/.exec(expanded);
 
     if (!open) {
       if (listItem) listContentIndent = columnWidth(listItem[0]) + (/[ \t]$/.test(listItem[0]) ? 0 : 1);
