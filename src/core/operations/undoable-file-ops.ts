@@ -20,6 +20,7 @@ export class UndoableFileOperations {
   private fileOperations: FileOperations;
   private undoManager: UndoManager;
   private settings: TaskPlannerSettings;
+  private historyOperation: Promise<unknown> = Promise.resolve();
 
   constructor(deps: UndoableFileOperationsDeps) {
     this.settings = deps.settings;
@@ -67,6 +68,12 @@ export class UndoableFileOperations {
       failed.add(task);
       return false;
     }
+  }
+
+  private serializeHistoryOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.historyOperation.then(operation, operation);
+    this.historyOperation = result.catch(() => undefined);
+    return result;
   }
 
   private updateOperationIdentities<T>(resolved: Map<RecordedChange, TaskItem<T>>, applied: Set<TaskItem<T>>): void {
@@ -524,7 +531,11 @@ export class UndoableFileOperations {
   /**
    * Apply an undo operation - restores previous values
    */
-  async applyUndo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
+  applyUndo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
+    return this.serializeHistoryOperation(() => this.applyUndoNow(operation, findTask));
+  }
+
+  private async applyUndoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
     const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
     const applied = new Set<TaskItem<T>>();
@@ -580,7 +591,11 @@ export class UndoableFileOperations {
   /**
    * Apply a redo operation - restores new values
    */
-  async applyRedo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
+  applyRedo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
+    return this.serializeHistoryOperation(() => this.applyRedoNow(operation, findTask));
+  }
+
+  private async applyRedoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
     const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
     const applied = new Set<TaskItem<T>>();

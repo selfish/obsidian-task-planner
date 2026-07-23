@@ -151,6 +151,19 @@ describe('UndoManager', () => {
       expect(undoManager.canUndo()).toBe(true);
       expect(undoManager.canRedo()).toBe(false);
     });
+
+    it('restores concurrent failed undos in timestamp order', () => {
+      undoManager.recordOperation(createMockOperation('older', Date.now() - 2));
+      undoManager.recordOperation(createMockOperation('newer', Date.now() - 1));
+      const newer = undoManager.popForUndo()!;
+      const older = undoManager.popForUndo()!;
+
+      undoManager.restoreFailedUndo(newer);
+      undoManager.restoreFailedUndo(older);
+
+      expect(undoManager.popForUndo()?.id).toBe('newer');
+      expect(undoManager.popForUndo()?.id).toBe('older');
+    });
   });
 
   describe('popForRedo', () => {

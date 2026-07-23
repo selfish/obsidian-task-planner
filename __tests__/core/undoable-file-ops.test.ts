@@ -865,6 +865,43 @@ describe('UndoableFileOperations', () => {
 
       expect(success).toBe(false);
     });
+
+    it('serializes concurrent undo applications', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      let calls = 0;
+      let active = 0;
+      let maxActive = 0;
+      mockFileOps.updateAttribute.mockImplementation(async () => {
+        calls++;
+        active++;
+        maxActive = Math.max(maxActive, active);
+        if (calls === 1) await gate;
+        active--;
+      });
+      const tasks = [createTodo('1', 'Task 1'), createTodo('2', 'Task 2')];
+      const operation = (id: string): UndoOperation => ({
+        id,
+        timestamp: Date.now(),
+        type: 'single',
+        description: id,
+        taskChanges: [{ taskId: id, filePath: `notes/${id}.md`, lineNumber: 1, attributeName: 'due', previousValue: '2026-07-22', newValue: '2026-07-23' }],
+        statusChanges: [],
+        tagChanges: [],
+      });
+
+      const first = undoableOps.applyUndo(operation('1'), (id) => tasks[Number(id) - 1]);
+      const second = undoableOps.applyUndo(operation('2'), (id) => tasks[Number(id) - 1]);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(mockFileOps.updateAttribute).toHaveBeenCalledTimes(1);
+      release();
+
+      expect(await Promise.all([first, second])).toEqual([true, true]);
+      expect(maxActive).toBe(1);
+    });
   });
 
   describe('applyRedo', () => {

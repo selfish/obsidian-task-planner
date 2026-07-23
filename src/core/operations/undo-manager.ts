@@ -113,9 +113,11 @@ export class UndoManager {
   }
 
   restoreFailedUndo(operation: UndoOperation): void {
-    if (this.redoStack[this.redoStack.length - 1] !== operation) return;
-    this.redoStack.pop();
+    const index = this.redoStack.indexOf(operation);
+    if (index === -1) return;
+    this.redoStack.splice(index, 1);
     this.history.push(operation);
+    this.history.sort((a, b) => a.timestamp - b.timestamp);
   }
 
   /**
@@ -133,9 +135,11 @@ export class UndoManager {
   }
 
   restoreFailedRedo(operation: UndoOperation): void {
-    if (this.history[this.history.length - 1] !== operation) return;
-    this.history.pop();
+    const index = this.history.indexOf(operation);
+    if (index === -1) return;
+    this.history.splice(index, 1);
     this.redoStack.push(operation);
+    this.redoStack.sort((a, b) => b.timestamp - a.timestamp);
   }
 
   clearHistory(): void {

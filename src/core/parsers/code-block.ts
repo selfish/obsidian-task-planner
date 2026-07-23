@@ -11,12 +11,13 @@ function expandIndent(line: string): string {
 
 export function fencedCodeBlockLines(lines: string[]): Set<number> {
   const fenced = new Set<number>();
-  let open: { character: string; length: number; maxIndent: number } | undefined;
+  let open: { character: string; length: number; minIndent: number; maxIndent: number } | undefined;
   let listContentIndent: number | undefined;
 
   lines.forEach((line, index) => {
     const expanded = expandIndent(line);
     const indent = expanded.match(/^ */)?.[0].length ?? 0;
+    if (open && indent < open.minIndent) open = undefined;
     const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded);
     const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?:[ \t]+|$)/.exec(expanded);
 
@@ -28,14 +29,15 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
       const maxIndent = listItem ? listContentIndent + 3 : listContentIndent !== undefined && indent >= listContentIndent ? listContentIndent + 3 : 3;
       const match = fenceIndent <= maxIndent ? /^(`{3,}|~{3,})(.*)$/.exec(expanded.slice(listItem ? listItem[0].length : indent)) : null;
       if (match && !(match[1][0] === "`" && match[2].includes("`"))) {
-        open = { character: match[1][0], length: match[1].length, maxIndent };
+        const minIndent = listContentIndent !== undefined && fenceIndent >= listContentIndent ? listContentIndent : 0;
+        open = { character: match[1][0], length: match[1].length, minIndent, maxIndent };
         fenced.add(index);
       }
       return;
     }
 
     fenced.add(index);
-    const match = indent <= open.maxIndent ? /^(`{3,}|~{3,})(.*)$/.exec(expanded.slice(indent)) : null;
+    const match = indent >= open.minIndent && indent <= open.maxIndent ? /^(`{3,}|~{3,})(.*)$/.exec(expanded.slice(indent)) : null;
     if (match && match[1][0] === open.character && match[1].length >= open.length && match[2].trim() === "") open = undefined;
   });
 
