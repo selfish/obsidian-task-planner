@@ -56,6 +56,8 @@ const DEFAULT_CONFIG: UndoManagerConfig = {
 export class UndoManager {
   private history: UndoOperation[] = [];
   private redoStack: UndoOperation[] = [];
+  private operationOrder = new WeakMap<UndoOperation, number>();
+  private nextOperationOrder = 0;
   private config: UndoManagerConfig;
 
   readonly onOperationRecorded = new TaskPlannerEvent<UndoOperation>();
@@ -78,6 +80,7 @@ export class UndoManager {
   recordOperation(operation: UndoOperation): void {
     if (!this.config.enabled) return;
 
+    this.operationOrder.set(operation, this.nextOperationOrder++);
     this.history.push(operation);
     this.redoStack = []; // Clear redo stack on new operation
     this.pruneOldOperations();
@@ -117,7 +120,7 @@ export class UndoManager {
     if (index === -1) return;
     this.redoStack.splice(index, 1);
     this.history.push(operation);
-    this.history.sort((a, b) => a.timestamp - b.timestamp);
+    this.history.sort((a, b) => (this.operationOrder.get(a) ?? 0) - (this.operationOrder.get(b) ?? 0));
   }
 
   /**
@@ -139,7 +142,7 @@ export class UndoManager {
     if (index === -1) return;
     this.history.splice(index, 1);
     this.redoStack.push(operation);
-    this.redoStack.sort((a, b) => b.timestamp - a.timestamp);
+    this.redoStack.sort((a, b) => (this.operationOrder.get(b) ?? 0) - (this.operationOrder.get(a) ?? 0));
   }
 
   clearHistory(): void {

@@ -39,6 +39,7 @@ function groupTasksByFile<T>(tasks: TaskItem<T>[]): { file: FileAdapter<T>; task
 
 type TaskLineCandidate = { lineNumber: number; text: string; tags: string[]; attributes: Record<string, string | boolean> };
 type TaskIdentity = Pick<TaskItem<unknown>, "line" | "text" | "tags" | "attributes" | "sourceLine" | "sourceLineCount">;
+type FileChange<T> = { file: FileAdapter<T>; tasks: TaskItem<T>[]; before: string; after: string };
 
 export class FileOperations {
   lineParser: LineParser;
@@ -156,11 +157,16 @@ export class FileOperations {
     }
   }
 
-  private async processFile<T>(file: FileAdapter<T>, tasks: TaskItem<T>[], transform: (content: string) => string, batch: boolean): Promise<void> {
+  private async processFile<T>(file: FileAdapter<T>, tasks: TaskItem<T>[], transform: (content: string) => string, batch: boolean): Promise<FileChange<T> | undefined> {
     if (file.processContent) {
+      let change: FileChange<T> | undefined;
       try {
-        await file.processContent(transform);
-        return;
+        await file.processContent((content) => {
+          const updated = transform(content);
+          change = { file, tasks, before: content, after: updated };
+          return updated;
+        });
+        return change;
       } catch (error) {
         if (error instanceof FileOperationError) throw this.addErrorContext(error, tasks);
         throw new FileOperationError(`Failed to update file: ${file.path}`, file.path, "write", "HIGH", {
@@ -173,9 +179,11 @@ export class FileOperations {
 
     const content = await this.readFile(file, tasks, batch);
     const updated = transform(content);
-    if (updated === content) return;
+    const change = { file, tasks, before: content, after: updated };
+    if (updated === content) return change;
     try {
       await file.setContent(updated);
+      return change;
     } catch (error) {
       throw new FileOperationError(batch ? `Failed to write file during batch update: ${file.path}` : `Failed to write file: ${file.path}`, file.path, "write", "HIGH", {
         originalError: error instanceof Error ? error.message : String(error),
@@ -185,17 +193,51 @@ export class FileOperations {
     }
   }
 
-  private async updateFile<T>(file: FileAdapter<T>, tasks: TaskItem<T>[], updateLine: (line: LineStructure, task: TaskItem<T>) => boolean | void, batch: boolean): Promise<void> {
-    await this.restoreIdentityOnFailure(tasks, () => this.processFile(file, tasks, (content) => this.updateContent(content, tasks, updateLine), batch));
+  private async updateFile<T>(file: FileAdapter<T>, tasks: TaskItem<T>[], updateLine: (line: LineStructure, task: TaskItem<T>) => boolean | void, batch: boolean): Promise<FileChange<T> | undefined> {
+    let change: FileChange<T> | undefined;
+    await this.restoreIdentityOnFailure(tasks, async () => {
+      change = await this.processFile(file, tasks, (content) => this.updateContent(content, tasks, updateLine), batch);
+    });
+    return change;
   }
 
   private async updateBatches<T>(tasks: TaskItem<T>[], updateLine: (line: LineStructure, task: TaskItem<T>) => boolean | void): Promise<void> {
     const tasksWithLines = tasks.filter((task) => task.line !== undefined);
     const groups = groupTasksByFile(tasksWithLines);
-    await this.refreshTasks(tasksWithLines);
-    for (const { file, tasks: fileTasks } of groups) {
-      await this.updateFile(file, fileTasks, updateLine, true);
-    }
+    await this.restoreIdentityOnFailure(tasksWithLines, async () => {
+      await this.refreshTasks(tasksWithLines);
+      const completed: FileChange<T>[] = [];
+      try {
+        for (const { file, tasks: fileTasks } of groups) {
+          const change = await this.updateFile(file, fileTasks, updateLine, true);
+          if (change && change.before !== change.after) completed.push(change);
+        }
+      } catch (error) {
+        const rollbackErrors: string[] = [];
+        // ponytail: Obsidian has no cross-file transaction; compensate only while each committed file still matches our write.
+        for (const change of completed.reverse()) {
+          try {
+            await this.processFile(
+              change.file,
+              change.tasks,
+              (content) => {
+                if (content !== change.after) throw new FileOperationError(`File changed before batch rollback: ${change.file.path}`, change.file.path, "write", "HIGH");
+                return change.before;
+              },
+              true
+            );
+          } catch (rollbackError) {
+            rollbackErrors.push(rollbackError instanceof Error ? rollbackError.message : String(rollbackError));
+          }
+        }
+        if (rollbackErrors.length) {
+          const originalError = error instanceof Error ? error.message : String(error);
+          const path = error instanceof FileOperationError ? error.filePath : (completed[0]?.file.path ?? "unknown");
+          throw new FileOperationError(`Batch update failed and rollback was incomplete: ${path}`, path, "write", "HIGH", { originalError, rollbackErrors });
+        }
+        throw error;
+      }
+    });
   }
 
   async refreshTasks<T>(tasks: TaskItem<T>[]): Promise<void> {
@@ -209,8 +251,8 @@ export class FileOperations {
 
   async processTask<T>(task: TaskItem<T>, update: (lines: string[], lineNumber: number, separators: string[]) => void): Promise<void> {
     if (task.line === undefined) return;
-    await this.restoreIdentityOnFailure([task], () =>
-      this.processFile(
+    await this.restoreIdentityOnFailure([task], async () => {
+      await this.processFile(
         task.file,
         [task],
         (content) => {
@@ -222,8 +264,8 @@ export class FileOperations {
           return this.joinContent(lines, separators);
         },
         false
-      )
-    );
+      );
+    });
   }
 
   async updateAttribute<T>(task: TaskItem<T>, attributeName: string, attributeValue: string | boolean | undefined) {

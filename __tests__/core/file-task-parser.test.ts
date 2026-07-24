@@ -264,6 +264,13 @@ describe('FileTaskParser', () => {
       expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
     });
 
+    it('restores the outer list indent after a nested list', async () => {
+      const content = '- outer\n  - inner\n  ~~~md\n  - [ ] Example only\n- [ ] Real task';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
     it('should handle multiple code blocks', async () => {
       const content = [
         '- [ ] Task 1',

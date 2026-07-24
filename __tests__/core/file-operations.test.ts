@@ -882,6 +882,52 @@ describe('FileOperations', () => {
       expect(file2.setContent).not.toHaveBeenCalled();
     });
 
+    it('rolls back earlier files when a later batch write fails', async () => {
+      const state = new Map([
+        ['file-1', '- [ ] Target one'],
+        ['file-2', '- [ ] Target two'],
+      ]);
+      const file1 = createMockFileAdapter(state.get('file-1')!, 'file-1');
+      const file2 = createMockFileAdapter(state.get('file-2')!, 'file-2');
+      file1.getContent = jest.fn(async () => state.get('file-1')!);
+      file2.getContent = jest.fn(async () => state.get('file-2')!);
+      file1.processContent = jest.fn(async (update) => {
+        state.set('file-1', update(state.get('file-1')!));
+      });
+      file2.processContent = jest.fn().mockRejectedValue(new Error('write failed'));
+      const task1 = { ...createTodo('Target one', 0, file1), sourceLine: '- [ ] Target one', sourceLineCount: 1, tags: [] };
+      const task2 = { ...createTodo('Target two', 0, file2), sourceLine: '- [ ] Target two', sourceLineCount: 1, tags: [] };
+
+      await expect(operations.batchAppendTag([task1, task2], 'work')).rejects.toMatchObject({
+        context: expect.objectContaining({ originalError: 'write failed' }),
+      });
+
+      expect(state.get('file-1')).toBe('- [ ] Target one');
+      expect(task1).toMatchObject({ text: 'Target one', sourceLine: '- [ ] Target one' });
+    });
+
+    it('does not overwrite an intervening edit during batch rollback', async () => {
+      const state = new Map([
+        ['file-1', '- [ ] Target one'],
+        ['file-2', '- [ ] Target two'],
+      ]);
+      const file1 = createMockFileAdapter(state.get('file-1')!, 'file-1');
+      const file2 = createMockFileAdapter(state.get('file-2')!, 'file-2');
+      file1.getContent = jest.fn(async () => state.get('file-1')!);
+      file2.getContent = jest.fn(async () => state.get('file-2')!);
+      file1.processContent = jest.fn(async (update) => {
+        state.set('file-1', update(state.get('file-1')!));
+      });
+      file2.processContent = jest.fn(async () => {
+        state.set('file-1', `${state.get('file-1')}\nExternal edit`);
+        throw new Error('write failed');
+      });
+
+      await expect(operations.batchAppendTag([createTodo('Target one', 0, file1), createTodo('Target two', 0, file2)], 'work')).rejects.toThrow('rollback was incomplete');
+
+      expect(state.get('file-1')).toBe('- [ ] Target one #work\nExternal edit');
+    });
+
     it('fails when one task is included twice in a batch', async () => {
       const file = createMockFileAdapter('- [ ] Target');
       const task = createTodo('Target', 0, file);
@@ -992,6 +1038,7 @@ describe('FileOperations', () => {
     it.each([
       ['blank lines', '- ```md\n  code\n\n  - [ ] Target\n  ```\n- [ ] Target', 5],
       ['post-marker tabs', '-\t\titem\n    ```\n    - [ ] Target\n    ```\n- [ ] Target', 4],
+      ['nested list dedent', '- outer\n  - inner\n  ~~~md\n  - [ ] Target\n- [ ] Target', 4],
     ])('ignores task examples with %s in list-nested fences', async (_name, content, line) => {
       const file = createMockFileAdapter(content);
       const task = createTodo('Target', line, file);

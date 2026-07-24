@@ -152,9 +152,23 @@ describe('UndoManager', () => {
       expect(undoManager.canRedo()).toBe(false);
     });
 
-    it('restores concurrent failed undos in timestamp order', () => {
+    it('restores concurrent failed undos in recording order', () => {
       undoManager.recordOperation(createMockOperation('older', Date.now() - 2));
       undoManager.recordOperation(createMockOperation('newer', Date.now() - 1));
+      const newer = undoManager.popForUndo()!;
+      const older = undoManager.popForUndo()!;
+
+      undoManager.restoreFailedUndo(newer);
+      undoManager.restoreFailedUndo(older);
+
+      expect(undoManager.popForUndo()?.id).toBe('newer');
+      expect(undoManager.popForUndo()?.id).toBe('older');
+    });
+
+    it('restores concurrent failed undos with equal timestamps in stack order', () => {
+      const timestamp = Date.now();
+      undoManager.recordOperation(createMockOperation('older', timestamp));
+      undoManager.recordOperation(createMockOperation('newer', timestamp));
       const newer = undoManager.popForUndo()!;
       const older = undoManager.popForUndo()!;
 
@@ -204,6 +218,22 @@ describe('UndoManager', () => {
 
       expect(undoManager.canUndo()).toBe(false);
       expect(undoManager.canRedo()).toBe(true);
+    });
+
+    it('restores concurrent failed redos with equal timestamps in stack order', () => {
+      const timestamp = Date.now();
+      undoManager.recordOperation(createMockOperation('older', timestamp));
+      undoManager.recordOperation(createMockOperation('newer', timestamp));
+      undoManager.popForUndo();
+      undoManager.popForUndo();
+      const older = undoManager.popForRedo()!;
+      const newer = undoManager.popForRedo()!;
+
+      undoManager.restoreFailedRedo(older);
+      undoManager.restoreFailedRedo(newer);
+
+      expect(undoManager.popForRedo()?.id).toBe('older');
+      expect(undoManager.popForRedo()?.id).toBe('newer');
     });
   });
 

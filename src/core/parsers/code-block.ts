@@ -1,9 +1,3 @@
-function columnWidth(value: string): number {
-  let columns = 0;
-  for (const character of value) columns += character === "\t" ? 4 - (columns % 4) : 1;
-  return columns;
-}
-
 function expandTabs(line: string): string {
   let columns = 0;
   let expanded = "";
@@ -18,7 +12,7 @@ function expandTabs(line: string): string {
 export function fencedCodeBlockLines(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let open: { character: string; length: number; minIndent: number; maxIndent: number } | undefined;
-  let listContentIndent: number | undefined;
+  const listContentIndents: number[] = [];
 
   lines.forEach((line, index) => {
     const expanded = expandTabs(line);
@@ -28,9 +22,15 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
     const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
 
     if (!open) {
-      if (listItem) listContentIndent = columnWidth(listItem[0]) + (/[ \t]$/.test(listItem[0]) ? 0 : 1);
-      else if (expanded.trim() && listContentIndent !== undefined && indent < listContentIndent) listContentIndent = undefined;
+      if (listItem) {
+        const markerIndent = listItem[1].length;
+        while (listContentIndents.length && markerIndent < listContentIndents[listContentIndents.length - 1]) listContentIndents.pop();
+        listContentIndents.push(listItem[0].length + (listItem[0].endsWith(" ") ? 0 : 1));
+      } else if (expanded.trim()) {
+        while (listContentIndents.length && indent < listContentIndents[listContentIndents.length - 1]) listContentIndents.pop();
+      }
 
+      const listContentIndent = listContentIndents[listContentIndents.length - 1];
       const fenceIndent = listItem ? listContentIndent : indent;
       const maxIndent = listItem ? listContentIndent + 3 : listContentIndent !== undefined && indent >= listContentIndent ? listContentIndent + 3 : 3;
       const match = fenceIndent <= maxIndent ? /^(`{3,}|~{3,})(.*)$/.exec(expanded.slice(listItem ? listItem[0].length : indent)) : null;
