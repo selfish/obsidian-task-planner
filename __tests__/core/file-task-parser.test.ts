@@ -250,6 +250,20 @@ describe('FileTaskParser', () => {
       expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
     });
 
+    it('keeps blank lines inside list-nested fences', async () => {
+      const content = '- ```md\n  code\n\n  - [ ] Example only\n  ```\n- [ ] Real task';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
+    it('measures post-marker tabs in columns', async () => {
+      const content = '-\t\titem\n    ```\n    - [ ] Example only\n    ```\n- [ ] Real task';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
     it('should handle multiple code blocks', async () => {
       const content = [
         '- [ ] Task 1',

@@ -990,6 +990,18 @@ describe('FileOperations', () => {
     });
 
     it.each([
+      ['blank lines', '- ```md\n  code\n\n  - [ ] Target\n  ```\n- [ ] Target', 5],
+      ['post-marker tabs', '-\t\titem\n    ```\n    - [ ] Target\n    ```\n- [ ] Target', 4],
+    ])('ignores task examples with %s in list-nested fences', async (_name, content, line) => {
+      const file = createMockFileAdapter(content);
+      const task = createTodo('Target', line, file);
+
+      await operations.updateAttribute(task, 'due', '2026-07-23');
+
+      expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-23]`);
+    });
+
+    it.each([
       ['tilde', '~~~md\n- [ ] Target\n~~~\n- [ ] Target', '~~~md\n- [ ] Target\n~~~\n- [ ] Target [due:: 2026-07-23]'],
       ['long backtick', '````md\n- [ ] Target\n```\n````\n- [ ] Target', '````md\n- [ ] Target\n```\n````\n- [ ] Target [due:: 2026-07-23]'],
     ])('handles %s fences without matching task examples', async (_name, content, expected) => {

@@ -4,9 +4,15 @@ function columnWidth(value: string): number {
   return columns;
 }
 
-function expandIndent(line: string): string {
-  const indent = line.match(/^[ \t]*/)?.[0] ?? "";
-  return " ".repeat(columnWidth(indent)) + line.slice(indent.length);
+function expandTabs(line: string): string {
+  let columns = 0;
+  let expanded = "";
+  for (const character of line) {
+    const width = character === "\t" ? 4 - (columns % 4) : 1;
+    expanded += character === "\t" ? " ".repeat(width) : character;
+    columns += width;
+  }
+  return expanded;
 }
 
 export function fencedCodeBlockLines(lines: string[]): Set<number> {
@@ -15,11 +21,11 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
   let listContentIndent: number | undefined;
 
   lines.forEach((line, index) => {
-    const expanded = expandIndent(line);
+    const expanded = expandTabs(line);
     const indent = expanded.match(/^ */)?.[0].length ?? 0;
-    if (open && indent < open.minIndent) open = undefined;
+    if (open && expanded.trim() && indent < open.minIndent) open = undefined;
     const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded);
-    const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?:[ \t]{1,4}(?![ \t])|[ \t]|$)/.exec(expanded);
+    const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
 
     if (!open) {
       if (listItem) listContentIndent = columnWidth(listItem[0]) + (/[ \t]$/.test(listItem[0]) ? 0 : 1);
