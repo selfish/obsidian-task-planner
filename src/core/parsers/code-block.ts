@@ -18,16 +18,18 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
     const expanded = expandTabs(line);
     const indent = expanded.match(/^ */)?.[0].length ?? 0;
     if (open && expanded.trim() && indent < open.minIndent) open = undefined;
-    const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded);
-    const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
-
     if (!open) {
+      if (expanded.trim()) {
+        while (listContentIndents.length && indent < listContentIndents[listContentIndents.length - 1]) listContentIndents.pop();
+      }
+
+      const activeListIndent = listContentIndents[listContentIndents.length - 1] ?? 0;
+      const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded.slice(Math.min(activeListIndent, indent)));
+      const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
       if (listItem) {
         const markerIndent = listItem[1].length;
         while (listContentIndents.length && markerIndent < listContentIndents[listContentIndents.length - 1]) listContentIndents.pop();
         listContentIndents.push(listItem[0].length + (listItem[0].endsWith(" ") ? 0 : 1));
-      } else if (expanded.trim()) {
-        while (listContentIndents.length && indent < listContentIndents[listContentIndents.length - 1]) listContentIndents.pop();
       }
 
       const listContentIndent = listContentIndents[listContentIndents.length - 1];

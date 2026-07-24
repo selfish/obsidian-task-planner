@@ -271,6 +271,13 @@ describe('FileTaskParser', () => {
       expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
     });
 
+    it('handles thematic breaks before dedented nested-list fence closers', async () => {
+      const content = '- outer\n  - inner\n    * * *\n      ```\n      example\n    ```\n    - [ ] Real task';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
     it('should handle multiple code blocks', async () => {
       const content = [
         '- [ ] Task 1',
