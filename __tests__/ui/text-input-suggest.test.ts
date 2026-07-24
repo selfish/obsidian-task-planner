@@ -152,3 +152,20 @@ describe('TextInputSuggest with different types', () => {
     expect(el.textContent).toBe('42: Answer');
   });
 });
+
+describe('Obsidian 1.0 compatibility', () => {
+  it('loads without AbstractInputSuggest', () => {
+    jest.resetModules();
+    jest.doMock('obsidian', () => ({ AbstractInputSuggest: undefined }));
+
+    jest.isolateModules(() => {
+      const { CompatibleInputSuggest } = require('../../src/ui/text-input-suggest');
+      class TestSuggest extends CompatibleInputSuggest {}
+      const suggest = new TestSuggest();
+
+      expect(() => suggest.close()).not.toThrow();
+    });
+
+    jest.dontMock('obsidian');
+  });
+});

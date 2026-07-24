@@ -1,4 +1,6 @@
-import { AbstractInputSuggest, App, TFile } from "obsidian";
+import { App, TFile } from "obsidian";
+
+import { CompatibleInputSuggest } from "./text-input-suggest";
 
 /**
  * Suggest class for wikilink completion in contenteditable elements.
@@ -8,7 +10,7 @@ import { AbstractInputSuggest, App, TFile } from "obsidian";
  * which are not fully supported in jsdom, making it difficult to unit test.
  * It is excluded from coverage requirements.
  */
-export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
+export class WikilinkSuggest extends CompatibleInputSuggest<TFile> {
   private inputEl: HTMLDivElement;
 
   constructor(
