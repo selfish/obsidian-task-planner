@@ -326,10 +326,10 @@ export class UndoableFileOperations {
       return;
     }
 
-    const previousStatusByTask = new Map(tasks.map((task) => [task, previousStatuses.get(getTaskId(task)) ?? task.status]));
+    const initialTaskIds = new Map(tasks.map((task) => [task, getTaskId(task)]));
+    const previousStatusByTask = new Map(tasks.map((task) => [task, previousStatuses.get(initialTaskIds.get(task)) ?? task.status]));
     await this.fileOperations.refreshTasks(tasks);
     const statusChanges: StatusChange[] = tasks.map((task) => {
-      const taskId = getTaskId(task);
       const previousStatus = previousStatusByTask.get(task);
       const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
       const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
@@ -337,7 +337,7 @@ export class UndoableFileOperations {
       const newCompletedDate = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
 
       return {
-        taskId,
+        taskId: initialTaskIds.get(task),
         filePath: task.file.path,
         lineNumber: task.line ?? 0,
         previousStatus,
@@ -348,7 +348,11 @@ export class UndoableFileOperations {
     });
 
     await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
-    statusChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
+    statusChanges.forEach((change, index) => {
+      change.filePath = tasks[index].file.path;
+      change.lineNumber = tasks[index].line ?? 0;
+      change.sourceLine = tasks[index].sourceLine;
+    });
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),

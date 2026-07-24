@@ -59,6 +59,18 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toMatch(/^- \[x\] Task \[completed:: \d{4}-\d{2}-\d{2}\]$/);
   });
 
+  it('finds the indexed task when a cloned status task moved before writing', async () => {
+    const { task, undoManager, operations, findTask, content, replaceContent } = setup('- [ ] Task');
+    const taskId = getTaskId(task);
+    replaceContent('Note\n- [ ] Task');
+
+    await operations.batchUpdateTaskStatusWithUndo([{ ...task, status: TaskStatus.Complete }], new Map([[taskId, task.status]]), 'Complete task');
+    const operation = undoManager.getLastOperation()!;
+
+    expect(await operations.applyUndo(operation, findTask)).toBe(true);
+    expect(content()).toBe('Note\n- [ ] Task');
+  });
+
   it('finds a uniquely matching task after reindexing changes its line number', async () => {
     const { task, undoManager, operations, content, replaceContent } = setup('- [ ] Task');
 
