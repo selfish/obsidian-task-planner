@@ -94,7 +94,7 @@ export class TaskCreator {
   private getFrontmatterEndPosition(content: string): number {
     if (!/^---(?:\r\n|\r|\n)/.test(content)) return 0;
     const closing = /(?:\r\n|\r|\n)---(?=\r\n|\r|\n|$)/.exec(content.slice(3));
-    return closing ? 3 + (closing.index ?? 0) + closing[0].length : 0;
+    return closing ? 3 + closing.index + closing[0].length : 0;
   }
 
   private prependAfterFrontmatter(content: string, taskLine: string, eol = content.match(/\r\n|\r|\n/)?.[0] ?? "\n"): string {

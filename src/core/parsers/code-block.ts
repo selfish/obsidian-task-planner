@@ -20,7 +20,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
   lines.forEach((line, index) => {
     const expanded = expandTabs(line);
     const blank = !expanded.trim();
-    const indent = expanded.match(/^ */)?.[0].length ?? 0;
+    const indent = expanded.search(/[^ ]|$/);
     if (open && !blank && indent < open.minIndent) open = undefined;
     if (!open) {
       if (indentedCodeMinIndent !== undefined) {
