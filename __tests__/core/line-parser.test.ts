@@ -272,6 +272,9 @@ describe('LineParser', () => {
       expect(parser.appendTag('Task [[Alias|[due:: sample]]]', 'work')).toBe('Task [[Alias|[due:: sample]]] #work');
       expect(parser.parseAttributes('Task `[due:: sample]` [due:: sample]')).toMatchObject({ textWithoutAttributes: 'Task `[due:: sample]`', attributes: { due: 'sample' } });
       expect(parser.parseAttributes('Task [[Alias|[due:: sample]]] [due:: sample]')).toMatchObject({ textWithoutAttributes: 'Task [[Alias|[due:: sample]]]', attributes: { due: 'sample' } });
+      expect(parser.parseAttributes('Task [due:: [[2026-07-25]]')).toMatchObject({ textWithoutAttributes: 'Task [due:: [[2026-07-25]]', attributes: {} });
+      expect(parser.parseAttributes('Task [due:: `sample]`')).toMatchObject({ textWithoutAttributes: 'Task [due:: `sample]`', attributes: {} });
+      expect(parser.parseAttributes('Task [note:: @today')).toMatchObject({ textWithoutAttributes: 'Task [note:: @today', attributes: {} });
     });
 
     it('should deduplicate hashtags', () => {

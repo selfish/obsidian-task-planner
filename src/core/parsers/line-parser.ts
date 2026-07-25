@@ -196,8 +196,8 @@ export class LineParser {
     return `${before}${before && !/\s$/.test(before) ? " " : ""}#${tag}${after && !/^\s/.test(after) ? " " : ""}${after}`;
   }
 
-  private metadataSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [];
+  private metadataSpans(text: string): [number, number, boolean][] {
+    const spans: [number, number, boolean][] = [];
     for (let start = 0; start < text.length; start++) {
       const opener = text[start];
       if (opener !== "[" && opener !== "(") continue;
@@ -211,7 +211,7 @@ export class LineParser {
       }
       const body = text.slice(start + 1, depth === 0 ? end - 1 : end);
       if (!/^\s*[^()[\]]+::/.test(body)) continue;
-      spans.push([start, end]);
+      spans.push([start, end, depth === 0]);
       start = end - 1;
     }
     return spans;
@@ -219,12 +219,13 @@ export class LineParser {
 
   private attributeMatches(text: string): { value: string; index: number }[] {
     const ignored = [...this.codeSpans(text), ...this.wikilinkSpans(text)];
-    const spans = this.metadataSpans(text).filter(([start, end]) => !ignored.some(([ignoredStart, ignoredEnd]) => start >= ignoredStart && end <= ignoredEnd));
+    const contexts = this.metadataSpans(text);
+    const spans = contexts.filter(([start, end, balanced]) => balanced && !ignored.some(([ignoredStart, ignoredEnd]) => (start >= ignoredStart && start < ignoredEnd) || (end > ignoredStart && end <= ignoredEnd)));
     const attributes = spans.filter(([start, end]) => text[start] === "[" && this.parseSingleAttribute(text.slice(start, end)) !== null).map(([start, end]) => ({ value: text.slice(start, end), index: start }));
     const shortcuts = [...text.matchAll(/(?<!\[)@(\w+)(?![(\w])/g)]
       .filter((match) => {
         const { index } = match;
-        return ![...spans, ...ignored].some(([start, end]) => index >= start && index < end);
+        return ![...contexts, ...ignored].some(([start, end]) => index >= start && index < end);
       })
       .map((match) => ({ value: match[0], index: match.index }));
     return [...attributes, ...shortcuts].sort((a, b) => a.index - b.index);
@@ -254,7 +255,7 @@ export class LineParser {
   }
 
   private tagContextSpans(text: string): [number, number][] {
-    const spans = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikilinkSpans(text)];
+    const spans = [...this.metadataSpans(text).map(([start, end]) => [start, end] as [number, number]), ...this.codeSpans(text), ...this.wikilinkSpans(text)];
     spans.sort(([left], [right]) => left - right);
 
     const merged: [number, number][] = [];
