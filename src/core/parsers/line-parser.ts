@@ -119,8 +119,9 @@ export class LineParser {
 
     let textWithoutAttributes = text;
 
-    matches.forEach(({ value: match }) => {
-      const parsed = this.parseSingleAttribute(match);
+    const removals: typeof matches = [];
+    matches.forEach((match) => {
+      const parsed = this.parseSingleAttribute(match.value);
       if (parsed === null) return;
       const [attrKey, attrValue] = parsed;
       if (!attrKey) return;
@@ -130,10 +131,13 @@ export class LineParser {
       } else {
         res[attrKey] = attrValue;
       }
-      textWithoutAttributes = textWithoutAttributes.replace(match, "").replace(/\s+/g, " ");
+      removals.push(match);
     });
+    for (const match of removals.sort((a, b) => b.index - a.index)) {
+      textWithoutAttributes = textWithoutAttributes.slice(0, match.index) + textWithoutAttributes.slice(match.index + match.value.length);
+    }
 
-    return { textWithoutAttributes: textWithoutAttributes.trim(), attributes: res, tags };
+    return { textWithoutAttributes: textWithoutAttributes.replace(/\s+/g, " ").trim(), attributes: res, tags };
   }
 
   attributesToString(attributesStructure: AttributesStructure): string {
