@@ -45,11 +45,10 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toBe('- [ ] Task #urgent');
   });
 
-  it('finds the indexed task when a status write uses a clone', async () => {
+  it('finds the indexed task after a status write', async () => {
     const { task, undoManager, operations, findTask, content } = setup('- [ ] Task');
-    const updatedTask = { ...task, status: TaskStatus.Complete };
 
-    await operations.batchUpdateTaskStatusWithUndo([updatedTask], new Map([[getTaskId(task), task.status]]), 'Complete task');
+    await operations.batchUpdateTaskStatusWithUndo([task], TaskStatus.Complete, 'Complete task');
     const operation = undoManager.getLastOperation()!;
 
     expect(content()).toMatch(/^- \[x\] Task \[completed:: \d{4}-\d{2}-\d{2}\]$/);
@@ -59,15 +58,16 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toMatch(/^- \[x\] Task \[completed:: \d{4}-\d{2}-\d{2}\]$/);
   });
 
-  it('finds the indexed task when a cloned status task moved before writing', async () => {
-    const { task, undoManager, operations, findTask, content, replaceContent } = setup('- [ ] Task');
-    const taskId = getTaskId(task);
+  it('records a relocated status task identity for the reindexed task', async () => {
+    const { task, undoManager, operations, content, replaceContent } = setup('- [ ] Task');
     replaceContent('Note\n- [ ] Task');
 
-    await operations.batchUpdateTaskStatusWithUndo([{ ...task, status: TaskStatus.Complete }], new Map([[taskId, task.status]]), 'Complete task');
+    await operations.batchUpdateTaskStatusWithUndo([task], TaskStatus.Complete, 'Complete task');
     const operation = undoManager.getLastOperation()!;
+    const reindexedTask = { ...task, attributes: { ...task.attributes }, tags: [...(task.tags ?? [])] };
+    const findReindexedTask = (id: string) => (getTaskId(reindexedTask) === id ? reindexedTask : undefined);
 
-    expect(await operations.applyUndo(operation, findTask)).toBe(true);
+    expect(await operations.applyUndo(operation, findReindexedTask)).toBe(true);
     expect(content()).toBe('Note\n- [ ] Task');
   });
 
@@ -144,6 +144,31 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toBe('- [ ] Task [due:: 2026-07-25]');
   });
 
+  it('records rapid status moves in file order so the latest move can be undone', async () => {
+    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task');
+
+    await Promise.all([
+      operations.batchUpdateTaskStatusWithUndo([task], TaskStatus.Complete, 'Complete task'),
+      operations.batchUpdateTaskStatusWithUndo([task], TaskStatus.Canceled, 'Cancel task'),
+    ]);
+
+    expect(content()).toMatch(/^- \[-\] Task \[completed:: \d{4}-\d{2}-\d{2}\]$/);
+    expect(await operations.applyUndo(undoManager.popForUndo()!, findTask)).toBe(true);
+    expect(content()).toMatch(/^- \[x\] Task \[completed:: \d{4}-\d{2}-\d{2}\]$/);
+  });
+
+  it('records and undoes a concrete parent tag beside a nested child tag', async () => {
+    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task #inbox/to-read');
+    task.tags = ['inbox', 'inbox/to-read'];
+
+    await operations.combinedMoveWithUndo([task], 'due', '2026-08-01', 'inbox', undefined, 'Move task');
+
+    expect(content()).toBe('- [ ] Task #inbox/to-read #inbox [due:: 2026-08-01]');
+    expect(undoManager.getLastOperation()?.tagChanges).toHaveLength(1);
+    expect(await operations.applyUndo(undoManager.getLastOperation()!, findTask)).toBe(true);
+    expect(content()).toBe('- [ ] Task #inbox/to-read');
+  });
+
   it('preserves hashtags inside metadata during a combined remove', async () => {
     const { task, undoManager, operations, findTask, content } = setup('- [ ] Task (note:: hello #work world)');
 
@@ -209,5 +234,22 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toBe('- [ ] Task [due:: manual]');
     expect(undoManager.canUndo()).toBe(false);
     expect(undoManager.canRedo()).toBe(true);
+  });
+
+  it('rolls back a same-kind multi-file undo when one file conflicts', async () => {
+    const first = setup('- [ ] First');
+    const second = setup('- [ ] Second');
+    second.task.file.id = 'file-2';
+    second.task.file.path = 'other.md';
+
+    await first.operations.batchUpdateAttributeWithUndo([first.task, second.task], 'due', '2026-08-01', 'Schedule tasks');
+    const operation = first.undoManager.getLastOperation()!;
+    second.replaceContent('- [ ] Second [due:: manual]');
+    second.task.sourceLine = second.content();
+    const findTask = (id: string) => [first.task, second.task].find((task) => getTaskId(task) === id);
+
+    expect(await first.operations.applyUndo(operation, findTask)).toBe(false);
+    expect(first.content()).toBe('- [ ] First [due:: 2026-08-01]');
+    expect(second.content()).toBe('- [ ] Second [due:: manual]');
   });
 });

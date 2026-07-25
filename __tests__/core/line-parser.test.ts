@@ -262,6 +262,14 @@ describe('LineParser', () => {
       expect(parser.parseAttributes(text).tags).toEqual(['real']);
       expect(parser.hasTag(text, 'work')).toBe(false);
       expect(parser.removeTag(text, 'work')).toBe(text);
+      expect(parser.removeTag(text, 'real')).toBe('Task `example #work` ``example `#urgent` ``');
+    });
+
+    it('preserves Dataview examples inside inline code and wikilinks', () => {
+      expect(parser.updateAttribute('Task `[due:: sample]`', 'due', '2026-08-01')).toBe('Task `[due:: sample]` [due:: 2026-08-01]');
+      expect(parser.appendTag('Task `[due:: sample]`', 'work')).toBe('Task `[due:: sample]` #work');
+      expect(parser.updateAttribute('Task [[Alias|[due:: sample]]]', 'due', '2026-08-01')).toBe('Task [[Alias|[due:: sample]]] [due:: 2026-08-01]');
+      expect(parser.appendTag('Task [[Alias|[due:: sample]]]', 'work')).toBe('Task [[Alias|[due:: sample]]] #work');
     });
 
     it('should deduplicate hashtags', () => {

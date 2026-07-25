@@ -79,6 +79,10 @@ export class UndoableFileOperations {
     return result;
   }
 
+  private hasConcreteTag<T>(task: TaskItem<T>, tag: string): boolean {
+    return task.sourceLine ? this.fileOperations.lineParser.hasTag(task.sourceLine, tag) : (task.tags?.includes(tag) ?? false);
+  }
+
   private updateOperationIdentities<T>(resolved: Map<RecordedChange, TaskItem<T>>, applied: Set<TaskItem<T>>): void {
     for (const [change, task] of resolved) if (applied.has(task)) this.updateChangeIdentity(change, task);
   }
@@ -212,7 +216,7 @@ export class UndoableFileOperations {
 
     await this.fileOperations.refreshTasks([task]);
     // Check if tag already exists - if so, skip
-    if (task.tags?.includes(tag)) {
+    if (this.hasConcreteTag(task, tag)) {
       return;
     }
 
@@ -325,45 +329,41 @@ export class UndoableFileOperations {
   /**
    * Batch update task status with undo tracking
    */
-  batchUpdateTaskStatusWithUndo<T>(tasks: TaskItem<T>[], previousStatuses: Map<string, TaskStatus>, description: string): Promise<void> {
-    return this.serializeOperation(() => this.batchUpdateTaskStatusWithUndoNow(tasks, previousStatuses, description));
+  batchUpdateTaskStatusWithUndo<T>(tasks: TaskItem<T>[], newStatus: TaskStatus, description: string): Promise<void> {
+    return this.serializeOperation(() => this.batchUpdateTaskStatusWithUndoNow(tasks, newStatus, description));
   }
 
-  private async batchUpdateTaskStatusWithUndoNow<T>(tasks: TaskItem<T>[], previousStatuses: Map<string, TaskStatus>, description: string): Promise<void> {
+  private async batchUpdateTaskStatusWithUndoNow<T>(tasks: TaskItem<T>[], newStatus: TaskStatus, description: string): Promise<void> {
     if (tasks.length === 0) return;
 
-    if (!this.undoManager.isEnabled()) {
-      await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
-      return;
-    }
-
-    const initialTaskIds = new Map(tasks.map((task) => [task, getTaskId(task)]));
-    const previousStatusByTask = new Map(tasks.map((task) => [task, previousStatuses.get(initialTaskIds.get(task)) ?? task.status]));
     await this.fileOperations.refreshTasks(tasks);
     const statusChanges: StatusChange[] = tasks.map((task) => {
-      const previousStatus = previousStatusByTask.get(task);
-      const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
+      const previousStatus = task.status;
+      const isCompleted = newStatus === TaskStatus.Complete || newStatus === TaskStatus.Canceled;
       const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
       const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
       const newCompletedDate = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
 
       return {
-        taskId: initialTaskIds.get(task),
+        taskId: getTaskId(task),
         filePath: task.file.path,
         lineNumber: task.line ?? 0,
         previousStatus,
-        newStatus: task.status,
+        newStatus,
         previousCompletedDate,
         newCompletedDate,
       };
     });
 
-    await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
-    statusChanges.forEach((change, index) => {
-      change.filePath = tasks[index].file.path;
-      change.lineNumber = tasks[index].line ?? 0;
-      change.sourceLine = tasks[index].sourceLine;
-    });
+    tasks.forEach((task) => (task.status = newStatus));
+    try {
+      await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
+    } catch (error) {
+      tasks.forEach((task, index) => (task.status = statusChanges[index].previousStatus));
+      throw error;
+    }
+    if (!this.undoManager.isEnabled()) return;
+    statusChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -390,7 +390,7 @@ export class UndoableFileOperations {
     }
 
     await this.fileOperations.refreshTasks(tasks);
-    const tasksNeedingTag = tasks.filter((task) => !task.tags?.includes(tag));
+    const tasksNeedingTag = tasks.filter((task) => !this.hasConcreteTag(task, tag));
     if (tasksNeedingTag.length === 0) return;
 
     const tagChanges: TagChange[] = tasksNeedingTag.map((task) => ({
@@ -450,7 +450,7 @@ export class UndoableFileOperations {
     const tagChanges: TagChange[] = [];
     const tagChangeTasks: TaskItem<T>[] = [];
     if (tag) {
-      const tasksNeedingTag = tasks.filter((t) => !t.tags?.includes(tag));
+      const tasksNeedingTag = tasks.filter((task) => !this.hasConcreteTag(task, tag));
       for (const task of tasksNeedingTag) {
         tagChanges.push({
           taskId: getTaskId(task),
@@ -523,8 +523,8 @@ export class UndoableFileOperations {
     this.undoManager.recordOperation(operation);
   }
 
-  private isCombinedOperation(operation: UndoOperation): boolean {
-    return [operation.taskChanges, operation.tagChanges, operation.statusChanges].filter((changes) => changes.length > 0).length > 1;
+  private needsAtomicApply(operation: UndoOperation): boolean {
+    return operation.type === "batch" || [operation.taskChanges, operation.tagChanges, operation.statusChanges].filter((changes) => changes.length > 0).length > 1;
   }
 
   private async applyCombinedHistoryOperation<T>(operation: UndoOperation, resolved: Map<RecordedChange, TaskItem<T>>, undo: boolean): Promise<boolean> {
@@ -581,7 +581,7 @@ export class UndoableFileOperations {
   private async applyUndoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
     const { resolved, originals } = await this.resolveOperationTasks(operation, findTask);
-    if (this.isCombinedOperation(operation)) {
+    if (this.needsAtomicApply(operation)) {
       success = await this.applyCombinedHistoryOperation(operation, resolved, true);
       if (!success) this.undoManager.restoreFailedUndo(operation);
       return success;
@@ -646,7 +646,7 @@ export class UndoableFileOperations {
   private async applyRedoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
     const { resolved, originals } = await this.resolveOperationTasks(operation, findTask);
-    if (this.isCombinedOperation(operation)) {
+    if (this.needsAtomicApply(operation)) {
       success = await this.applyCombinedHistoryOperation(operation, resolved, false);
       if (!success) this.undoManager.restoreFailedRedo(operation);
       return success;

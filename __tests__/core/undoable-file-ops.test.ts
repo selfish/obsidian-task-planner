@@ -20,6 +20,9 @@ jest.mock('../../src/core/operations/file-operations', () => {
       batchAppendTag: jest.fn().mockResolvedValue(undefined),
       batchRemoveTag: jest.fn().mockResolvedValue(undefined),
       batchMove: jest.fn().mockResolvedValue(undefined),
+      batchApplyMutations: jest.fn().mockImplementation(async (mutations) => {
+        for (const mutation of mutations) if (mutation.status !== undefined) mutation.task.status = mutation.status;
+      }),
       lineParser: { hasTag: jest.fn().mockReturnValue(true) },
       hasSourceLineAt: jest.fn().mockResolvedValue(true),
     })),
@@ -311,15 +314,11 @@ describe('UndoableFileOperations', () => {
   describe('batchUpdateTaskStatusWithUndo', () => {
     it('should update status for multiple todos', async () => {
       const todos = [
-        createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete),
-        createTodo('2', 'Task 2', 2, {}, [], TaskStatus.Complete),
+        createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Todo),
+        createTodo('2', 'Task 2', 2, {}, [], TaskStatus.InProgress),
       ];
-      const previousStatuses = new Map([
-        ['notes/1.md:1', TaskStatus.Todo],
-        ['notes/2.md:2', TaskStatus.InProgress],
-      ]);
 
-      await undoableOps.batchUpdateTaskStatusWithUndo(todos, previousStatuses, 'Completed tasks');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, TaskStatus.Complete, 'Completed tasks');
 
       expect(undoManager.getHistorySize()).toBe(1);
       const lastOp = undoManager.getLastOperation();
@@ -327,17 +326,28 @@ describe('UndoableFileOperations', () => {
     });
 
     it('should skip when array is empty', async () => {
-      await undoableOps.batchUpdateTaskStatusWithUndo([], new Map(), 'Empty');
+      await undoableOps.batchUpdateTaskStatusWithUndo([], TaskStatus.Complete, 'Empty');
 
       expect(undoManager.getHistorySize()).toBe(0);
     });
 
     it('should skip recording when undo disabled', async () => {
       undoManager.updateConfig({ enabled: false });
-      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete)];
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Todo)];
 
-      await undoableOps.batchUpdateTaskStatusWithUndo(todos, new Map(), 'Completed');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, TaskStatus.Complete, 'Completed');
 
+      expect(undoManager.getHistorySize()).toBe(0);
+    });
+
+    it('restores task status when the write fails', async () => {
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Todo)];
+      const fileOperations = (undoableOps as unknown as { fileOperations: { batchUpdateTaskStatus: jest.Mock } }).fileOperations;
+      fileOperations.batchUpdateTaskStatus.mockRejectedValueOnce(new Error('write failed'));
+
+      await expect(undoableOps.batchUpdateTaskStatusWithUndo(todos, TaskStatus.Complete, 'Completed')).rejects.toThrow('write failed');
+
+      expect(todos[0].status).toBe(TaskStatus.Todo);
       expect(undoManager.getHistorySize()).toBe(0);
     });
   });
@@ -1316,13 +1326,13 @@ describe('UndoableFileOperations', () => {
 
     it('should use line number 0 for batchUpdateTaskStatusWithUndo when line is undefined', async () => {
       const todos: TaskItem<unknown>[] = [{
-        status: TaskStatus.Complete,
+        status: TaskStatus.Todo,
         text: 'Task',
         file: createMockFileAdapter('file-1', 'notes/1.md'),
         line: undefined,
       }];
 
-      await undoableOps.batchUpdateTaskStatusWithUndo(todos, new Map(), 'Completed');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, TaskStatus.Complete, 'Completed');
 
       const lastOp = undoManager.getLastOperation();
       expect(lastOp?.statusChanges[0].lineNumber).toBe(0);
@@ -1366,21 +1376,18 @@ describe('UndoableFileOperations', () => {
     });
 
     it('should handle batch status update with Canceled status', async () => {
-      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Canceled)];
-      const previousStatuses = new Map([['notes/1.md:1', TaskStatus.Todo]]);
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Todo)];
 
-      await undoableOps.batchUpdateTaskStatusWithUndo(todos, previousStatuses, 'Batch canceled');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, TaskStatus.Canceled, 'Batch canceled');
 
       const lastOp = undoManager.getLastOperation();
       expect(lastOp?.statusChanges[0].newCompletedDate).toBeDefined();
     });
 
     it('should handle batch status when previous was Canceled', async () => {
-      const todos = [createTodo('1', 'Task 1', 1, { completed: '2025-01-10' }, [], TaskStatus.Todo)];
-      // taskId format is: file.id + "-" + line + "-" + text
-      const previousStatuses = new Map([['file-1-1-Task 1', TaskStatus.Canceled]]);
+      const todos = [createTodo('1', 'Task 1', 1, { completed: '2025-01-10' }, [], TaskStatus.Canceled)];
 
-      await undoableOps.batchUpdateTaskStatusWithUndo(todos, previousStatuses, 'Uncanceled');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, TaskStatus.Todo, 'Uncanceled');
 
       const lastOp = undoManager.getLastOperation();
       expect(lastOp?.statusChanges[0].previousCompletedDate).toBe('2025-01-10');
@@ -1419,16 +1426,17 @@ describe('UndoableFileOperations', () => {
     });
   });
 
-  describe('branch coverage - previousStatuses fallback', () => {
-    it('should use task.status when previousStatuses map does not have entry', async () => {
-      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Complete)];
-      const emptyPreviousStatuses = new Map<string, TaskStatus>();
+  describe('branch coverage - refreshed status', () => {
+    it('records the refreshed task status', async () => {
+      const todos = [createTodo('1', 'Task 1', 1, {}, [], TaskStatus.Todo)];
+      const fileOperations = (undoableOps as unknown as { fileOperations: { refreshTasks: jest.Mock } }).fileOperations;
+      fileOperations.refreshTasks.mockImplementation(async ([task]: TaskItem<unknown>[]) => {
+        task.status = TaskStatus.InProgress;
+      });
 
-      await undoableOps.batchUpdateTaskStatusWithUndo(todos, emptyPreviousStatuses, 'Completed');
+      await undoableOps.batchUpdateTaskStatusWithUndo(todos, TaskStatus.Complete, 'Completed');
 
-      const lastOp = undoManager.getLastOperation();
-      // When map doesn't have the taskId, it falls back to task.status
-      expect(lastOp?.statusChanges[0].previousStatus).toBe(TaskStatus.Complete);
+      expect(undoManager.getLastOperation()?.statusChanges[0].previousStatus).toBe(TaskStatus.InProgress);
     });
   });
 

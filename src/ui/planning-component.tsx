@@ -472,7 +472,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         return;
       }
       const description = UndoManager.createMoveDescription(1, getStatusLabel(status));
-      void undoableFileOps.batchUpdateTaskStatusWithUndo([{ ...todo, status }], new Map([[taskId, todo.status]]), description);
+      void undoableFileOps.batchUpdateTaskStatusWithUndo([todo], status, description);
     };
   }
 
@@ -484,10 +484,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         return;
       }
       deps.logger.debug(`Batch changing status of ${foundTodos.length} todos to ${getStatusLabel(status)}`);
-      const previousStatuses = new Map(foundTodos.map((todo) => [getTaskId(todo), todo.status]));
-      const updatedTodos = foundTodos.map((todo) => ({ ...todo, status }));
       const description = UndoManager.createMoveDescription(foundTodos.length, getStatusLabel(status));
-      await undoableFileOps.batchUpdateTaskStatusWithUndo(updatedTodos, previousStatuses, description);
+      await undoableFileOps.batchUpdateTaskStatusWithUndo(foundTodos, status, description);
     };
   }
 
