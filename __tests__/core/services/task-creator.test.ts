@@ -133,6 +133,19 @@ describe("TaskCreator", () => {
       });
     });
 
+    it.each([
+      ["append", "first\r\nsecond", "first\r\nsecond\r\n- [ ] task"],
+      ["prepend", "first\r\nsecond", "- [ ] task\r\nfirst\r\nsecond"],
+      ["before-regex", "first\r\n## Tasks", "first\r\n- [ ] task\r\n## Tasks"],
+      ["after-regex", "first\r\n## Tasks", "first\r\n## Tasks\r\n- [ ] task"],
+    ] as const)("preserves CRLF for %s placement", (placement, content, expected) => {
+      settings.quickAdd.placement = placement;
+      settings.quickAdd.locationRegex = "^## Tasks";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      expect((taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task")).toBe(expected);
+    });
+
     describe("before-regex placement", () => {
       beforeEach(() => {
         settings.quickAdd.placement = "before-regex";

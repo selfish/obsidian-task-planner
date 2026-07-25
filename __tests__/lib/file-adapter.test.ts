@@ -84,12 +84,23 @@ describe('ObsidianFile', () => {
     expect(content).toBe('task A B');
   });
 
-  it('fails closed when fallback content changes before writing', async () => {
+  it('fails closed when fallback content changes between its two reads', async () => {
     const app = new App();
     const file = new ObsidianFile(app, new TFile('tasks.md'));
     (app.vault.read as jest.Mock).mockResolvedValueOnce('task').mockResolvedValueOnce('external edit');
 
     await expect(file.processContent((content) => `${content} updated`)).rejects.toThrow(/changed during update/i);
+    expect(app.vault.modify).not.toHaveBeenCalled();
+  });
+
+  it('does not write when a fallback transform is a no-op', async () => {
+    const app = new App();
+    const file = new ObsidianFile(app, new TFile('tasks.md'));
+    (app.vault.read as jest.Mock).mockImplementation(async () => 'task');
+
+    await file.processContent((content) => content);
+
+    expect(app.vault.read).toHaveBeenCalledTimes(1);
     expect(app.vault.modify).not.toHaveBeenCalled();
   });
 });

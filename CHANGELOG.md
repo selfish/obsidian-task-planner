@@ -12,7 +12,8 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Fixed
 
-- Re-resolve indexed tasks against current vault content before mutations and fail safely when task identity is missing or ambiguous ([#120](https://github.com/selfish/obsidian-task-planner/issues/120)).
+- Re-resolve indexed tasks against current vault content before mutations, fail safely when task identity is missing or ambiguous, and apply combined moves atomically while preserving untouched task metadata and line endings ([#120](https://github.com/selfish/obsidian-task-planner/issues/120)).
+- Preserve historical completion dates across status undo/redo.
 - Route task, follow-up, Quick Add, and onboarding appends through Obsidian's atomic file processor when available.
 - Keep the plugin loadable on the declared Obsidian 1.0 floor by using plain inputs when the newer input-suggest API is unavailable.
 

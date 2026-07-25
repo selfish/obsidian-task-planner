@@ -154,15 +154,24 @@ describe('TextInputSuggest with different types', () => {
 });
 
 describe('Obsidian 1.0 compatibility', () => {
-  it('loads without AbstractInputSuggest', () => {
+  it('keeps the actual input wrapper usable without AbstractInputSuggest', () => {
     jest.resetModules();
     jest.doMock('obsidian', () => ({ AbstractInputSuggest: undefined }));
 
     jest.isolateModules(() => {
-      const { CompatibleInputSuggest } = require('../../src/ui/text-input-suggest');
-      class TestSuggest extends CompatibleInputSuggest {}
-      const suggest = new TestSuggest();
+      const { TextInputSuggest: FallbackTextInputSuggest } = require('../../src/ui/text-input-suggest');
+      class TestSuggest extends FallbackTextInputSuggest {
+        constructor(input: HTMLInputElement, app: object) { super(input, app); }
+        getSuggestions(): string[] { return []; }
+        renderSuggestion(): void {}
+        selectSuggestion(): void {}
+      }
+      const input = document.createElement('input');
+      const suggest = new TestSuggest(input, {});
+      input.value = 'editable';
 
+      expect(input.value).toBe('editable');
+      expect(() => suggest.open()).not.toThrow();
       expect(() => suggest.close()).not.toThrow();
     });
 

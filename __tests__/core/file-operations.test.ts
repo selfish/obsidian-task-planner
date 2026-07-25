@@ -1035,6 +1035,15 @@ describe('FileOperations', () => {
       expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-23]`);
     });
 
+    it('ignores task examples in a list fence after lazy paragraph continuation', async () => {
+      const content = '10. item\nlazy continuation\n    ```\n    - [ ] Target\n    ```\n- [ ] Target';
+      const file = createMockFileAdapter(content);
+
+      await operations.updateAttribute(createTodo('Target', 5, file), 'due', '2026-07-23');
+
+      expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-23]`);
+    });
+
     it.each([
       ['blank lines', '- ```md\n  code\n\n  - [ ] Target\n  ```\n- [ ] Target', 5],
       ['post-marker tabs', '-\t\titem\n    ```\n    - [ ] Target\n    ```\n- [ ] Target', 4],
@@ -1067,6 +1076,15 @@ describe('FileOperations', () => {
       await operations.appendTag(task, 'work');
 
       expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe('before\r\n- [ ] Target #work\ninside\r- [ ] Other');
+    });
+
+    it('preserves task spacing and unrelated metadata bytes', async () => {
+      const content = '- [ ] Task   with   spacing [owner::   Alice  ]';
+      const file = createMockFileAdapter(content);
+
+      await operations.updateAttribute(createTodo('Task with spacing', 0, file), 'due', '2026-07-25');
+
+      expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-25]`);
     });
 
     it('uses an atomic content processor when the adapter provides one', async () => {

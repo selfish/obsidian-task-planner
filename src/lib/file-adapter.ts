@@ -70,6 +70,7 @@ export class ObsidianFile implements FileAdapter<TFile> {
           if (error instanceof FileOperationError) throw error;
           throw new FileOperationError(`Failed to write file: ${path}`, path, "write", "HIGH", { originalError: error instanceof Error ? error.message : String(error) });
         }
+        if (updated === content) return;
         let latest: string;
         try {
           latest = await vault.read(this.file);

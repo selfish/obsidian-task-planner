@@ -13,19 +13,23 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let open: { character: string; length: number; minIndent: number; maxIndent: number } | undefined;
   const listContentIndents: number[] = [];
+  let previousBlank = true;
 
   lines.forEach((line, index) => {
     const expanded = expandTabs(line);
+    const blank = !expanded.trim();
     const indent = expanded.match(/^ */)?.[0].length ?? 0;
-    if (open && expanded.trim() && indent < open.minIndent) open = undefined;
+    if (open && !blank && indent < open.minIndent) open = undefined;
     if (!open) {
-      if (expanded.trim()) {
+      const activeListIndent = listContentIndents[listContentIndents.length - 1];
+      const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded.slice(Math.min(activeListIndent ?? 0, indent)));
+      const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
+      const interruptingBlock = listItem || thematicBreak || /^ {0,3}(?:#{1,6}(?:\s|$)|>|`{3,}|~{3,})/.test(expanded);
+      const lazyContinuation = activeListIndent !== undefined && indent < activeListIndent && !previousBlank && !interruptingBlock;
+      if (!blank && !lazyContinuation) {
         while (listContentIndents.length && indent < listContentIndents[listContentIndents.length - 1]) listContentIndents.pop();
       }
 
-      const activeListIndent = listContentIndents[listContentIndents.length - 1] ?? 0;
-      const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded.slice(Math.min(activeListIndent, indent)));
-      const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
       if (listItem) {
         const markerIndent = listItem[1].length;
         while (listContentIndents.length && markerIndent < listContentIndents[listContentIndents.length - 1]) listContentIndents.pop();
@@ -41,12 +45,14 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
         open = { character: match[1][0], length: match[1].length, minIndent, maxIndent };
         fenced.add(index);
       }
+      previousBlank = blank;
       return;
     }
 
     fenced.add(index);
     const match = indent >= open.minIndent && indent <= open.maxIndent ? /^(`{3,}|~{3,})(.*)$/.exec(expanded.slice(indent)) : null;
     if (match && match[1][0] === open.character && match[1].length >= open.length && match[2].trim() === "") open = undefined;
+    previousBlank = blank;
   });
 
   return fenced;

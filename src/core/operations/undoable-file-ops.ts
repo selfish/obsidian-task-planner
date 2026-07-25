@@ -416,19 +416,7 @@ export class UndoableFileOperations {
     const effectiveDescription = description ?? UndoManager.createMoveDescription(tasks.length, String(attributeValue));
 
     if (!this.undoManager.isEnabled()) {
-      await this.fileOperations.batchUpdateAttribute(tasks, attributeName, attributeValue);
-      if (tag) {
-        await this.fileOperations.batchAppendTag(tasks, tag);
-      }
-      if (tagsToRemove && tagsToRemove.length > 0) {
-        for (const tagToRemove of tagsToRemove) {
-          await this.fileOperations.batchRemoveTag(tasks, tagToRemove);
-        }
-      }
-      if (newStatus !== undefined) {
-        tasks.forEach((t) => (t.status = newStatus));
-        await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
-      }
+      await this.fileOperations.batchMove(tasks, attributeName, attributeValue, this.settings.completedDateAttribute, tag, newStatus, tagsToRemove);
       return;
     }
 
@@ -499,20 +487,8 @@ export class UndoableFileOperations {
       }
     }
 
-    // Perform the actual operations
-    await this.fileOperations.batchUpdateAttribute(tasks, attributeName, attributeValue);
-    if (tag) {
-      await this.fileOperations.batchAppendTag(tasks, tag);
-    }
-    if (tagsToRemove && tagsToRemove.length > 0) {
-      for (const tagToRemove of tagsToRemove) {
-        await this.fileOperations.batchRemoveTag(tasks, tagToRemove);
-      }
-    }
-    if (newStatus !== undefined) {
-      tasks.forEach((t) => (t.status = newStatus));
-      await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
-    }
+    // Perform every per-task change in one file transaction.
+    await this.fileOperations.batchMove(tasks, attributeName, attributeValue, this.settings.completedDateAttribute, tag, newStatus, tagsToRemove);
 
     taskChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
     statusChanges.forEach((change, index) => this.updateChangeIdentity(change, tasks[index]));
@@ -578,7 +554,7 @@ export class UndoableFileOperations {
         resolved.get(change),
         async (task) => {
           task.status = change.previousStatus;
-          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute);
+          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute, change.previousCompletedDate ?? null);
         },
         originals,
         applied,
@@ -638,7 +614,7 @@ export class UndoableFileOperations {
         resolved.get(change),
         async (task) => {
           task.status = change.newStatus;
-          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute);
+          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute, change.newCompletedDate ?? null);
         },
         originals,
         applied,

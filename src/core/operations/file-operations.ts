@@ -38,7 +38,7 @@ function groupTasksByFile<T>(tasks: TaskItem<T>[]): { file: FileAdapter<T>; task
 }
 
 type TaskLineCandidate = { lineNumber: number; text: string; tags: string[]; attributes: Record<string, string | boolean> };
-type TaskIdentity = Pick<TaskItem<unknown>, "line" | "text" | "tags" | "attributes" | "sourceLine" | "sourceLineCount">;
+type TaskIdentity = Pick<TaskItem<unknown>, "line" | "text" | "status" | "tags" | "attributes" | "sourceLine" | "sourceLineCount">;
 type FileChange<T> = { file: FileAdapter<T>; tasks: TaskItem<T>[]; before: string; after: string };
 
 export class FileOperations {
@@ -107,9 +107,10 @@ export class FileOperations {
   }
 
   private async restoreIdentityOnFailure<T>(tasks: TaskItem<T>[], operation: () => Promise<void>): Promise<void> {
-    const identities: TaskIdentity[] = tasks.map(({ line, text, tags, attributes, sourceLine, sourceLineCount }) => ({
+    const identities: TaskIdentity[] = tasks.map(({ line, text, status, tags, attributes, sourceLine, sourceLineCount }) => ({
       line,
       text,
+      status,
       tags: tags && [...tags],
       attributes: attributes && { ...attributes },
       sourceLine,
@@ -129,6 +130,10 @@ export class FileOperations {
       const line = this.lineParser.parseLine(lines[lineNumber]);
       if (updateLine(line, task) === false) continue;
       lines[lineNumber] = this.lineParser.lineToString(line);
+      const attributes = this.lineParser.parseAttributes(line.line);
+      task.text = attributes.textWithoutAttributes;
+      task.tags = [...attributes.tags];
+      task.attributes = { ...attributes.attributes };
       task.sourceLine = lines[lineNumber];
     }
     this.refreshSourceLineCounts(lines, tasks);
@@ -270,61 +275,39 @@ export class FileOperations {
 
   async updateAttribute<T>(task: TaskItem<T>, attributeName: string, attributeValue: string | boolean | undefined) {
     await this.updateContentInFile(task, (line) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (attributeValue === false || attributeValue === undefined) {
-        delete attributes.attributes[attributeName];
-      } else {
-        attributes.attributes[attributeName] = attributeValue;
-      }
-      line.line = this.lineParser.attributesToString(attributes);
+      line.line = this.lineParser.updateAttribute(line.line, attributeName, attributeValue);
     });
   }
 
   async removeAttribute<T>(task: TaskItem<T>, attributeName: string) {
     await this.updateContentInFile(task, (line) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      delete attributes.attributes[attributeName];
-      line.line = this.lineParser.attributesToString(attributes);
+      line.line = this.lineParser.updateAttribute(line.line, attributeName, undefined);
     });
   }
 
   async appendTag<T>(task: TaskItem<T>, tag: string) {
-    await this.updateContentInFile(task, (line, currentTask) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (attributes.tags.includes(tag)) return false;
-      attributes.textWithoutAttributes = `${attributes.textWithoutAttributes} #${tag}`;
-      line.line = this.lineParser.attributesToString(attributes);
-      currentTask.text = attributes.textWithoutAttributes;
-      currentTask.tags = [...attributes.tags, tag];
+    await this.updateContentInFile(task, (line) => {
+      if (this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      line.line = this.lineParser.appendTag(line.line, tag);
       return true;
     });
   }
 
   async removeTag<T>(task: TaskItem<T>, tag: string) {
-    await this.updateContentInFile(task, (line, currentTask) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (!attributes.tags.includes(tag)) return false;
-      attributes.textWithoutAttributes = attributes.textWithoutAttributes.replace(new RegExp(`\\s*#${tag}\\b`, "g"), "").trim();
-      line.line = this.lineParser.attributesToString(attributes);
-      currentTask.text = attributes.textWithoutAttributes;
-      currentTask.tags = attributes.tags.filter((currentTag) => currentTag !== tag);
+    await this.updateContentInFile(task, (line) => {
+      if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      line.line = this.lineParser.removeTag(line.line, tag);
       return true;
     });
   }
 
-  async updateTaskStatus<T>(task: TaskItem<T>, completedAttribute: string): Promise<void> {
+  async updateTaskStatus<T>(task: TaskItem<T>, completedAttribute: string, completedDate?: string | null): Promise<void> {
     const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
-    const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
+    const completedAttributeValue = isCompleted ? (completedDate === undefined ? moment().format("YYYY-MM-DD") : (completedDate ?? undefined)) : undefined;
 
     await this.updateContentInFile(task, (line) => {
       line.checkbox = statusToCheckbox(task.status);
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (completedAttributeValue === undefined) {
-        delete attributes.attributes[completedAttribute];
-      } else {
-        attributes.attributes[completedAttribute] = completedAttributeValue;
-      }
-      line.line = this.lineParser.attributesToString(attributes);
+      line.line = this.lineParser.updateAttribute(line.line, completedAttribute, completedAttributeValue);
     });
   }
 
@@ -335,44 +318,28 @@ export class FileOperations {
 
   async batchUpdateAttribute<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined): Promise<void> {
     await this.updateBatches(tasks, (line) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (attributeValue === false || attributeValue === undefined) {
-        delete attributes.attributes[attributeName];
-      } else {
-        attributes.attributes[attributeName] = attributeValue;
-      }
-      line.line = this.lineParser.attributesToString(attributes);
+      line.line = this.lineParser.updateAttribute(line.line, attributeName, attributeValue);
     });
   }
 
   async batchRemoveAttribute<T>(tasks: TaskItem<T>[], attributeName: string): Promise<void> {
     await this.updateBatches(tasks, (line) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      delete attributes.attributes[attributeName];
-      line.line = this.lineParser.attributesToString(attributes);
+      line.line = this.lineParser.updateAttribute(line.line, attributeName, undefined);
     });
   }
 
   async batchAppendTag<T>(tasks: TaskItem<T>[], tag: string): Promise<void> {
-    await this.updateBatches(tasks, (line, task) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (attributes.tags.includes(tag)) return false;
-      attributes.textWithoutAttributes = `${attributes.textWithoutAttributes} #${tag}`;
-      line.line = this.lineParser.attributesToString(attributes);
-      task.text = attributes.textWithoutAttributes;
-      task.tags = [...attributes.tags, tag];
+    await this.updateBatches(tasks, (line) => {
+      if (this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      line.line = this.lineParser.appendTag(line.line, tag);
       return true;
     });
   }
 
   async batchRemoveTag<T>(tasks: TaskItem<T>[], tag: string): Promise<void> {
-    await this.updateBatches(tasks, (line, task) => {
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (!attributes.tags.includes(tag)) return false;
-      attributes.textWithoutAttributes = attributes.textWithoutAttributes.replace(new RegExp(`\\s*#${tag}\\b`, "g"), "").trim();
-      line.line = this.lineParser.attributesToString(attributes);
-      task.text = attributes.textWithoutAttributes;
-      task.tags = attributes.tags.filter((currentTag) => currentTag !== tag);
+    await this.updateBatches(tasks, (line) => {
+      if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      line.line = this.lineParser.removeTag(line.line, tag);
       return true;
     });
   }
@@ -381,14 +348,23 @@ export class FileOperations {
     await this.updateBatches(tasks, (line, task) => {
       line.checkbox = statusToCheckbox(task.status);
       const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
-      const completedAttributeValue = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
-      const attributes = this.lineParser.parseAttributes(line.line);
-      if (completedAttributeValue === undefined) {
-        delete attributes.attributes[completedAttribute];
-      } else {
-        attributes.attributes[completedAttribute] = completedAttributeValue;
+      line.line = this.lineParser.updateAttribute(line.line, completedAttribute, isCompleted ? moment().format("YYYY-MM-DD") : undefined);
+    });
+  }
+
+  async batchMove<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, completedAttribute: string, tag?: string, newStatus?: TaskStatus, tagsToRemove: string[] = []): Promise<void> {
+    await this.updateBatches(tasks, (line, task) => {
+      line.line = this.lineParser.updateAttribute(line.line, attributeName, attributeValue);
+      if (tag && !this.lineParser.parseAttributes(line.line).tags.includes(tag)) line.line = this.lineParser.appendTag(line.line, tag);
+      for (const removedTag of tagsToRemove) {
+        if (this.lineParser.parseAttributes(line.line).tags.includes(removedTag)) line.line = this.lineParser.removeTag(line.line, removedTag);
       }
-      line.line = this.lineParser.attributesToString(attributes);
+      if (newStatus !== undefined) {
+        task.status = newStatus;
+        line.checkbox = statusToCheckbox(newStatus);
+        const isCompleted = newStatus === TaskStatus.Complete || newStatus === TaskStatus.Canceled;
+        line.line = this.lineParser.updateAttribute(line.line, completedAttribute, isCompleted ? moment().format("YYYY-MM-DD") : undefined);
+      }
     });
   }
 }

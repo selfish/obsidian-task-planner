@@ -144,4 +144,56 @@ export class LineParser {
 
     return attributeStr ? `${textWithoutAttributes} ${attributeStr}`.trim() : textWithoutAttributes;
   }
+
+  updateAttribute(text: string, key: string, value: string | boolean | undefined): string {
+    const matches = [...text.matchAll(this.getAttributeRegex())];
+    let result = "";
+    let cursor = 0;
+    let found = false;
+    let written = false;
+
+    for (const match of matches) {
+      const parsed = this.parseSingleAttribute(match[0]);
+      if (!parsed) continue;
+      const parsedKey = LineParser.PRIORITY_SHORTCUTS.includes(parsed[0]) && parsed[1] === true ? "priority" : parsed[0];
+      if (parsedKey !== key) continue;
+
+      const start = match.index ?? 0;
+      let end = start + match[0].length;
+      result += text.slice(cursor, start);
+      found = true;
+
+      if (value !== false && value !== undefined && !written) {
+        result += this.attributeToString(key, value);
+        written = true;
+      } else if (/\s$/.test(result)) {
+        result = result.slice(0, -1);
+      } else if (/^[ \t]/.test(text.slice(end))) {
+        end++;
+      }
+      cursor = end;
+    }
+
+    result += text.slice(cursor);
+    if (found || value === false || value === undefined) return result;
+    return `${text}${text && !/\s$/.test(text) ? " " : ""}${this.attributeToString(key, value)}`;
+  }
+
+  appendTag(text: string, tag: string): string {
+    const attribute = [...text.matchAll(this.getAttributeRegex())].find((match) => this.parseSingleAttribute(match[0]) !== null);
+    if (!attribute) return `${text}${text && !/\s$/.test(text) ? " " : ""}#${tag}`;
+
+    const index = attribute.index ?? text.length;
+    const before = text.slice(0, index);
+    const after = text.slice(index);
+    return `${before}${before && !/\s$/.test(before) ? " " : ""}#${tag}${after && !/^\s/.test(after) ? " " : ""}${after}`;
+  }
+
+  removeTag(text: string, tag: string): string {
+    const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return text.replace(new RegExp(`(^|[ \\t])#${escaped}\\b([ \\t]?)`, "g"), (match, before: string, after: string, offset: number, whole: string) => {
+      const next = whole[offset + match.length];
+      return before && (after || (next && !/\s/.test(next))) ? before : "";
+    });
+  }
 }

@@ -97,6 +97,31 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toBe('- [ ] Task #new [due:: 2026-07-24]');
   });
 
+  it('writes every part of a combined move in one file transaction', async () => {
+    const { task, operations, content } = setup('- [ ] Task #old');
+    const processContent = jest.fn(async (update: (current: string) => string) => {
+      const next = update(content());
+      await task.file.setContent(next);
+    });
+    task.file.processContent = processContent;
+
+    await operations.combinedMoveWithUndo([task], 'due', '2026-07-25', 'new', TaskStatus.Complete, 'Move task', ['old']);
+
+    expect(processContent).toHaveBeenCalledTimes(1);
+    expect(content()).toMatch(/^- \[x\] Task #new \[due:: 2026-07-25\] \[completed:: \d{4}-\d{2}-\d{2}\]$/);
+  });
+
+  it('restores the historical completion date when undoing a status change', async () => {
+    const { task, undoManager, operations, findTask, content } = setup('- [x] Task [completed:: 2020-01-02]');
+    task.status = TaskStatus.Todo;
+
+    await operations.updateTaskStatusWithUndo(task, TaskStatus.Complete, 'Reopen task');
+    expect(content()).toBe('- [ ] Task');
+
+    expect(await operations.applyUndo(undoManager.getLastOperation()!, findTask)).toBe(true);
+    expect(content()).toBe('- [x] Task [completed:: 2020-01-02]');
+  });
+
   it('stops a combined undo after a conflict and keeps it on the undo stack', async () => {
     const { task, undoManager, operations, findTask, content, replaceContent } = setup('- [ ] Task');
     await operations.combinedMoveWithUndo([task], 'due', '2026-07-24', 'urgent', undefined, 'Move task');

@@ -40,27 +40,29 @@ export class TaskCreator {
 
   private insertContent(content: string, taskLine: string): string {
     const { placement, locationRegex } = this.settings.quickAdd;
+    const eol = content.match(/\r\n|\r|\n/)?.[0] ?? "\n";
+    taskLine = taskLine.replace(/\r\n|\r|\n/g, eol);
 
     // Handle regex-based placement
     if ((placement === "before-regex" || placement === "after-regex") && locationRegex) {
-      const result = this.insertAtRegex(content, taskLine, locationRegex, placement === "before-regex");
+      const result = this.insertAtRegex(content, taskLine, locationRegex, placement === "before-regex", eol);
       if (result !== null) {
         return result;
       }
       // If no match found, fall back to prepend
-      return this.prependAfterFrontmatter(content, taskLine);
+      return this.prependAfterFrontmatter(content, taskLine, eol);
     }
 
     // Normal prepend/append behavior
     if (placement === "prepend") {
-      return this.prependAfterFrontmatter(content, taskLine);
+      return this.prependAfterFrontmatter(content, taskLine, eol);
     }
 
     // Append
-    return content.endsWith("\n") ? content + taskLine : content + "\n" + taskLine;
+    return /(?:\r\n|\r|\n)$/.test(content) ? content + taskLine : content + eol + taskLine;
   }
 
-  private insertAtRegex(content: string, taskLine: string, pattern: string, before: boolean): string | null {
+  private insertAtRegex(content: string, taskLine: string, pattern: string, before: boolean, eol: string): string | null {
     // Get frontmatter end position so we can skip it
     const fmEnd = this.getFrontmatterEndPosition(content);
 
@@ -76,10 +78,10 @@ export class TaskCreator {
         const actualIndex = fmEnd + match.index;
 
         if (before) {
-          return content.slice(0, actualIndex) + taskLine + "\n" + content.slice(actualIndex);
+          return content.slice(0, actualIndex) + taskLine + eol + content.slice(actualIndex);
         } else {
           const insertPos = actualIndex + match[0].length;
-          return content.slice(0, insertPos) + "\n" + taskLine + content.slice(insertPos);
+          return content.slice(0, insertPos) + eol + taskLine + content.slice(insertPos);
         }
       }
     } catch {
@@ -103,32 +105,18 @@ export class TaskCreator {
     return endOfFrontmatter + 4;
   }
 
-  private prependAfterFrontmatter(content: string, taskLine: string): string {
-    // Check if content starts with frontmatter
-    if (!content.startsWith("---")) {
-      return taskLine + "\n" + content;
-    }
+  private prependAfterFrontmatter(content: string, taskLine: string, eol = content.match(/\r\n|\r|\n/)?.[0] ?? "\n"): string {
+    const insertPosition = this.getFrontmatterEndPosition(content);
+    if (insertPosition === 0) return taskLine + eol + content;
 
-    // Find the closing --- of frontmatter
-    const endOfFrontmatter = content.indexOf("\n---", 3);
-    if (endOfFrontmatter === -1) {
-      // No closing ---, treat as no frontmatter
-      return taskLine + "\n" + content;
-    }
-
-    // Find the position after the closing ---
-    const insertPosition = endOfFrontmatter + 4; // +4 for "\n---"
-
-    // Skip any newlines immediately after frontmatter
     let actualInsertPosition = insertPosition;
-    while (actualInsertPosition < content.length && content[actualInsertPosition] === "\n") {
-      actualInsertPosition++;
+    while (actualInsertPosition < content.length) {
+      if (content.startsWith("\r\n", actualInsertPosition)) actualInsertPosition += 2;
+      else if (content[actualInsertPosition] === "\r" || content[actualInsertPosition] === "\n") actualInsertPosition++;
+      else break;
     }
 
-    const beforeInsert = content.slice(0, insertPosition);
-    const afterInsert = content.slice(actualInsertPosition);
-
-    return beforeInsert + "\n" + taskLine + "\n" + afterInsert;
+    return content.slice(0, insertPosition) + eol + taskLine + eol + content.slice(actualInsertPosition);
   }
 
   private async getTargetFile(): Promise<TFile> {
