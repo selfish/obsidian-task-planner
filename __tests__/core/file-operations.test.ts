@@ -653,20 +653,24 @@ describe('FileOperations', () => {
       expect(setContentCall).toBe('- [ ] Task one [due:: 2025-01-15]');
     });
 
-    it('does not remove a hashtag from inside Dataview metadata', async () => {
-      const file = createMockFileAdapter('- [ ] Task one [note:: hello #work world]');
-      const todo: TaskItem<unknown> = {
-        text: 'Task one',
-        status: TaskStatus.Todo,
-        file,
-        line: 0,
-        tags: [],
-        attributes: { note: 'hello #work world' },
-      };
+    it('does not remove a hashtag from Dataview metadata variants', async () => {
+      for (const metadata of ['[note:: hello #work world]', '(note:: #work)', '[note:: [[Page]] #work]']) {
+        const file = createMockFileAdapter(`- [ ] Task one ${metadata}`);
+        const todo: TaskItem<unknown> = {
+          text: 'Task one',
+          status: TaskStatus.Todo,
+          file,
+          line: 0,
+          tags: ['work'],
+          attributes: {},
+          sourceLine: `- [ ] Task one ${metadata}`,
+          sourceLineCount: 1,
+        };
 
-      await operations.removeTag(todo, 'work');
+        await operations.removeTag(todo, 'work');
 
-      expect(file.setContent).not.toHaveBeenCalled();
+        expect(file.setContent).not.toHaveBeenCalled();
+      }
     });
 
     it('should skip if todo does not have the tag', async () => {

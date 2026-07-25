@@ -132,15 +132,15 @@ describe('UndoableFileOperations integration', () => {
   });
 
   it('preserves hashtags inside metadata during a combined remove', async () => {
-    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task [note:: hello #work world]');
+    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task (note:: hello #work world)');
 
     await operations.combinedMoveWithUndo([task], 'due', '2026-08-01', undefined, undefined, 'Move task', ['work']);
 
-    expect(content()).toBe('- [ ] Task [note:: hello #work world] [due:: 2026-08-01]');
+    expect(content()).toBe('- [ ] Task (note:: hello #work world) [due:: 2026-08-01]');
     const operation = undoManager.getLastOperation()!;
     expect(operation.tagChanges).toEqual([]);
     expect(await operations.applyUndo(operation, findTask)).toBe(true);
-    expect(content()).toBe('- [ ] Task [note:: hello #work world]');
+    expect(content()).toBe('- [ ] Task (note:: hello #work world)');
   });
 
   it('restores the historical completion date when undoing a status change', async () => {
@@ -152,6 +152,19 @@ describe('UndoableFileOperations integration', () => {
 
     expect(await operations.applyUndo(undoManager.getLastOperation()!, findTask)).toBe(true);
     expect(content()).toBe('- [x] Task [completed:: 2020-01-02]');
+  });
+
+  it('fails closed instead of redirecting undo to a task matching stale history', async () => {
+    const { task, undoManager, operations, findTask, content, replaceContent } = setup('- [ ] Task');
+
+    await operations.updateAttributeWithUndo(task, 'due', '2026-07-25', 'Schedule task');
+    const operation = undoManager.getLastOperation()!;
+    replaceContent('- [ ] Task [due:: 2026-07-26]\n- [ ] Task [due:: 2026-07-25]');
+    task.sourceLine = '- [ ] Task [due:: 2026-07-26]';
+    task.attributes = { due: '2026-07-26' };
+
+    expect(await operations.applyUndo(operation, findTask)).toBe(false);
+    expect(content()).toBe('- [ ] Task [due:: 2026-07-26]\n- [ ] Task [due:: 2026-07-25]');
   });
 
   it('stops a combined undo after a conflict and keeps it on the undo stack', async () => {

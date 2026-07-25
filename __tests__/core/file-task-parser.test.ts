@@ -292,6 +292,13 @@ describe('FileTaskParser', () => {
       expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
     });
 
+    it('does not create a list container from a ten-digit ordered marker', async () => {
+      const content = '1234567890. prose\n\n    - [ ] Example only';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos).toEqual([]);
+    });
+
     it('keeps valid fences when dedenting within nested lists', async () => {
       const content = '- outer\n  - middle\n    - inner\n      ```md\n      - [ ] Example only\n      ```\n- [ ] Real task';
       const todos = await parser.parseMdFile(createMockFileAdapter(content));

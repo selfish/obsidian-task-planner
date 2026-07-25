@@ -41,7 +41,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
       }
 
       const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded.slice(Math.min(activeListIndent ?? 0, indent)));
-      const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
+      const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d{1,9}[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
       const interruptingBlock = listItem || thematicBreak || /^ {0,3}(?:#{1,6}(?:\s|$)|>|`{3,}|~{3,})/.test(expanded);
       const lazyContinuation = activeListIndent !== undefined && indent < activeListIndent && !previousBlank && !interruptingBlock;
       if (!blank && !lazyContinuation) {

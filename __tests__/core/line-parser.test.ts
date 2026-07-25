@@ -247,6 +247,10 @@ describe('LineParser', () => {
       expect(parser.removeTag(result.textWithoutAttributes, 'inbox')).toBe('Task #inbox/to-read');
       expect(parser.removeTag(result.textWithoutAttributes, 'inbox/to-read')).toBe('Task');
       expect(parser.removeTag('Task [note:: hello #work world]', 'work')).toBe('Task [note:: hello #work world]');
+      expect(parser.removeTag('Task (note:: #work)', 'work')).toBe('Task (note:: #work)');
+      expect(parser.hasTag('Task (note:: #work)', 'work')).toBe(false);
+      expect(parser.hasTag('Task (note:: #inside) #work', 'work')).toBe(true);
+      expect(parser.removeTag('Task [note:: [[Page]] #work] #work', 'work')).toBe('Task [note:: [[Page]] #work]');
     });
 
     it('should deduplicate hashtags', () => {

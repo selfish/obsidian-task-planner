@@ -262,6 +262,14 @@ export class FileOperations {
     );
   }
 
+  async hasSourceLineAt<T>(task: TaskItem<T>, lineNumber: number, sourceLine: string): Promise<boolean> {
+    try {
+      return this.splitContent(await task.file.getContent()).lines[lineNumber] === sourceLine;
+    } catch {
+      return false;
+    }
+  }
+
   async processTask<T>(task: TaskItem<T>, update: (lines: string[], lineNumber: number, separators: string[]) => void): Promise<void> {
     if (task.line === undefined) return;
     await this.restoreIdentityOnFailure([task], async () => {

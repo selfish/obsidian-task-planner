@@ -190,25 +190,53 @@ export class LineParser {
     return `${before}${before && !/\s$/.test(before) ? " " : ""}#${tag}${after && !/^\s/.test(after) ? " " : ""}${after}`;
   }
 
+  private metadataSpans(text: string): [number, number][] {
+    const spans: [number, number][] = [];
+    for (let start = 0; start < text.length; start++) {
+      const opener = text[start];
+      if (opener !== "[" && opener !== "(") continue;
+      const closer = opener === "[" ? "]" : ")";
+      let depth = 1;
+      let end = start + 1;
+      while (end < text.length && depth > 0) {
+        if (text[end] === opener) depth++;
+        else if (text[end] === closer) depth--;
+        end++;
+      }
+      const body = text.slice(start + 1, depth === 0 ? end - 1 : end);
+      if (!/^\s*[^()[\]]+::/.test(body)) continue;
+      spans.push([start, end]);
+      start = end - 1;
+    }
+    return spans;
+  }
+
+  private transformOutsideMetadata(text: string, transform: (text: string) => string): string {
+    let result = "";
+    let cursor = 0;
+    for (const [start, end] of this.metadataSpans(text)) {
+      result += transform(text.slice(cursor, start)) + text.slice(start, end);
+      cursor = end;
+    }
+    return result + transform(text.slice(cursor));
+  }
+
   hasTag(text: string, tag: string): boolean {
-    return Array.from(text.matchAll(LineParser.HASHTAG_REGEX), (match) => match[1]).includes(tag);
+    let found = false;
+    this.transformOutsideMetadata(text, (segment) => {
+      found ||= Array.from(segment.matchAll(LineParser.HASHTAG_REGEX), (match) => match[1]).includes(tag);
+      return segment;
+    });
+    return found;
   }
 
   removeTag(text: string, tag: string): string {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const remove = (segment: string) =>
+    return this.transformOutsideMetadata(text, (segment) =>
       segment.replace(new RegExp(`(^|[ \\t])#${escaped}(?![a-zA-Z0-9_\\/-])([ \\t]?)`, "g"), (match, before: string, after: string, offset: number, whole: string) => {
         const next = whole[offset + match.length];
         return before && (after || (next && !/\s/.test(next))) ? before : "";
-      });
-    let result = "";
-    let cursor = 0;
-    for (const attribute of text.matchAll(this.getAttributeRegex())) {
-      if (!this.parseSingleAttribute(attribute[0])) continue;
-      const start = attribute.index ?? 0;
-      result += remove(text.slice(cursor, start)) + attribute[0];
-      cursor = start + attribute[0].length;
-    }
-    return result + remove(text.slice(cursor));
+      })
+    );
   }
 }

@@ -21,6 +21,7 @@ jest.mock('../../src/core/operations/file-operations', () => {
       batchRemoveTag: jest.fn().mockResolvedValue(undefined),
       batchMove: jest.fn().mockResolvedValue(undefined),
       lineParser: { hasTag: jest.fn().mockReturnValue(true) },
+      hasSourceLineAt: jest.fn().mockResolvedValue(true),
     })),
   };
 });

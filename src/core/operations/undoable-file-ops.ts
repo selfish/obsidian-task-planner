@@ -35,18 +35,20 @@ export class UndoableFileOperations {
     change.sourceLine = task.sourceLine;
   }
 
-  private resolveOperationTasks<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): { resolved: Map<RecordedChange, TaskItem<T>>; originals: Map<TaskItem<T>, SourceIdentity> } {
+  private async resolveOperationTasks<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<{ resolved: Map<RecordedChange, TaskItem<T>>; originals: Map<TaskItem<T>, SourceIdentity> }> {
     const resolved = new Map<RecordedChange, TaskItem<T>>();
     const originals = new Map<TaskItem<T>, SourceIdentity>();
     const tasksById = new Map<string, TaskItem<T> | undefined>();
     for (const change of [...operation.taskChanges, ...operation.tagChanges, ...operation.statusChanges]) {
       if (!tasksById.has(change.taskId)) tasksById.set(change.taskId, findTask(change.taskId, change.filePath, change.sourceLine));
       const task = tasksById.get(change.taskId);
-      if (task) {
-        if (!originals.has(task)) originals.set(task, { sourceLine: task.sourceLine, sourceLineCount: task.sourceLineCount });
-        if (change.sourceLine !== undefined) task.sourceLine = change.sourceLine;
-        resolved.set(change, task);
+      if (!task) continue;
+      if (change.sourceLine !== undefined && task.sourceLine !== undefined && task.sourceLine !== change.sourceLine) {
+        if (!(await this.fileOperations.hasSourceLineAt(task, change.lineNumber, change.sourceLine))) continue;
       }
+      if (!originals.has(task)) originals.set(task, { sourceLine: task.sourceLine, sourceLineCount: task.sourceLineCount });
+      if (change.sourceLine !== undefined) task.sourceLine = change.sourceLine;
+      resolved.set(change, task);
     }
     return { resolved, originals };
   }
@@ -451,7 +453,7 @@ export class UndoableFileOperations {
     // Record tag removals
     if (tagsToRemove && tagsToRemove.length > 0) {
       for (const tagToRemove of tagsToRemove) {
-        const tasksWithTag = tasks.filter((t) => t.tags?.includes(tagToRemove) && this.fileOperations.lineParser.hasTag(t.text, tagToRemove));
+        const tasksWithTag = tasks.filter((t) => t.tags?.includes(tagToRemove) && this.fileOperations.lineParser.hasTag(t.sourceLine ?? t.text, tagToRemove));
         for (const task of tasksWithTag) {
           tagChanges.push({
             taskId: getTaskId(task),
@@ -565,7 +567,7 @@ export class UndoableFileOperations {
 
   private async applyUndoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
-    const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
+    const { resolved, originals } = await this.resolveOperationTasks(operation, findTask);
     if (this.isCombinedOperation(operation)) {
       success = await this.applyCombinedHistoryOperation(operation, resolved, true);
       if (!success) this.undoManager.restoreFailedUndo(operation);
@@ -630,7 +632,7 @@ export class UndoableFileOperations {
 
   private async applyRedoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
-    const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
+    const { resolved, originals } = await this.resolveOperationTasks(operation, findTask);
     if (this.isCombinedOperation(operation)) {
       success = await this.applyCombinedHistoryOperation(operation, resolved, false);
       if (!success) this.undoManager.restoreFailedRedo(operation);
