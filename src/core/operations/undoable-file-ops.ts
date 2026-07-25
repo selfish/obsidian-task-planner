@@ -172,7 +172,9 @@ export class UndoableFileOperations {
       return;
     }
 
+    const newStatus = task.status;
     await this.fileOperations.refreshTasks([task]);
+    task.status = newStatus;
     const taskId = getTaskId(task);
     const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
     const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;

@@ -1,3 +1,4 @@
+import { StatusOperations } from "./status-operations";
 import { FileOperationError } from "../../lib/errors";
 import { TaskPlannerSettings } from "../../settings";
 import { FileAdapter, LineStructure, TaskItem, TaskStatus } from "../../types";
@@ -37,7 +38,7 @@ function groupTasksByFile<T>(tasks: TaskItem<T>[]): { file: FileAdapter<T>; task
   return [...groups.values()];
 }
 
-type TaskLineCandidate = { lineNumber: number; text: string; tags: string[]; attributes: Record<string, string | boolean> };
+type TaskLineCandidate = { lineNumber: number; text: string; status: TaskStatus; tags: string[]; attributes: Record<string, string | boolean> };
 type TaskIdentity = Pick<TaskItem<unknown>, "line" | "text" | "status" | "tags" | "attributes" | "sourceLine" | "sourceLineCount">;
 type FileChange<T> = { file: FileAdapter<T>; tasks: TaskItem<T>[]; before: string; after: string };
 export type TaskMutation<T> = {
@@ -51,9 +52,11 @@ export type TaskMutation<T> = {
 
 export class FileOperations {
   lineParser: LineParser;
+  private statusOperations: StatusOperations;
 
   constructor(private settings?: TaskPlannerSettings) {
     this.lineParser = new LineParser(settings);
+    this.statusOperations = new StatusOperations(settings);
   }
 
   private splitContent(content: string): { lines: string[]; separators: string[] } {
@@ -67,7 +70,7 @@ export class FileOperations {
     return lines.map((line, index) => line + (separators[index] ?? "")).join("");
   }
 
-  private resolveTasks<T>(lines: string[], tasks: TaskItem<T>[]): { task: TaskItem<T>; lineNumber: number }[] {
+  private resolveTasks<T>(lines: string[], tasks: TaskItem<T>[], refreshStatus = false): { task: TaskItem<T>; lineNumber: number }[] {
     const taskLines = new Map<string, TaskLineCandidate[]>();
     const sourceLines = new Map<string, TaskLineCandidate[]>();
     const fencedLines = fencedCodeBlockLines(lines);
@@ -77,7 +80,7 @@ export class FileOperations {
       if (!parsed.checkbox) continue;
       const attributes = this.lineParser.parseAttributes(parsed.line);
       const identity = attributes.textWithoutAttributes;
-      const candidate = { lineNumber: index, text: attributes.textWithoutAttributes, tags: attributes.tags, attributes: attributes.attributes };
+      const candidate = { lineNumber: index, text: attributes.textWithoutAttributes, status: this.statusOperations.markToStatus(parsed.checkbox[1]), tags: attributes.tags, attributes: attributes.attributes };
       taskLines.set(identity, [...(taskLines.get(identity) ?? []), candidate]);
       sourceLines.set(lines[index], [...(sourceLines.get(lines[index]) ?? []), candidate]);
     }
@@ -96,9 +99,10 @@ export class FileOperations {
     if (new Set(resolved.map(({ lineNumber }) => lineNumber)).size !== resolved.length) {
       throw new FileOperationError(`Multiple updates resolved to the same task: ${tasks[0].file.path}`, tasks[0].file.path, "write", "HIGH");
     }
-    return resolved.map(({ task, lineNumber, text, tags, attributes }) => {
+    return resolved.map(({ task, lineNumber, text, status, tags, attributes }) => {
       task.line = lineNumber;
       task.text = text;
+      if (refreshStatus) task.status = status;
       task.tags = [...tags];
       task.attributes = { ...attributes };
       task.sourceLine = lines[lineNumber];
@@ -257,7 +261,7 @@ export class FileOperations {
     await Promise.all(
       groupTasksByFile(tasks.filter((task) => task.line !== undefined)).map(async ({ file, tasks: fileTasks }) => {
         const content = await this.readFile(file, fileTasks, true);
-        this.resolveTasks(this.splitContent(content).lines, fileTasks);
+        this.resolveTasks(this.splitContent(content).lines, fileTasks, true);
       })
     );
   }
@@ -280,6 +284,12 @@ export class FileOperations {
           const { lines, separators } = this.splitContent(content);
           const [{ lineNumber }] = this.resolveTasks(lines, [task]);
           update(lines, lineNumber, separators);
+          const parsed = this.lineParser.parseLine(lines[lineNumber]);
+          const attributes = this.lineParser.parseAttributes(parsed.line);
+          task.text = attributes.textWithoutAttributes;
+          task.status = this.statusOperations.markToStatus(parsed.checkbox?.[1] ?? " ");
+          task.tags = [...attributes.tags];
+          task.attributes = { ...attributes.attributes };
           task.sourceLine = lines[lineNumber];
           this.refreshSourceLineCounts(lines, [task]);
           return this.joinContent(lines, separators);
@@ -365,7 +375,9 @@ export class FileOperations {
   }
 
   async batchUpdateTaskStatus<T>(tasks: TaskItem<T>[], completedAttribute: string): Promise<void> {
+    const statuses = new Map(tasks.map((task) => [task, task.status]));
     await this.updateBatches(tasks, (line, task) => {
+      task.status = statuses.get(task) ?? task.status;
       line.checkbox = statusToCheckbox(task.status);
       const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
       line.line = this.lineParser.updateAttribute(line.line, completedAttribute, isCompleted ? moment().format("YYYY-MM-DD") : undefined);

@@ -1,5 +1,6 @@
 import { UndoableFileOperations } from '../../src/core/operations/undoable-file-ops';
 import { UndoManager } from '../../src/core/operations/undo-manager';
+import { FollowUpCreator } from '../../src/core/services/follow-up-creator';
 import { DEFAULT_SETTINGS } from '../../src/settings/types';
 import { FileAdapter } from '../../src/types/file-adapter';
 import { getTaskId, TaskItem, TaskStatus } from '../../src/types/task';
@@ -190,6 +191,15 @@ describe('UndoableFileOperations integration', () => {
 
     expect(await operations.applyUndo(undoManager.getLastOperation()!, findTask)).toBe(true);
     expect(content()).toBe('- [x] Task [completed:: 2020-01-02]');
+  });
+
+  it('undoes an immediate status change after complete-and-follow-up', async () => {
+    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task');
+    await new FollowUpCreator(DEFAULT_SETTINGS).createFollowUp(task, null, { completeOriginal: true });
+
+    await operations.batchUpdateTaskStatusWithUndo([task], TaskStatus.Canceled, 'Cancel task');
+    expect(await operations.applyUndo(undoManager.getLastOperation()!, findTask)).toBe(true);
+    expect(content()).toMatch(/^- \[x\] Task \[completed:: \d{4}-\d{2}-\d{2}\]\n- \[ \] Follow up: Task$/);
   });
 
   it('fails closed instead of redirecting undo to a task matching stale history', async () => {
