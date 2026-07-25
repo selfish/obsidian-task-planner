@@ -303,7 +303,7 @@ export class FileOperations {
 
   async appendTag<T>(task: TaskItem<T>, tag: string) {
     await this.updateContentInFile(task, (line) => {
-      if (this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      if (this.lineParser.hasTag(line.line, tag)) return false;
       line.line = this.lineParser.appendTag(line.line, tag);
       return true;
     });
@@ -311,7 +311,7 @@ export class FileOperations {
 
   async removeTag<T>(task: TaskItem<T>, tag: string) {
     await this.updateContentInFile(task, (line) => {
-      if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      if (!this.lineParser.hasTag(line.line, tag)) return false;
       const updated = this.lineParser.removeTag(line.line, tag);
       if (updated === line.line) return false;
       line.line = updated;
@@ -348,7 +348,7 @@ export class FileOperations {
 
   async batchAppendTag<T>(tasks: TaskItem<T>[], tag: string): Promise<void> {
     await this.updateBatches(tasks, (line) => {
-      if (this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      if (this.lineParser.hasTag(line.line, tag)) return false;
       line.line = this.lineParser.appendTag(line.line, tag);
       return true;
     });
@@ -356,7 +356,7 @@ export class FileOperations {
 
   async batchRemoveTag<T>(tasks: TaskItem<T>[], tag: string): Promise<void> {
     await this.updateBatches(tasks, (line) => {
-      if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
+      if (!this.lineParser.hasTag(line.line, tag)) return false;
       const updated = this.lineParser.removeTag(line.line, tag);
       if (updated === line.line) return false;
       line.line = updated;
@@ -381,10 +381,10 @@ export class FileOperations {
         if (!mutation) throw new Error("Missing task mutation");
         for (const attribute of mutation.attributes ?? []) line.line = this.lineParser.updateAttribute(line.line, attribute.name, attribute.value);
         for (const tag of mutation.tagsToAdd ?? []) {
-          if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) line.line = this.lineParser.appendTag(line.line, tag);
+          if (!this.lineParser.hasTag(line.line, tag)) line.line = this.lineParser.appendTag(line.line, tag);
         }
         for (const tag of mutation.tagsToRemove ?? []) {
-          if (this.lineParser.parseAttributes(line.line).tags.includes(tag)) line.line = this.lineParser.removeTag(line.line, tag);
+          if (this.lineParser.hasTag(line.line, tag)) line.line = this.lineParser.removeTag(line.line, tag);
         }
         if (mutation.status !== undefined) {
           task.status = mutation.status;
@@ -399,9 +399,9 @@ export class FileOperations {
   async batchMove<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, completedAttribute: string, tag?: string, newStatus?: TaskStatus, tagsToRemove: string[] = []): Promise<void> {
     await this.updateBatches(tasks, (line, task) => {
       line.line = this.lineParser.updateAttribute(line.line, attributeName, attributeValue);
-      if (tag && !this.lineParser.parseAttributes(line.line).tags.includes(tag)) line.line = this.lineParser.appendTag(line.line, tag);
+      if (tag && !this.lineParser.hasTag(line.line, tag)) line.line = this.lineParser.appendTag(line.line, tag);
       for (const removedTag of tagsToRemove) {
-        if (this.lineParser.parseAttributes(line.line).tags.includes(removedTag)) line.line = this.lineParser.removeTag(line.line, removedTag);
+        if (this.lineParser.hasTag(line.line, removedTag)) line.line = this.lineParser.removeTag(line.line, removedTag);
       }
       if (newStatus !== undefined) {
         task.status = newStatus;

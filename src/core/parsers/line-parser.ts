@@ -31,17 +31,15 @@ export class LineParser {
     return `${line.indentation}${space(line.listMarker)}${space(line.checkbox)}${space(line.date, ": ")}${line.line}`;
   }
 
-  // Matches Dataview [key:: value] and @key shortcuts (negative lookbehind prevents matching @ inside [[@wiki links]])
-  private getAttributeRegex(): RegExp {
-    return /\[([^:\]]+)::([^\]]+)\]|(?<!\[)@(\w+)(?![(\w])/g;
-  }
-
   // Returns null for unrecognized @ shortcuts (whitelist-based parsing)
   private parseSingleAttribute(matchStr: string): [string, string | boolean] | null {
-    const dataviewRegex = /\[([^:\]]+)::([^\]]+)\]/;
+    const dataviewRegex = /^\[([^:\]]+)::\s*(.*)\]$/;
     const dataviewMatch = dataviewRegex.exec(matchStr);
     if (dataviewMatch) {
-      return [dataviewMatch[1].trim(), dataviewMatch[2].trim()];
+      const key = dataviewMatch[1].trim();
+      const value = dataviewMatch[2].trim();
+      if (!key || !value) return null;
+      return [key, value];
     }
 
     const shortcutRegex = /@(\w+)/;
@@ -95,29 +93,29 @@ export class LineParser {
   private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*(?:\/[a-zA-Z0-9_-]+)*)/g;
 
   private parseHashtags(text: string): string[] {
-    const matches = text.matchAll(LineParser.HASHTAG_REGEX);
-    return Array.from(
-      new Set(
-        Array.from(matches, (match) => match[1]).flatMap((tag) => {
-          const segments = tag.split("/");
-          return segments.map((_, index) => segments.slice(0, index + 1).join("/"));
-        })
-      )
-    );
+    const tags = new Set<string>();
+    this.transformOutsideTagContexts(text, (segment) => {
+      for (const match of segment.matchAll(LineParser.HASHTAG_REGEX)) {
+        for (const tag of match[1].split("/").map((_, index, segments) => segments.slice(0, index + 1).join("/"))) {
+          tags.add(tag);
+        }
+      }
+      return segment;
+    });
+    return [...tags];
   }
 
   // Priority shortcuts like @high are converted to [priority:: high]
   parseAttributes(text: string): AttributesStructure {
-    const regexp = this.getAttributeRegex();
-    const matches = text.match(regexp);
+    const matches = this.attributeMatches(text);
 
     const res: Record<string, string | boolean> = {};
     const tags = this.parseHashtags(text);
-    if (!matches) return { textWithoutAttributes: text, attributes: res, tags };
+    if (matches.length === 0) return { textWithoutAttributes: text, attributes: res, tags };
 
     let textWithoutAttributes = text;
 
-    matches.forEach((match) => {
+    matches.forEach(({ value: match }) => {
       const parsed = this.parseSingleAttribute(match);
       if (parsed === null) return;
       const [attrKey, attrValue] = parsed;
@@ -147,20 +145,20 @@ export class LineParser {
   }
 
   updateAttribute(text: string, key: string, value: string | boolean | undefined): string {
-    const matches = [...text.matchAll(this.getAttributeRegex())];
+    const matches = this.attributeMatches(text);
     let result = "";
     let cursor = 0;
     let found = false;
     let written = false;
 
     for (const match of matches) {
-      const parsed = this.parseSingleAttribute(match[0]);
+      const parsed = this.parseSingleAttribute(match.value);
       if (!parsed) continue;
       const parsedKey = LineParser.PRIORITY_SHORTCUTS.includes(parsed[0]) && parsed[1] === true ? "priority" : parsed[0];
       if (parsedKey !== key) continue;
 
-      const start = match.index ?? 0;
-      let end = start + match[0].length;
+      const start = match.index;
+      let end = start + match.value.length;
       result += text.slice(cursor, start);
       found = true;
 
@@ -181,10 +179,10 @@ export class LineParser {
   }
 
   appendTag(text: string, tag: string): string {
-    const attribute = [...text.matchAll(this.getAttributeRegex())].find((match) => this.parseSingleAttribute(match[0]) !== null);
+    const attribute = this.attributeMatches(text).find((match) => this.parseSingleAttribute(match.value) !== null);
     if (!attribute) return `${text}${text && !/\s$/.test(text) ? " " : ""}#${tag}`;
 
-    const index = attribute.index ?? text.length;
+    const index = attribute.index;
     const before = text.slice(0, index);
     const after = text.slice(index);
     return `${before}${before && !/\s$/.test(before) ? " " : ""}#${tag}${after && !/^\s/.test(after) ? " " : ""}${after}`;
@@ -211,10 +209,31 @@ export class LineParser {
     return spans;
   }
 
-  private transformOutsideMetadata(text: string, transform: (text: string) => string): string {
+  private attributeMatches(text: string): { value: string; index: number }[] {
+    const spans = this.metadataSpans(text);
+    const attributes = spans.filter(([start, end]) => text[start] === "[" && this.parseSingleAttribute(text.slice(start, end)) !== null).map(([start, end]) => ({ value: text.slice(start, end), index: start }));
+    const shortcuts = [...text.matchAll(/(?<!\[)@(\w+)(?![(\w])/g)].filter((match) => !spans.some(([start, end]) => (match.index ?? 0) >= start && (match.index ?? 0) < end)).map((match) => ({ value: match[0], index: match.index ?? 0 }));
+    return [...attributes, ...shortcuts].sort((a, b) => a.index - b.index);
+  }
+
+  private tagContextSpans(text: string): [number, number][] {
+    const spans = [...this.metadataSpans(text)];
+    for (const match of text.matchAll(/\[\[.*?\]\]/g)) spans.push([match.index ?? 0, (match.index ?? 0) + match[0].length]);
+    spans.sort(([left], [right]) => left - right);
+
+    const merged: [number, number][] = [];
+    for (const [start, end] of spans) {
+      const previous = merged[merged.length - 1];
+      if (previous && start <= previous[1]) previous[1] = Math.max(previous[1], end);
+      else merged.push([start, end]);
+    }
+    return merged;
+  }
+
+  private transformOutsideTagContexts(text: string, transform: (text: string) => string): string {
     let result = "";
     let cursor = 0;
-    for (const [start, end] of this.metadataSpans(text)) {
+    for (const [start, end] of this.tagContextSpans(text)) {
       result += transform(text.slice(cursor, start)) + text.slice(start, end);
       cursor = end;
     }
@@ -223,7 +242,7 @@ export class LineParser {
 
   hasTag(text: string, tag: string): boolean {
     let found = false;
-    this.transformOutsideMetadata(text, (segment) => {
+    this.transformOutsideTagContexts(text, (segment) => {
       found ||= Array.from(segment.matchAll(LineParser.HASHTAG_REGEX), (match) => match[1]).includes(tag);
       return segment;
     });
@@ -232,7 +251,7 @@ export class LineParser {
 
   removeTag(text: string, tag: string): string {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return this.transformOutsideMetadata(text, (segment) =>
+    return this.transformOutsideTagContexts(text, (segment) =>
       segment.replace(new RegExp(`(^|[ \\t])#${escaped}(?![a-zA-Z0-9_\\/-])([ \\t]?)`, "g"), (match, before: string, after: string, offset: number, whole: string) => {
         const next = whole[offset + match.length];
         return before && (after || (next && !/\s/.test(next))) ? before : "";

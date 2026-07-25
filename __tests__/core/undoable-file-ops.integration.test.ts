@@ -71,7 +71,7 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toBe('Note\n- [ ] Task');
   });
 
-  it('finds a uniquely matching task after reindexing changes its line number', async () => {
+  it('fails closed after reindexing changes the recorded task identity', async () => {
     const { task, undoManager, operations, content, replaceContent } = setup('- [ ] Task');
 
     await operations.updateAttributeWithUndo(task, 'due', '2026-07-24', 'Schedule task');
@@ -81,8 +81,8 @@ describe('UndoableFileOperations integration', () => {
     const findReindexedTask = (id: string, filePath?: string, sourceLine?: string) =>
       getTaskId(task) === id || (task.file.path === filePath && task.sourceLine === sourceLine) ? task : undefined;
 
-    expect(await operations.applyUndo(operation, findReindexedTask)).toBe(true);
-    expect(content()).toBe('Note\n- [ ] Task');
+    expect(await operations.applyUndo(operation, findReindexedTask)).toBe(false);
+    expect(content()).toBe('Note\n- [ ] Task [due:: 2026-07-24]');
   });
 
   it('resolves every combined change before tag mutations alter identity', async () => {
@@ -155,16 +155,18 @@ describe('UndoableFileOperations integration', () => {
   });
 
   it('fails closed instead of redirecting undo to a task matching stale history', async () => {
-    const { task, undoManager, operations, findTask, content, replaceContent } = setup('- [ ] Task');
+    const { task, undoManager, operations, content, replaceContent } = setup('- [ ] Task');
 
     await operations.updateAttributeWithUndo(task, 'due', '2026-07-25', 'Schedule task');
     const operation = undoManager.getLastOperation()!;
-    replaceContent('- [ ] Task [due:: 2026-07-26]\n- [ ] Task [due:: 2026-07-25]');
+    replaceContent('inserted\n- [ ] Task [due:: 2026-07-26]\n- [ ] Task [due:: 2026-07-25]');
+    task.line = 1;
     task.sourceLine = '- [ ] Task [due:: 2026-07-26]';
     task.attributes = { due: '2026-07-26' };
+    const decoy = { ...task, line: 2, sourceLine: '- [ ] Task [due:: 2026-07-25]', attributes: { due: '2026-07-25' } };
 
-    expect(await operations.applyUndo(operation, findTask)).toBe(false);
-    expect(content()).toBe('- [ ] Task [due:: 2026-07-26]\n- [ ] Task [due:: 2026-07-25]');
+    expect(await operations.applyUndo(operation, () => decoy)).toBe(false);
+    expect(content()).toBe('inserted\n- [ ] Task [due:: 2026-07-26]\n- [ ] Task [due:: 2026-07-25]');
   });
 
   it('stops a combined undo after a conflict and keeps it on the undo stack', async () => {

@@ -292,6 +292,12 @@ describe('FileTaskParser', () => {
       expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
     });
 
+    it('ignores indented code immediately after a heading', async () => {
+      const todos = await parser.parseMdFile(createMockFileAdapter('# Heading\n    - [ ] Example only'));
+
+      expect(todos).toEqual([]);
+    });
+
     it('does not create a list container from a ten-digit ordered marker', async () => {
       const content = '1234567890. prose\n\n    - [ ] Example only';
       const todos = await parser.parseMdFile(createMockFileAdapter(content));

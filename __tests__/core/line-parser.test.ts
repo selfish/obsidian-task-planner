@@ -240,15 +240,17 @@ describe('LineParser', () => {
       expect(result.tags).toEqual(['my-project', 'work_item']);
     });
 
-    it('preserves nested tags and does not remove tags inside metadata values', () => {
-      const result = parser.parseAttributes('Task #inbox/to-read [note:: hello #work world]');
+    it('preserves nested tags and ignores tags inside metadata values and wikilinks', () => {
+      const result = parser.parseAttributes('Task #inbox/to-read [note:: hello #work world] [[Page #heading]]');
 
-      expect(result.tags).toEqual(['inbox', 'inbox/to-read', 'work']);
-      expect(parser.removeTag(result.textWithoutAttributes, 'inbox')).toBe('Task #inbox/to-read');
-      expect(parser.removeTag(result.textWithoutAttributes, 'inbox/to-read')).toBe('Task');
+      expect(result.tags).toEqual(['inbox', 'inbox/to-read']);
+      expect(parser.removeTag(result.textWithoutAttributes, 'inbox')).toBe('Task #inbox/to-read [[Page #heading]]');
+      expect(parser.removeTag(result.textWithoutAttributes, 'inbox/to-read')).toBe('Task [[Page #heading]]');
       expect(parser.removeTag('Task [note:: hello #work world]', 'work')).toBe('Task [note:: hello #work world]');
       expect(parser.removeTag('Task (note:: #work)', 'work')).toBe('Task (note:: #work)');
+      expect(parser.removeTag('Task [[Page #work]]', 'work')).toBe('Task [[Page #work]]');
       expect(parser.hasTag('Task (note:: #work)', 'work')).toBe(false);
+      expect(parser.hasTag('Task [[Page #work]]', 'work')).toBe(false);
       expect(parser.hasTag('Task (note:: #inside) #work', 'work')).toBe(true);
       expect(parser.removeTag('Task [note:: [[Page]] #work] #work', 'work')).toBe('Task [note:: [[Page]] #work]');
     });

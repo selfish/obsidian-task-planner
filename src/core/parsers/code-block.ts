@@ -15,6 +15,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
   const listContentIndents: number[] = [];
   let indentedCodeMinIndent: number | undefined;
   let previousBlank = true;
+  let previousParagraph = false;
 
   lines.forEach((line, index) => {
     const expanded = expandTabs(line);
@@ -26,6 +27,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
         if (blank || indent >= indentedCodeMinIndent) {
           fenced.add(index);
           previousBlank = blank;
+          previousParagraph = false;
           return;
         }
         indentedCodeMinIndent = undefined;
@@ -33,10 +35,11 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
 
       const activeListIndent = listContentIndents[listContentIndents.length - 1];
       const codeIndent = (activeListIndent ?? 0) + 4;
-      if (!blank && indent >= codeIndent && previousBlank) {
+      if (!blank && indent >= codeIndent && (previousBlank || !previousParagraph)) {
         indentedCodeMinIndent = codeIndent;
         fenced.add(index);
         previousBlank = false;
+        previousParagraph = false;
         return;
       }
 
@@ -64,6 +67,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
         fenced.add(index);
       }
       previousBlank = blank;
+      previousParagraph = !blank && !interruptingBlock;
       return;
     }
 
@@ -71,6 +75,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
     const match = indent >= open.minIndent && indent <= open.maxIndent ? /^(`{3,}|~{3,})(.*)$/.exec(expanded.slice(indent)) : null;
     if (match && match[1][0] === open.character && match[1].length >= open.length && match[2].trim() === "") open = undefined;
     previousBlank = blank;
+    previousParagraph = false;
   });
 
   return fenced;

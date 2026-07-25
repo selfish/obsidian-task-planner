@@ -47,6 +47,24 @@ describe('FileOperations', () => {
       expect(setContentCall).toContain('- [ ] Task two [due:: 2025-01-15]');
     });
 
+    it('preserves nested metadata values when updating their field', async () => {
+      const file = createMockFileAdapter('- [ ] Task one [due:: [[2026-07-25]]] [owner::  Jane  ]');
+      const todo: TaskItem<unknown> = {
+        text: 'Task one',
+        status: TaskStatus.Todo,
+        file,
+        line: 0,
+        tags: [],
+        attributes: { due: '[[2026-07-25]]', owner: 'Jane' },
+        sourceLine: '- [ ] Task one [due:: [[2026-07-25]]] [owner::  Jane  ]',
+        sourceLineCount: 1,
+      };
+
+      await operations.updateAttribute(todo, 'due', '2026-07-26');
+
+      expect(file.setContent).toHaveBeenCalledWith('- [ ] Task one [due:: 2026-07-26] [owner::  Jane  ]');
+    });
+
     it('should update an existing attribute', async () => {
       const fileContent = '- [ ] Task [due:: 2025-01-10]';
       const file = createMockFileAdapter(fileContent);
@@ -568,6 +586,16 @@ describe('FileOperations', () => {
 
       const setContentCall = (file.setContent as jest.Mock).mock.calls[0][0];
       expect(setContentCall).toBe('- [ ] Task one #urgent [due:: 2025-01-15]');
+    });
+
+    it('appends a real tag when the same hashtag exists only in metadata', async () => {
+      const sourceLine = '- [ ] Task one [note:: [[Page #work]]]';
+      const file = createMockFileAdapter(sourceLine);
+      const todo: TaskItem<unknown> = { text: 'Task one', status: TaskStatus.Todo, file, line: 0, tags: ['work'], attributes: {}, sourceLine, sourceLineCount: 1 };
+
+      await operations.appendTag(todo, 'work');
+
+      expect(file.setContent).toHaveBeenCalledWith('- [ ] Task one #work [note:: [[Page #work]]]');
     });
 
     it('should skip if todo already has the tag', async () => {

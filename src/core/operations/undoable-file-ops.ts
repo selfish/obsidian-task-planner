@@ -43,6 +43,7 @@ export class UndoableFileOperations {
       if (!tasksById.has(change.taskId)) tasksById.set(change.taskId, findTask(change.taskId, change.filePath, change.sourceLine));
       const task = tasksById.get(change.taskId);
       if (!task) continue;
+      if (getTaskId(task) !== change.taskId && (change.sourceLine !== undefined || task.sourceLine !== undefined)) continue;
       if (change.sourceLine !== undefined && task.sourceLine !== undefined && task.sourceLine !== change.sourceLine) {
         if (!(await this.fileOperations.hasSourceLineAt(task, change.lineNumber, change.sourceLine))) continue;
       }
