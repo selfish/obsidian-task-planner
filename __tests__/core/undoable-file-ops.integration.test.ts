@@ -97,6 +97,26 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toBe('- [ ] Task #new [due:: 2026-07-24]');
   });
 
+  it('undoes and redoes a combined move in one transaction each', async () => {
+    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task #old');
+    const processContent = jest.fn(async (update: (current: string) => string) => {
+      await task.file.setContent(update(content()));
+    });
+    task.file.processContent = processContent;
+    await operations.combinedMoveWithUndo([task], 'due', '2026-07-24', 'new', TaskStatus.Complete, 'Move task', ['old']);
+    const operation = undoManager.getLastOperation()!;
+
+    processContent.mockClear();
+    expect(await operations.applyUndo(operation, findTask)).toBe(true);
+    expect(processContent).toHaveBeenCalledTimes(1);
+    expect(content()).toBe('- [ ] Task #old');
+
+    processContent.mockClear();
+    expect(await operations.applyRedo(operation, findTask)).toBe(true);
+    expect(processContent).toHaveBeenCalledTimes(1);
+    expect(content()).toMatch(/^- \[x\] Task #new \[due:: 2026-07-24\] \[completed:: \d{4}-\d{2}-\d{2}\]$/);
+  });
+
   it('writes every part of a combined move in one file transaction', async () => {
     const { task, operations, content } = setup('- [ ] Task #old');
     const processContent = jest.fn(async (update: (current: string) => string) => {
@@ -109,6 +129,18 @@ describe('UndoableFileOperations integration', () => {
 
     expect(processContent).toHaveBeenCalledTimes(1);
     expect(content()).toMatch(/^- \[x\] Task #new \[due:: 2026-07-25\] \[completed:: \d{4}-\d{2}-\d{2}\]$/);
+  });
+
+  it('preserves hashtags inside metadata during a combined remove', async () => {
+    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task [note:: hello #work world]');
+
+    await operations.combinedMoveWithUndo([task], 'due', '2026-08-01', undefined, undefined, 'Move task', ['work']);
+
+    expect(content()).toBe('- [ ] Task [note:: hello #work world] [due:: 2026-08-01]');
+    const operation = undoManager.getLastOperation()!;
+    expect(operation.tagChanges).toEqual([]);
+    expect(await operations.applyUndo(operation, findTask)).toBe(true);
+    expect(content()).toBe('- [ ] Task [note:: hello #work world]');
   });
 
   it('restores the historical completion date when undoing a status change', async () => {

@@ -40,6 +40,14 @@ function groupTasksByFile<T>(tasks: TaskItem<T>[]): { file: FileAdapter<T>; task
 type TaskLineCandidate = { lineNumber: number; text: string; tags: string[]; attributes: Record<string, string | boolean> };
 type TaskIdentity = Pick<TaskItem<unknown>, "line" | "text" | "status" | "tags" | "attributes" | "sourceLine" | "sourceLineCount">;
 type FileChange<T> = { file: FileAdapter<T>; tasks: TaskItem<T>[]; before: string; after: string };
+export type TaskMutation<T> = {
+  task: TaskItem<T>;
+  attributes?: { name: string; value: string | boolean | undefined }[];
+  tagsToAdd?: string[];
+  tagsToRemove?: string[];
+  status?: TaskStatus;
+  completedDate?: string | null;
+};
 
 export class FileOperations {
   lineParser: LineParser;
@@ -296,7 +304,9 @@ export class FileOperations {
   async removeTag<T>(task: TaskItem<T>, tag: string) {
     await this.updateContentInFile(task, (line) => {
       if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
-      line.line = this.lineParser.removeTag(line.line, tag);
+      const updated = this.lineParser.removeTag(line.line, tag);
+      if (updated === line.line) return false;
+      line.line = updated;
       return true;
     });
   }
@@ -339,7 +349,9 @@ export class FileOperations {
   async batchRemoveTag<T>(tasks: TaskItem<T>[], tag: string): Promise<void> {
     await this.updateBatches(tasks, (line) => {
       if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) return false;
-      line.line = this.lineParser.removeTag(line.line, tag);
+      const updated = this.lineParser.removeTag(line.line, tag);
+      if (updated === line.line) return false;
+      line.line = updated;
       return true;
     });
   }
@@ -350,6 +362,30 @@ export class FileOperations {
       const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
       line.line = this.lineParser.updateAttribute(line.line, completedAttribute, isCompleted ? moment().format("YYYY-MM-DD") : undefined);
     });
+  }
+
+  async batchApplyMutations<T>(mutations: TaskMutation<T>[], completedAttribute: string): Promise<void> {
+    const byTask = new Map(mutations.map((mutation) => [mutation.task, mutation]));
+    await this.updateBatches(
+      mutations.map(({ task }) => task),
+      (line, task) => {
+        const mutation = byTask.get(task);
+        if (!mutation) throw new Error("Missing task mutation");
+        for (const attribute of mutation.attributes ?? []) line.line = this.lineParser.updateAttribute(line.line, attribute.name, attribute.value);
+        for (const tag of mutation.tagsToAdd ?? []) {
+          if (!this.lineParser.parseAttributes(line.line).tags.includes(tag)) line.line = this.lineParser.appendTag(line.line, tag);
+        }
+        for (const tag of mutation.tagsToRemove ?? []) {
+          if (this.lineParser.parseAttributes(line.line).tags.includes(tag)) line.line = this.lineParser.removeTag(line.line, tag);
+        }
+        if (mutation.status !== undefined) {
+          task.status = mutation.status;
+          line.checkbox = statusToCheckbox(mutation.status);
+          const completed = mutation.status === TaskStatus.Complete || mutation.status === TaskStatus.Canceled;
+          line.line = this.lineParser.updateAttribute(line.line, completedAttribute, completed ? (mutation.completedDate ?? undefined) : undefined);
+        }
+      }
+    );
   }
 
   async batchMove<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, completedAttribute: string, tag?: string, newStatus?: TaskStatus, tagsToRemove: string[] = []): Promise<void> {

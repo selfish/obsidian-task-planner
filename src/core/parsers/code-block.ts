@@ -13,6 +13,7 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let open: { character: string; length: number; minIndent: number; maxIndent: number } | undefined;
   const listContentIndents: number[] = [];
+  let indentedCodeMinIndent: number | undefined;
   let previousBlank = true;
 
   lines.forEach((line, index) => {
@@ -21,7 +22,24 @@ export function fencedCodeBlockLines(lines: string[]): Set<number> {
     const indent = expanded.match(/^ */)?.[0].length ?? 0;
     if (open && !blank && indent < open.minIndent) open = undefined;
     if (!open) {
+      if (indentedCodeMinIndent !== undefined) {
+        if (blank || indent >= indentedCodeMinIndent) {
+          fenced.add(index);
+          previousBlank = blank;
+          return;
+        }
+        indentedCodeMinIndent = undefined;
+      }
+
       const activeListIndent = listContentIndents[listContentIndents.length - 1];
+      const codeIndent = (activeListIndent ?? 0) + 4;
+      if (!blank && indent >= codeIndent && previousBlank) {
+        indentedCodeMinIndent = codeIndent;
+        fenced.add(index);
+        previousBlank = false;
+        return;
+      }
+
       const thematicBreak = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(expanded.slice(Math.min(activeListIndent ?? 0, indent)));
       const listItem = thematicBreak ? null : /^( *)(?:[-+*]|\d+[.)])(?: {1,4}(?! )| |$)/.exec(expanded);
       const interruptingBlock = listItem || thematicBreak || /^ {0,3}(?:#{1,6}(?:\s|$)|>|`{3,}|~{3,})/.test(expanded);

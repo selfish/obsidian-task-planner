@@ -92,17 +92,18 @@ export class LineParser {
 
   private static readonly PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
 
-  private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
+  private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*(?:\/[a-zA-Z0-9_-]+)*)/g;
 
   private parseHashtags(text: string): string[] {
     const matches = text.matchAll(LineParser.HASHTAG_REGEX);
-    const tags: string[] = [];
-    for (const match of matches) {
-      if (!tags.includes(match[1])) {
-        tags.push(match[1]);
-      }
-    }
-    return tags;
+    return Array.from(
+      new Set(
+        Array.from(matches, (match) => match[1]).flatMap((tag) => {
+          const segments = tag.split("/");
+          return segments.map((_, index) => segments.slice(0, index + 1).join("/"));
+        })
+      )
+    );
   }
 
   // Priority shortcuts like @high are converted to [priority:: high]
@@ -189,11 +190,25 @@ export class LineParser {
     return `${before}${before && !/\s$/.test(before) ? " " : ""}#${tag}${after && !/^\s/.test(after) ? " " : ""}${after}`;
   }
 
+  hasTag(text: string, tag: string): boolean {
+    return Array.from(text.matchAll(LineParser.HASHTAG_REGEX), (match) => match[1]).includes(tag);
+  }
+
   removeTag(text: string, tag: string): string {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return text.replace(new RegExp(`(^|[ \\t])#${escaped}\\b([ \\t]?)`, "g"), (match, before: string, after: string, offset: number, whole: string) => {
-      const next = whole[offset + match.length];
-      return before && (after || (next && !/\s/.test(next))) ? before : "";
-    });
+    const remove = (segment: string) =>
+      segment.replace(new RegExp(`(^|[ \\t])#${escaped}(?![a-zA-Z0-9_\\/-])([ \\t]?)`, "g"), (match, before: string, after: string, offset: number, whole: string) => {
+        const next = whole[offset + match.length];
+        return before && (after || (next && !/\s/.test(next))) ? before : "";
+      });
+    let result = "";
+    let cursor = 0;
+    for (const attribute of text.matchAll(this.getAttributeRegex())) {
+      if (!this.parseSingleAttribute(attribute[0])) continue;
+      const start = attribute.index ?? 0;
+      result += remove(text.slice(cursor, start)) + attribute[0];
+      cursor = start + attribute[0].length;
+    }
+    return result + remove(text.slice(cursor));
   }
 }

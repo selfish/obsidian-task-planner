@@ -106,6 +106,13 @@ describe("TaskCreator", () => {
         expect(result).toBe("---\ntitle: Test\n---\n- [ ] task\n# Title");
       });
 
+      it("preserves CR-only frontmatter at the start of the note", () => {
+        const content = "---\rtitle: Test\r---\r# Title";
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task");
+
+        expect(result).toBe("---\rtitle: Test\r---\r- [ ] task\r# Title");
+      });
+
       it("should handle frontmatter with no closing delimiter", () => {
         const content = "---\ntitle: Test\n# Title";
         const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task");

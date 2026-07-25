@@ -71,6 +71,7 @@ export class ObsidianFile implements FileAdapter<TFile> {
           throw new FileOperationError(`Failed to write file: ${path}`, path, "write", "HIGH", { originalError: error instanceof Error ? error.message : String(error) });
         }
         if (updated === content) return;
+        // ponytail: Obsidian 1.0 has no compare-and-swap API; this second read narrows, but cannot eliminate, the final write race. Newer hosts use Vault.process above.
         let latest: string;
         try {
           latest = await vault.read(this.file);

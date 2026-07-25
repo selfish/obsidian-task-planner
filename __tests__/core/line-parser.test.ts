@@ -240,6 +240,15 @@ describe('LineParser', () => {
       expect(result.tags).toEqual(['my-project', 'work_item']);
     });
 
+    it('preserves nested tags and does not remove tags inside metadata values', () => {
+      const result = parser.parseAttributes('Task #inbox/to-read [note:: hello #work world]');
+
+      expect(result.tags).toEqual(['inbox', 'inbox/to-read', 'work']);
+      expect(parser.removeTag(result.textWithoutAttributes, 'inbox')).toBe('Task #inbox/to-read');
+      expect(parser.removeTag(result.textWithoutAttributes, 'inbox/to-read')).toBe('Task');
+      expect(parser.removeTag('Task [note:: hello #work world]', 'work')).toBe('Task [note:: hello #work world]');
+    });
+
     it('should deduplicate hashtags', () => {
       const result = parser.parseAttributes('Task #shopping more #shopping');
       expect(result.tags).toEqual(['shopping']);

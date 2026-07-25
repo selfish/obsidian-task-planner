@@ -285,6 +285,20 @@ describe('FileTaskParser', () => {
       expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
     });
 
+    it('ignores root indented-code task examples', async () => {
+      const content = '    - [ ] Example only\n\n- [ ] Real task';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
+    it('keeps valid fences when dedenting within nested lists', async () => {
+      const content = '- outer\n  - middle\n    - inner\n      ```md\n      - [ ] Example only\n      ```\n- [ ] Real task';
+      const todos = await parser.parseMdFile(createMockFileAdapter(content));
+
+      expect(todos.map((todo) => todo.text)).toEqual(['Real task']);
+    });
+
     it('should handle multiple code blocks', async () => {
       const content = [
         '- [ ] Task 1',

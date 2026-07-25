@@ -1,4 +1,4 @@
-import { FileOperations } from "./file-operations";
+import { FileOperations, TaskMutation } from "./file-operations";
 import { UndoManager, UndoOperation, TaskChange, StatusChange, TagChange } from "./undo-manager";
 import { TaskPlannerSettings } from "../../settings";
 import { TaskItem, TaskStatus, getTaskId } from "../../types";
@@ -451,7 +451,7 @@ export class UndoableFileOperations {
     // Record tag removals
     if (tagsToRemove && tagsToRemove.length > 0) {
       for (const tagToRemove of tagsToRemove) {
-        const tasksWithTag = tasks.filter((t) => t.tags?.includes(tagToRemove));
+        const tasksWithTag = tasks.filter((t) => t.tags?.includes(tagToRemove) && this.fileOperations.lineParser.hasTag(t.text, tagToRemove));
         for (const task of tasksWithTag) {
           tagChanges.push({
             taskId: getTaskId(task),
@@ -508,6 +508,54 @@ export class UndoableFileOperations {
     this.undoManager.recordOperation(operation);
   }
 
+  private isCombinedOperation(operation: UndoOperation): boolean {
+    return [operation.taskChanges, operation.tagChanges, operation.statusChanges].filter((changes) => changes.length > 0).length > 1;
+  }
+
+  private async applyCombinedHistoryOperation<T>(operation: UndoOperation, resolved: Map<RecordedChange, TaskItem<T>>, undo: boolean): Promise<boolean> {
+    const byTask = new Map<TaskItem<T>, TaskMutation<T>>();
+    const mutationFor = (change: RecordedChange): TaskMutation<T> | undefined => {
+      const task = resolved.get(change);
+      if (!task) return undefined;
+      let mutation = byTask.get(task);
+      if (!mutation) {
+        mutation = { task };
+        byTask.set(task, mutation);
+      }
+      return mutation;
+    };
+
+    for (const change of operation.taskChanges) {
+      const mutation = mutationFor(change);
+      if (!mutation) return false;
+      (mutation.attributes ??= []).push({ name: change.attributeName, value: undo ? change.previousValue : change.newValue });
+    }
+    for (const change of operation.tagChanges) {
+      const mutation = mutationFor(change);
+      if (!mutation) return false;
+      const add = undo ? change.action === "removed" : change.action === "added";
+      const tags = add ? (mutation.tagsToAdd ??= []) : (mutation.tagsToRemove ??= []);
+      tags.push(change.tag);
+    }
+    for (const change of operation.statusChanges) {
+      const mutation = mutationFor(change);
+      if (!mutation) return false;
+      mutation.status = undo ? change.previousStatus : change.newStatus;
+      mutation.completedDate = (undo ? change.previousCompletedDate : change.newCompletedDate) ?? null;
+    }
+
+    try {
+      await this.fileOperations.batchApplyMutations([...byTask.values()], this.settings.completedDateAttribute);
+    } catch {
+      return false;
+    }
+    for (const change of [...operation.taskChanges, ...operation.tagChanges, ...operation.statusChanges]) {
+      const task = resolved.get(change);
+      if (task) this.updateChangeIdentity(change, task);
+    }
+    return true;
+  }
+
   /**
    * Apply an undo operation - restores previous values
    */
@@ -518,6 +566,11 @@ export class UndoableFileOperations {
   private async applyUndoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
     const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
+    if (this.isCombinedOperation(operation)) {
+      success = await this.applyCombinedHistoryOperation(operation, resolved, true);
+      if (!success) this.undoManager.restoreFailedUndo(operation);
+      return success;
+    }
     const applied = new Set<TaskItem<T>>();
     const failed = new Set<TaskItem<T>>();
 
@@ -578,6 +631,11 @@ export class UndoableFileOperations {
   private async applyRedoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
     let success = true;
     const { resolved, originals } = this.resolveOperationTasks(operation, findTask);
+    if (this.isCombinedOperation(operation)) {
+      success = await this.applyCombinedHistoryOperation(operation, resolved, false);
+      if (!success) this.undoManager.restoreFailedRedo(operation);
+      return success;
+    }
     const applied = new Set<TaskItem<T>>();
     const failed = new Set<TaskItem<T>>();
 
