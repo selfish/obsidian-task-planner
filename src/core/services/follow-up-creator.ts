@@ -103,20 +103,16 @@ export class FollowUpCreator<T> {
    * Mark a task as complete by changing [ ] to [x] and adding completed date attribute
    */
   private markTaskComplete(line: string): string {
-    // Replace checkbox [ ] with [x]
-    let updatedLine = line.replace(/^(\s*-\s*)\[[ ]\]/, "$1[x]");
+    const parser = new LineParser(this.settings);
+    const parsed = parser.parseLine(line);
+    if (parsed.checkbox === "[ ]") parsed.checkbox = "[x]";
 
-    // Add completed date attribute if not already present
     const completedAttr = this.settings.completedDateAttribute;
-    const completedDate = moment().format("YYYY-MM-DD");
-    const attrPattern = new RegExp(`\\[${completedAttr}::[^\\]]*\\]`);
-
-    if (!attrPattern.test(updatedLine)) {
-      // Add completed attribute at the end of the line
-      updatedLine = `${updatedLine} [${completedAttr}:: ${completedDate}]`;
+    const escapedAttr = completedAttr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!(completedAttr in parser.parseAttributes(parsed.line).attributes) && !new RegExp(`\\[${escapedAttr}::[^\\]]*\\]`).test(parsed.line)) {
+      parsed.line = parser.updateAttribute(parsed.line, completedAttr, moment().format("YYYY-MM-DD"));
     }
-
-    return updatedLine;
+    return parser.lineToString(parsed);
   }
 
   async insertAfterOriginal(todo: TaskItem<T>, taskLine: string, completeOriginal?: boolean): Promise<void> {
@@ -133,7 +129,16 @@ export class FollowUpCreator<T> {
       const originalIndent = this.getIndentation(lines[lineNumber]);
       while (insertLine < lines.length) {
         const currentLine = lines[insertLine];
-        if (currentLine.trim() === "" || this.getIndentation(currentLine) <= originalIndent) break;
+        if (currentLine.trim() === "") {
+          let nextLine = insertLine + 1;
+          while (nextLine < lines.length && lines[nextLine].trim() === "") nextLine++;
+          if (nextLine < lines.length && this.getIndentation(lines[nextLine]) > originalIndent) {
+            insertLine = nextLine;
+            continue;
+          }
+          break;
+        }
+        if (this.getIndentation(currentLine) <= originalIndent) break;
         insertLine++;
       }
 

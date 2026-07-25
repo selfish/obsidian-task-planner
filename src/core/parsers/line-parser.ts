@@ -6,7 +6,7 @@ export class LineParser {
   constructor(private settings?: TaskPlannerSettings) {}
 
   parseLine(line: string): LineStructure {
-    const regexp = /^(\s*)?(?:([*-]|\d+\.)\s*)?(?:(\[.?\])\s+)?(?:((?:\d\d\d\d-)?\d\d-\d\d):\s*)?(.+)/;
+    const regexp = /^(\s*)?(?:([*-]|\d+\.)(\s*))?(?:(\[.?\])(\s+))?(?:((?:\d\d\d\d-)?\d\d-\d\d)(:\s*))?(.+)/;
     const parsed = regexp.exec(line);
     if (!parsed) {
       return {
@@ -17,18 +17,22 @@ export class LineParser {
         line: line,
       };
     }
-    return {
+    const result: LineStructure = {
       indentation: parsed[1] || "",
       listMarker: parsed[2] || "",
-      checkbox: parsed[3] || "",
-      date: parsed[4] || "",
-      line: parsed[5] || "",
+      checkbox: parsed[4] || "",
+      date: parsed[6] || "",
+      line: parsed[8] || "",
     };
+    if (result.listMarker && parsed[3] !== " ") result.listMarkerSuffix = parsed[3];
+    if (result.checkbox && parsed[5] !== " ") result.checkboxSuffix = parsed[5];
+    if (result.date && parsed[7] !== ": ") result.dateSuffix = parsed[7];
+    return result;
   }
 
   lineToString(line: LineStructure): string {
-    const space = (item: string, char: string = " ") => (item ? `${item}${char}` : "");
-    return `${line.indentation}${space(line.listMarker)}${space(line.checkbox)}${space(line.date, ": ")}${line.line}`;
+    const suffix = (item: string, value: string | undefined, fallback: string) => (item ? `${item}${value ?? fallback}` : "");
+    return `${line.indentation}${suffix(line.listMarker, line.listMarkerSuffix, " ")}${suffix(line.checkbox, line.checkboxSuffix, " ")}${suffix(line.date, line.dateSuffix, ": ")}${line.line}`;
   }
 
   // Returns null for unrecognized @ shortcuts (whitelist-based parsing)

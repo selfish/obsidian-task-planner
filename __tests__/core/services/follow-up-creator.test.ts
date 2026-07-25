@@ -333,6 +333,17 @@ describe("FollowUpCreator", () => {
       expect(lines[4]).toBe("- [ ] Next task");
     });
 
+    it("should insert after loose-list subtasks", async () => {
+      const fileContent = "- [ ] Original task\n\n  - [ ] Subtask\n- [ ] Next task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      expect((todo.file as ReturnType<typeof createMockFileAdapter>).content).toBe(
+        "- [ ] Original task\n\n  - [ ] Subtask\n- [ ] Follow up: Original task\n- [ ] Next task\n"
+      );
+    });
+
     it("should handle task at last line of file", async () => {
       const fileContent = "- [ ] First task\n- [ ] Original task";
       const todo = createMockTodo({ line: 1 }, fileContent);
@@ -435,6 +446,16 @@ describe("FollowUpCreator", () => {
       expect(lines[0]).toContain("[completed::");
     });
 
+    it.each(["* [ ] Original task", "1. [ ] Original task"])("should complete supported list marker in %j", async (source) => {
+      const todo = createMockTodo({}, `${source}\n`);
+
+      await followUpCreator.createFollowUp(todo, null, { completeOriginal: true });
+
+      expect((todo.file as ReturnType<typeof createMockFileAdapter>).content).toMatch(
+        new RegExp(`^${source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace("\\[ \\]", "\\[x\\]")} \\[completed:: \\d{4}-\\d{2}-\\d{2}\\]`)
+      );
+    });
+
     it("should not mark original task as complete when completeOriginal is false", async () => {
       const fileContent = "- [ ] Original task\n- [ ] Another task\n";
       const todo = createMockTodo({}, fileContent);
@@ -480,6 +501,15 @@ describe("FollowUpCreator", () => {
       // Should only have one completed attribute (the original one)
       const completedMatches = lines[0].match(/\[completed::/g);
       expect(completedMatches).toHaveLength(1);
+    });
+
+    it("should preserve a malformed completed attribute without adding a duplicate", async () => {
+      const fileContent = "- [ ] Original task [completed::]\n";
+      const todo = createMockTodo({ text: "Original task [completed::]" }, fileContent);
+
+      await followUpCreator.createFollowUp(todo, null, { completeOriginal: true });
+
+      expect((todo.file as ReturnType<typeof createMockFileAdapter>).content.split("\n")[0]).toBe("- [x] Original task [completed::]");
     });
 
     it("should complete original task and create follow-up in one operation", async () => {

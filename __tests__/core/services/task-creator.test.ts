@@ -78,6 +78,15 @@ describe("TaskCreator", () => {
 
       expect(result).toBe("Line1\nLine2\nLine3");
     });
+
+    it("should preserve replacement tokens and placeholders in task text", () => {
+      settings.quickAdd.taskPattern = "- [ ] {task} added {date}";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      const result = (taskCreator as unknown as { formatTaskLine: (task: string) => string }).formatTaskLine("Keep $& $$ {date} literal");
+
+      expect(result).toBe("- [ ] Keep $& $$ {date} literal added 2026-01-19");
+    });
   });
 
   describe("insertContent", () => {

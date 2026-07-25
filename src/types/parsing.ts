@@ -3,8 +3,11 @@ import { TaskItem } from "./task";
 export interface LineStructure {
   indentation: string;
   listMarker: string;
+  listMarkerSuffix?: string;
   checkbox: string;
+  checkboxSuffix?: string;
   date: string;
+  dateSuffix?: string;
   line: string;
 }
 

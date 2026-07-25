@@ -1135,6 +1135,14 @@ describe('FileOperations', () => {
       expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-25]`);
     });
 
+    it.each(['-   [ ] Task', '1.\t[ ]\tTask', '* [ ]   Task', '- [ ] 07-25:\tTask'])('preserves task prefix spacing in %j', async (content) => {
+      const file = createMockFileAdapter(content);
+
+      await operations.updateAttribute(createTodo('Task', 0, file), 'due', '2026-07-25');
+
+      expect(file.setContent).toHaveBeenCalledWith(`${content} [due:: 2026-07-25]`);
+    });
+
     it('uses an atomic content processor when the adapter provides one', async () => {
       const file = createMockFileAdapter('- [ ] Stale snapshot') as FileAdapter<unknown> & {
         processContent(update: (content: string) => string): Promise<void>;

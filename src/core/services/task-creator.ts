@@ -30,12 +30,13 @@ export class TaskCreator {
     const { taskPattern } = this.settings.quickAdd;
     const now = moment();
 
-    return taskPattern
-      .replace(/\\n/g, "\n") // Convert literal \n to actual newlines
-      .replace(/\{task\}/g, task)
-      .replace(/\{time\}/g, now.format("HH:mm"))
-      .replace(/\{date\}/g, now.format("YYYY-MM-DD"))
-      .replace(/\{datetime\}/g, now.format("YYYY-MM-DD HH:mm"));
+    const replacements: Record<string, string> = {
+      "{task}": task,
+      "{time}": now.format("HH:mm"),
+      "{date}": now.format("YYYY-MM-DD"),
+      "{datetime}": now.format("YYYY-MM-DD HH:mm"),
+    };
+    return taskPattern.replace(/\\n/g, "\n").replace(/\{(?:task|time|date|datetime)\}/g, (placeholder) => replacements[placeholder]);
   }
 
   private insertContent(content: string, taskLine: string): string {
