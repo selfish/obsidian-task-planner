@@ -212,13 +212,21 @@ export class LineParser {
   private attributeMatches(text: string): { value: string; index: number }[] {
     const spans = this.metadataSpans(text);
     const attributes = spans.filter(([start, end]) => text[start] === "[" && this.parseSingleAttribute(text.slice(start, end)) !== null).map(([start, end]) => ({ value: text.slice(start, end), index: start }));
-    const shortcuts = [...text.matchAll(/(?<!\[)@(\w+)(?![(\w])/g)].filter((match) => !spans.some(([start, end]) => (match.index ?? 0) >= start && (match.index ?? 0) < end)).map((match) => ({ value: match[0], index: match.index ?? 0 }));
+    const shortcuts = [...text.matchAll(/(?<!\[)@(\w+)(?![(\w])/g)]
+      .filter((match) => {
+        const { index } = match;
+        return !spans.some(([start, end]) => index >= start && index < end);
+      })
+      .map((match) => ({ value: match[0], index: match.index }));
     return [...attributes, ...shortcuts].sort((a, b) => a.index - b.index);
   }
 
   private tagContextSpans(text: string): [number, number][] {
     const spans = [...this.metadataSpans(text)];
-    for (const match of text.matchAll(/\[\[.*?\]\]/g)) spans.push([match.index ?? 0, (match.index ?? 0) + match[0].length]);
+    for (const match of text.matchAll(/\[\[.*?\]\]/g)) {
+      const { index } = match;
+      spans.push([index, index + match[0].length]);
+    }
     spans.sort(([left], [right]) => left - right);
 
     const merged: [number, number][] = [];
