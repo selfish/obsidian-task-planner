@@ -277,6 +277,21 @@ describe('LineParser', () => {
       expect(parser.parseAttributes('Task [note:: @today')).toMatchObject({ textWithoutAttributes: 'Task [note:: @today', attributes: {} });
     });
 
+    it('preserves mutation spacing and unmatched code markers', () => {
+      const configuredParser = new LineParser(DEFAULT_SETTINGS);
+
+      expect(configuredParser.updateAttribute('Task @unknown', 'due', '2026-08-01')).toBe('Task @unknown [due:: 2026-08-01]');
+      expect(parser.updateAttribute('Task @high', 'priority', 'low')).toBe('Task [priority:: low]');
+      expect(parser.updateAttribute('Task [due:: old]', 'due', undefined)).toBe('Task');
+      expect(parser.updateAttribute('[due:: old] Task', 'due', undefined)).toBe('Task');
+      expect(parser.updateAttribute('[due:: old]Task', 'due', undefined)).toBe('Task');
+      expect(parser.updateAttribute('', 'due', '2026-08-01')).toBe('[due:: 2026-08-01]');
+      expect(parser.appendTag('', 'work')).toBe('#work');
+      expect(parser.appendTag('Task[due:: old]', 'work')).toBe('Task #work [due:: old]');
+      expect(parser.removeTag('Task `example #work', 'work')).toBe('Task `example');
+      expect(parser.removeTag('Task #work!', 'work')).toBe('Task !');
+    });
+
     it('should deduplicate hashtags', () => {
       const result = parser.parseAttributes('Task #shopping more #shopping');
       expect(result.tags).toEqual(['shopping']);
