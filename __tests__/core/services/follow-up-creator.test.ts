@@ -344,6 +344,39 @@ describe("FollowUpCreator", () => {
       );
     });
 
+    it("should count tab-indented loose-list subtasks by Markdown columns", async () => {
+      const fileContent = "- [ ] Original task\n\n\t- [ ] Subtask\n- [ ] Next task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      expect((todo.file as ReturnType<typeof createMockFileAdapter>).content).toBe(
+        "- [ ] Original task\n\n\t- [ ] Subtask\n- [ ] Follow up: Original task\n- [ ] Next task\n"
+      );
+    });
+
+    it("should use the ordered marker content indent across blank lines", async () => {
+      const fileContent = "1. [ ] Original task\n\n  ```md\n  code\n  ```\n2. [ ] Next task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      expect((todo.file as ReturnType<typeof createMockFileAdapter>).content).toBe(
+        "1. [ ] Original task\n- [ ] Follow up: Original task\n\n  ```md\n  code\n  ```\n2. [ ] Next task\n"
+      );
+    });
+
+    it("should include an ordered task's properly indented loose subtask", async () => {
+      const fileContent = "1. [ ] Original task\n\n   - [ ] Subtask\n2. [ ] Next task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      expect((todo.file as ReturnType<typeof createMockFileAdapter>).content).toBe(
+        "1. [ ] Original task\n\n   - [ ] Subtask\n- [ ] Follow up: Original task\n2. [ ] Next task\n"
+      );
+    });
+
     it("should not cross a one-space-indented block after a blank line", async () => {
       const fileContent = "- [ ] Original task\n\n ```md\n code\n```\n- [ ] Next task\n";
       const todo = createMockTodo({}, fileContent);

@@ -95,8 +95,14 @@ export class FollowUpCreator<T> {
     return line;
   }
 
-  private getIndentation(line: string): number {
-    return line.length - line.trimStart().length;
+  private getIndentation(line: string): string {
+    return /^[ \t]*/.exec(line)?.[0] ?? "";
+  }
+
+  private indentationColumns(indentation: string, start = 0): number {
+    let column = start;
+    for (const char of indentation) column += char === "\t" ? 4 - (column % 4) : 1;
+    return column;
   }
 
   /**
@@ -127,22 +133,26 @@ export class FollowUpCreator<T> {
 
       let insertLine = lineNumber + 1;
       const originalIndent = this.getIndentation(lines[lineNumber]);
+      const originalIndentColumns = this.indentationColumns(originalIndent);
+      const parsedOriginal = new LineParser(this.settings).parseLine(lines[lineNumber]);
+      const markerSuffix = parsedOriginal.listMarkerSuffix ?? " ";
+      const continuationIndent = parsedOriginal.listMarker ? this.indentationColumns(markerSuffix, originalIndentColumns + parsedOriginal.listMarker.length) : Number.POSITIVE_INFINITY;
       while (insertLine < lines.length) {
         const currentLine = lines[insertLine];
         if (currentLine.trim() === "") {
           let nextLine = insertLine + 1;
           while (nextLine < lines.length && lines[nextLine].trim() === "") nextLine++;
-          if (nextLine < lines.length && this.getIndentation(lines[nextLine]) >= originalIndent + 2) {
+          if (nextLine < lines.length && this.indentationColumns(this.getIndentation(lines[nextLine])) >= continuationIndent) {
             insertLine = nextLine;
             continue;
           }
           break;
         }
-        if (this.getIndentation(currentLine) <= originalIndent) break;
+        if (this.indentationColumns(this.getIndentation(currentLine)) <= originalIndentColumns) break;
         insertLine++;
       }
 
-      lines.splice(insertLine, 0, " ".repeat(originalIndent) + taskLine);
+      lines.splice(insertLine, 0, originalIndent + taskLine);
       const eol = separators[lineNumber] ?? separators[lineNumber - 1] ?? "\n";
       if (insertLine === separators.length + 1) {
         separators[insertLine - 1] = eol;
