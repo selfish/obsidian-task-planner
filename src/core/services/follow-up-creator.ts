@@ -2,6 +2,7 @@ import { TaskPlannerSettings } from "../../settings/types";
 import { TaskItem } from "../../types/task";
 import { moment } from "../../utils/moment";
 import { FileOperations } from "../operations/file-operations";
+import { LineParser } from "../parsers/line-parser";
 
 export interface FollowUpOptions {
   /** Mark the original task as complete after creating the follow-up */
@@ -71,7 +72,11 @@ export class FollowUpCreator<T> {
     if (!this.settings.followUp.copyTags || !todo.tags) {
       return [];
     }
-    return [...todo.tags];
+    const sourceLine = todo.sourceLine;
+    if (!sourceLine) return [...todo.tags];
+    const parser = new LineParser(this.settings);
+    const concreteTags = new Set(parser.concreteTags(sourceLine));
+    return todo.tags.filter((tag) => concreteTags.has(tag));
   }
 
   formatTaskLine(text: string, attributes: Record<string, string | boolean>, tags: string[]): string {

@@ -244,6 +244,7 @@ describe('LineParser', () => {
       const result = parser.parseAttributes('Task #inbox/to-read [note:: hello #work world] [[Page #heading]]');
 
       expect(result.tags).toEqual(['inbox', 'inbox/to-read']);
+      expect(parser.concreteTags(result.textWithoutAttributes)).toEqual(['inbox/to-read']);
       expect(parser.removeTag(result.textWithoutAttributes, 'inbox')).toBe('Task #inbox/to-read [[Page #heading]]');
       expect(parser.removeTag(result.textWithoutAttributes, 'inbox/to-read')).toBe('Task [[Page #heading]]');
       expect(parser.removeTag('Task [note:: hello #work world]', 'work')).toBe('Task [note:: hello #work world]');
@@ -253,6 +254,14 @@ describe('LineParser', () => {
       expect(parser.hasTag('Task [[Page #work]]', 'work')).toBe(false);
       expect(parser.hasTag('Task (note:: #inside) #work', 'work')).toBe(true);
       expect(parser.removeTag('Task [note:: [[Page]] #work] #work', 'work')).toBe('Task [note:: [[Page]] #work]');
+    });
+
+    it('ignores tags inside inline code', () => {
+      const text = 'Task `example #work` ``example `#urgent` `` #real';
+
+      expect(parser.parseAttributes(text).tags).toEqual(['real']);
+      expect(parser.hasTag(text, 'work')).toBe(false);
+      expect(parser.removeTag(text, 'work')).toBe(text);
     });
 
     it('should deduplicate hashtags', () => {

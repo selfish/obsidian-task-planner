@@ -20,7 +20,7 @@ export class UndoableFileOperations {
   private fileOperations: FileOperations;
   private undoManager: UndoManager;
   private settings: TaskPlannerSettings;
-  private historyOperation: Promise<unknown> = Promise.resolve();
+  private pendingOperation: Promise<unknown> = Promise.resolve();
 
   constructor(deps: UndoableFileOperationsDeps) {
     this.settings = deps.settings;
@@ -73,9 +73,9 @@ export class UndoableFileOperations {
     }
   }
 
-  private serializeHistoryOperation<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.historyOperation.then(operation, operation);
-    this.historyOperation = result.catch(() => undefined);
+  private serializeOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.pendingOperation.then(operation, operation);
+    this.pendingOperation = result.catch(() => undefined);
     return result;
   }
 
@@ -283,7 +283,11 @@ export class UndoableFileOperations {
   /**
    * Batch remove attribute with undo tracking
    */
-  async batchRemoveAttributeWithUndo<T>(tasks: TaskItem<T>[], attributeName: string, description: string): Promise<void> {
+  batchRemoveAttributeWithUndo<T>(tasks: TaskItem<T>[], attributeName: string, description: string): Promise<void> {
+    return this.serializeOperation(() => this.batchRemoveAttributeWithUndoNow(tasks, attributeName, description));
+  }
+
+  private async batchRemoveAttributeWithUndoNow<T>(tasks: TaskItem<T>[], attributeName: string, description: string): Promise<void> {
     if (tasks.length === 0) return;
 
     if (!this.undoManager.isEnabled()) {
@@ -321,7 +325,11 @@ export class UndoableFileOperations {
   /**
    * Batch update task status with undo tracking
    */
-  async batchUpdateTaskStatusWithUndo<T>(tasks: TaskItem<T>[], previousStatuses: Map<string, TaskStatus>, description: string): Promise<void> {
+  batchUpdateTaskStatusWithUndo<T>(tasks: TaskItem<T>[], previousStatuses: Map<string, TaskStatus>, description: string): Promise<void> {
+    return this.serializeOperation(() => this.batchUpdateTaskStatusWithUndoNow(tasks, previousStatuses, description));
+  }
+
+  private async batchUpdateTaskStatusWithUndoNow<T>(tasks: TaskItem<T>[], previousStatuses: Map<string, TaskStatus>, description: string): Promise<void> {
     if (tasks.length === 0) return;
 
     if (!this.undoManager.isEnabled()) {
@@ -413,7 +421,11 @@ export class UndoableFileOperations {
    * Combined operation: update attribute, append tag, remove tags, and update status
    * This is commonly used for drag-and-drop operations
    */
-  async combinedMoveWithUndo<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, tag?: string, newStatus?: TaskStatus, description?: string, tagsToRemove?: string[]): Promise<void> {
+  combinedMoveWithUndo<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, tag?: string, newStatus?: TaskStatus, description?: string, tagsToRemove?: string[]): Promise<void> {
+    return this.serializeOperation(() => this.combinedMoveWithUndoNow(tasks, attributeName, attributeValue, tag, newStatus, description, tagsToRemove));
+  }
+
+  private async combinedMoveWithUndoNow<T>(tasks: TaskItem<T>[], attributeName: string, attributeValue: string | boolean | undefined, tag?: string, newStatus?: TaskStatus, description?: string, tagsToRemove?: string[]): Promise<void> {
     if (tasks.length === 0) return;
 
     const effectiveDescription = description ?? UndoManager.createMoveDescription(tasks.length, String(attributeValue));
@@ -563,7 +575,7 @@ export class UndoableFileOperations {
    * Apply an undo operation - restores previous values
    */
   applyUndo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
-    return this.serializeHistoryOperation(() => this.applyUndoNow(operation, findTask));
+    return this.serializeOperation(() => this.applyUndoNow(operation, findTask));
   }
 
   private async applyUndoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
@@ -628,7 +640,7 @@ export class UndoableFileOperations {
    * Apply a redo operation - restores new values
    */
   applyRedo<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {
-    return this.serializeHistoryOperation(() => this.applyRedoNow(operation, findTask));
+    return this.serializeOperation(() => this.applyRedoNow(operation, findTask));
   }
 
   private async applyRedoNow<T>(operation: UndoOperation, findTask: (taskId: string, filePath?: string, sourceLine?: string) => TaskItem<T> | undefined): Promise<boolean> {

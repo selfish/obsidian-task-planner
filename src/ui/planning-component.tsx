@@ -43,17 +43,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Define findTodo early so it can be used by undo handler
   const findTodo = React.useCallback(
-    (taskId: string, filePath?: string, sourceLine?: string): TaskItem<TFile> | undefined => {
-      let fallback: TaskItem<TFile> | undefined;
-      let fallbackIsAmbiguous = false;
+    (taskId: string): TaskItem<TFile> | undefined => {
       function searchRecursive(items: TaskItem<TFile>[]): TaskItem<TFile> | undefined {
         for (const todo of items) {
           if (getTaskId(todo) === taskId) {
             return todo;
-          }
-          if (sourceLine !== undefined && todo.file.path === filePath && todo.sourceLine === sourceLine) {
-            fallbackIsAmbiguous = fallback !== undefined;
-            fallback = todo;
           }
           if (todo.subtasks && todo.subtasks.length > 0) {
             const found = searchRecursive(todo.subtasks);
@@ -62,7 +56,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         }
         return undefined;
       }
-      return searchRecursive(todos) ?? (fallbackIsAmbiguous ? undefined : fallback);
+      return searchRecursive(todos);
     },
     [todos]
   );
@@ -303,11 +297,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const horizonTag = horizon.tag;
       if (!horizonTag) continue;
 
-      // If any todo has this custom horizon's tag, it should be removed
-      // so the task moves from the custom horizon to the builtin
-      const todoHasTag = todos.some((todo) => todo.tags?.includes(horizonTag));
-      if (todoHasTag) {
-        tagsToRemove.push(horizonTag);
+      for (const todo of todos) {
+        const concreteTags = todo.sourceLine ? fileOperations.lineParser.concreteTags(todo.sourceLine) : (todo.tags ?? []);
+        for (const tag of concreteTags) {
+          if ((tag === horizonTag || tag.startsWith(`${horizonTag}/`)) && !tagsToRemove.includes(tag)) tagsToRemove.push(tag);
+        }
       }
     }
 

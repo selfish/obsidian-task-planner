@@ -92,16 +92,20 @@ export class LineParser {
 
   private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*(?:\/[a-zA-Z0-9_-]+)*)/g;
 
-  private parseHashtags(text: string): string[] {
+  concreteTags(text: string): string[] {
     const tags = new Set<string>();
     this.transformOutsideTagContexts(text, (segment) => {
-      for (const match of segment.matchAll(LineParser.HASHTAG_REGEX)) {
-        for (const tag of match[1].split("/").map((_, index, segments) => segments.slice(0, index + 1).join("/"))) {
-          tags.add(tag);
-        }
-      }
+      for (const match of segment.matchAll(LineParser.HASHTAG_REGEX)) tags.add(match[1]);
       return segment;
     });
+    return [...tags];
+  }
+
+  private parseHashtags(text: string): string[] {
+    const tags = new Set<string>();
+    for (const concreteTag of this.concreteTags(text)) {
+      for (const tag of concreteTag.split("/").map((_, index, segments) => segments.slice(0, index + 1).join("/"))) tags.add(tag);
+    }
     return [...tags];
   }
 
@@ -221,8 +225,27 @@ export class LineParser {
     return [...attributes, ...shortcuts].sort((a, b) => a.index - b.index);
   }
 
+  private codeSpans(text: string): [number, number][] {
+    const spans: [number, number][] = [];
+    for (let start = 0; start < text.length; start++) {
+      if (text[start] !== "`") continue;
+      let markerEnd = start + 1;
+      while (text[markerEnd] === "`") markerEnd++;
+      const marker = text.slice(start, markerEnd);
+      let end = text.indexOf(marker, markerEnd);
+      while (end !== -1 && (text[end - 1] === "`" || text[end + marker.length] === "`")) end = text.indexOf(marker, end + 1);
+      if (end === -1) {
+        start = markerEnd - 1;
+        continue;
+      }
+      spans.push([start, end + marker.length]);
+      start = end + marker.length - 1;
+    }
+    return spans;
+  }
+
   private tagContextSpans(text: string): [number, number][] {
-    const spans = [...this.metadataSpans(text)];
+    const spans = [...this.metadataSpans(text), ...this.codeSpans(text)];
     for (const match of text.matchAll(/\[\[.*?\]\]/g)) {
       const { index } = match;
       spans.push([index, index + match[0].length]);

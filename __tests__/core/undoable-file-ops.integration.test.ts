@@ -131,6 +131,19 @@ describe('UndoableFileOperations integration', () => {
     expect(content()).toMatch(/^- \[x\] Task #new \[due:: 2026-07-25\] \[completed:: \d{4}-\d{2}-\d{2}\]$/);
   });
 
+  it('records rapid moves in file order so the latest move can be undone', async () => {
+    const { task, undoManager, operations, findTask, content } = setup('- [ ] Task');
+
+    await Promise.all([
+      operations.combinedMoveWithUndo([task], 'due', '2026-07-25', undefined, undefined, 'First move'),
+      operations.combinedMoveWithUndo([task], 'due', '2026-07-26', undefined, undefined, 'Second move'),
+    ]);
+
+    expect(content()).toBe('- [ ] Task [due:: 2026-07-26]');
+    expect(await operations.applyUndo(undoManager.popForUndo()!, findTask)).toBe(true);
+    expect(content()).toBe('- [ ] Task [due:: 2026-07-25]');
+  });
+
   it('preserves hashtags inside metadata during a combined remove', async () => {
     const { task, undoManager, operations, findTask, content } = setup('- [ ] Task (note:: hello #work world)');
 

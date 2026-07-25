@@ -339,9 +339,10 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef,
     });
 
     // === Tags ===
-    if (todo.tags && todo.tags.length > 0) {
+    const removableTags = todo.sourceLine ? fileOperations.lineParser.concreteTags(todo.sourceLine) : todo.tags;
+    if (removableTags && removableTags.length > 0) {
       menu.addSeparator();
-      for (const tag of todo.tags) {
+      for (const tag of removableTags) {
         menu.addItem((item) => {
           item.setTitle(`Remove #${tag}`);
           item.setIcon("cross");

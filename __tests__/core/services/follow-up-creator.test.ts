@@ -191,6 +191,21 @@ describe("FollowUpCreator", () => {
       expect(newContent).toContain("#important");
     });
 
+    it("does not copy synthetic parent tags from nested tags", async () => {
+      settings.followUp.copyTags = true;
+      followUpCreator = new FollowUpCreator<string>(settings);
+      const sourceLine = "- [ ] Original task #inbox/to-read";
+      const todo = createMockTodo(
+        { text: "Original task #inbox/to-read", tags: ["inbox", "inbox/to-read"], sourceLine },
+        `${sourceLine}\n`
+      );
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      const newContent = (todo.file as ReturnType<typeof createMockFileAdapter>).content;
+      expect(newContent).not.toMatch(/#inbox(?:\s|$)/);
+    });
+
     it("should not copy tags when disabled", async () => {
       settings.followUp.copyTags = false;
       followUpCreator = new FollowUpCreator<string>(settings);
