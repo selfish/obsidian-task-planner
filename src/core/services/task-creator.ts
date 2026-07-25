@@ -97,7 +97,7 @@ export class TaskCreator {
     return closing ? 3 + closing.index + closing[0].length : 0;
   }
 
-  private prependAfterFrontmatter(content: string, taskLine: string, eol = content.match(/\r\n|\r|\n/)?.[0] ?? "\n"): string {
+  private prependAfterFrontmatter(content: string, taskLine: string, eol: string): string {
     const insertPosition = this.getFrontmatterEndPosition(content);
     if (insertPosition === 0) return taskLine + eol + content;
 
