@@ -344,6 +344,17 @@ describe("FollowUpCreator", () => {
       );
     });
 
+    it("should not cross a one-space-indented block after a blank line", async () => {
+      const fileContent = "- [ ] Original task\n\n ```md\n code\n```\n- [ ] Next task\n";
+      const todo = createMockTodo({}, fileContent);
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      expect((todo.file as ReturnType<typeof createMockFileAdapter>).content).toBe(
+        "- [ ] Original task\n- [ ] Follow up: Original task\n\n ```md\n code\n```\n- [ ] Next task\n"
+      );
+    });
+
     it("should handle task at last line of file", async () => {
       const fileContent = "- [ ] First task\n- [ ] Original task";
       const todo = createMockTodo({ line: 1 }, fileContent);

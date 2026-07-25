@@ -132,7 +132,7 @@ export class FollowUpCreator<T> {
         if (currentLine.trim() === "") {
           let nextLine = insertLine + 1;
           while (nextLine < lines.length && lines[nextLine].trim() === "") nextLine++;
-          if (nextLine < lines.length && this.getIndentation(lines[nextLine]) > originalIndent) {
+          if (nextLine < lines.length && this.getIndentation(lines[nextLine]) >= originalIndent + 2) {
             insertLine = nextLine;
             continue;
           }
