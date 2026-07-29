@@ -12,6 +12,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Changed
 
+- Raised the minimum supported Obsidian version to the public 1.4.10 release, which provides the public input-suggest API used by Task Planner ([#123](https://github.com/selfish/obsidian-task-planner/issues/123)).
 - Replaced the direct `eslint-plugin-react` development dependency with the maintained `@eslint-react/eslint-plugin` alternative while preserving the existing lint baseline.
 - Updated vulnerable development and build dependencies without changing generated plugin assets.
 - Pinned third-party GitHub Actions to immutable commit SHAs and migrated Codecov test-result uploads to the supported unified action.
