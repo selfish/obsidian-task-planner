@@ -45,6 +45,8 @@ This auto-conversion can be disabled in settings if you prefer manual control.
 
 ## Installation
 
+Task Planner requires Obsidian 1.4.10 or newer.
+
 ### From Obsidian Community Plugins
 1. Open Obsidian Settings
 2. Navigate to Community Plugins

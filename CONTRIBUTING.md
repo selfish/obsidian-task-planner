@@ -200,6 +200,14 @@ npm run test:coverage
 - Focus on testing business logic in isolation
 - Aim for meaningful coverage, not just high numbers
 
+### Testing Ownership and Handoffs
+
+- Deterministic parsing, vault edits, command wiring, and plugin-load behavior belong in automated unit, integration, or disposable real-Obsidian tests.
+- Do not require the repository owner to smoke-test every build.
+- Request owner testing only for subjective UX or copy, unreproducible device behavior, migrations with a named residual risk, or a focused release candidate whose remaining risk cannot be automated.
+- Every owner-test request must include a reproducible ZIP with a complete synthetic vault, the exact Task Planner build, exact relevant sibling-plugin versions, prepared fixtures, and a short numbered test plan with expected results.
+- Never use the owner's real vault for routine validation.
+
 ### Coverage
 
 We track code coverage with Codecov. The CI pipeline uploads coverage reports automatically.
