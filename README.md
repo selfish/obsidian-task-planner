@@ -133,12 +133,14 @@ npm run validate
 | `npm run test`          | Run tests                         |
 | `npm run test:watch`    | Run tests in watch mode           |
 | `npm run test:coverage` | Run tests with coverage report    |
+| `npm run test:e2e`      | Run tests in real Obsidian        |
 | `npm run lint`          | Run ESLint                        |
 | `npm run lint:fix`      | Run ESLint with auto-fix          |
 | `npm run format`        | Format code with Prettier         |
 | `npm run format:check`  | Check code formatting             |
 | `npm run typecheck`     | TypeScript type checking          |
 | `npm run validate`      | Run all checks                    |
+| `npm run audit`         | Audit production and development dependencies |
 
 ### Project Structure
 ```
@@ -151,8 +153,9 @@ src/
   types/          # TypeScript types
   ui/             # React components
   views/          # Obsidian views
-__tests__/        # Test files
+__tests__/        # Jest test files
   __mocks__/      # Mock implementations
+test/e2e/         # Real-Obsidian smoke tests and synthetic vault
 ```
 
 ### Testing
@@ -169,6 +172,18 @@ npm run test:watch
 # Generate coverage report
 npm run test:coverage
 ```
+
+The Linux x64 real-Obsidian suite builds the plugin, verifies pinned Obsidian and Electron chromedriver archives against `test/e2e/runtime-lock.json`, installs that exact bundle into a copied synthetic vault, and exercises stale writes, date/tag moves, undo, and ambiguous-task protection. CI runs both the pinned current runtime and the declared supported floor.
+
+```bash
+# Latest supported runtime
+npm run test:e2e
+
+# Supported floor
+OBSIDIAN_VERSION=1.4.10 OBSIDIAN_INSTALLER_VERSION=1.1.9 npm run test:e2e
+```
+
+Verified archives are cached in `.obsidian-downloads/`. Executable runtime files are rebuilt from those verified archives on every run and are never restored from CI cache. Failure diagnostics are written to `artifacts/e2e/`.
 
 ### Code Quality
 
