@@ -35,17 +35,19 @@ export class LineParser {
     return `${line.indentation}${suffix(line.listMarker, line.listMarkerSuffix, " ")}${suffix(line.checkbox, line.checkboxSuffix, " ")}${suffix(line.date, line.dateSuffix, ": ")}${line.line}`;
   }
 
-  // Matches Dataview [key:: value] and @key shortcuts (negative lookbehind prevents matching @ inside [[@wiki links]])
+  // Matches Dataview [key:: value], Dataview (key:: value), and @key shortcuts.
   private getAttributeRegex(): RegExp {
-    return /\[([^:\]]+)::([^\]]+)\]|(?<!\[)@(\w+)(?![(\w])/g;
+    return /\[([^:[\]]+)::((?:(?!\[|\]).)+)\]|\(([^:()[\]]+)::([^()[\]]+)\)|(?<!\[)@(\w+)(?![(\w])/g;
   }
 
   // Returns null for unrecognized @ shortcuts (whitelist-based parsing)
   private parseSingleAttribute(matchStr: string): [string, string | boolean] | null {
-    const dataviewRegex = /\[([^:\]]+)::([^\]]+)\]/;
+    const dataviewRegex = /\[([^:[\]]+)::((?:(?!\[|\]).)+)\]|\(([^:()[\]]+)::([^()[\]]+)\)/;
     const dataviewMatch = dataviewRegex.exec(matchStr);
     if (dataviewMatch) {
-      return [dataviewMatch[1].trim(), dataviewMatch[2].trim()];
+      const key = (dataviewMatch[1] ?? dataviewMatch[3]).trim();
+      const value = (dataviewMatch[2] ?? dataviewMatch[4]).trim();
+      return key && value ? [key, value] : null;
     }
 
     const shortcutRegex = /@(\w+)/;
@@ -87,11 +89,12 @@ export class LineParser {
     return null;
   }
 
-  private attributeToString(key: string, value: string | boolean): string {
+  private attributeToString(key: string, value: string | boolean, parenthesized = false): string {
+    const [open, close] = parenthesized ? ["(", ")"] : ["[", "]"];
     if (typeof value === "boolean") {
-      return `[${key}:: true]`;
+      return `${open}${key}:: true${close}`;
     }
-    return `[${key}:: ${value}]`;
+    return `${open}${key}:: ${value}${close}`;
   }
 
   private static readonly PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
@@ -111,30 +114,52 @@ export class LineParser {
 
   // Priority shortcuts like @high are converted to [priority:: high]
   parseAttributes(text: string): AttributesStructure {
-    const regexp = this.getAttributeRegex();
-    const matches = text.match(regexp);
+    const matches = [...text.matchAll(this.getAttributeRegex())];
 
     const res: Record<string, string | boolean> = {};
     const tags = this.parseHashtags(text);
-    if (!matches) return { textWithoutAttributes: text, attributes: res, tags };
+    if (matches.length === 0) return { textWithoutAttributes: text, attributes: res, tags };
 
-    let textWithoutAttributes = text;
-
-    matches.forEach((match) => {
-      const parsed = this.parseSingleAttribute(match);
-      if (parsed === null) return;
-      const [attrKey, attrValue] = parsed;
-      if (!attrKey) return;
-
+    const accepted = this.acceptedAttributes(text, matches);
+    accepted.forEach(({ key: attrKey, value: attrValue }) => {
       if (LineParser.PRIORITY_SHORTCUTS.includes(attrKey) && attrValue === true) {
         res["priority"] = attrKey;
       } else {
         res[attrKey] = attrValue;
       }
-      textWithoutAttributes = textWithoutAttributes.replace(match, "").replace(/\s+/g, " ");
     });
 
+    let textWithoutAttributes = text;
+    for (let index = accepted.length - 1; index >= 0; index--) {
+      const match = accepted[index].match;
+      textWithoutAttributes = textWithoutAttributes.slice(0, match.index) + textWithoutAttributes.slice(match.index + match[0].length);
+    }
+    textWithoutAttributes = textWithoutAttributes.replace(/\s+/g, " ");
+
     return { textWithoutAttributes: textWithoutAttributes.trim(), attributes: res, tags };
+  }
+
+  parseAttributeEntries(text: string): [string, string | boolean][] {
+    return this.acceptedAttributes(text).map(({ key, value }) => [key, value]);
+  }
+
+  private acceptedAttributes(text: string, matches: RegExpMatchArray[] = [...text.matchAll(this.getAttributeRegex())]): { match: RegExpMatchArray; key: string; value: string | boolean }[] {
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
+    const containers = this.delimiterSpans(text, ignored);
+    const accepted: { match: RegExpMatchArray; key: string; value: string | boolean }[] = [];
+    for (const match of matches) {
+      if (this.isInside(match.index, ignored)) continue;
+      const opener = match[0][0];
+      if (opener === "[" || opener === "(") {
+        if (!containers.some(([start, end]) => start === match.index && end === match.index + match[0].length)) continue;
+      } else if (this.isInside(match.index, containers)) {
+        continue;
+      }
+      const parsed = this.parseSingleAttribute(match[0]);
+      if (parsed === null || !parsed[0]) continue;
+      accepted.push({ match, key: parsed[0], value: parsed[1] });
+    }
+    return accepted;
   }
 
   attributesToString(attributesStructure: AttributesStructure): string {
@@ -149,17 +174,36 @@ export class LineParser {
     return attributeStr ? `${textWithoutAttributes} ${attributeStr}`.trim() : textWithoutAttributes;
   }
 
-  updateAttribute(text: string, key: string, value: string | boolean | undefined): string {
-    const matches = this.attributeMatches(text, key);
+  updateAttribute(text: string, key: string, value: string | boolean | undefined, onlyShortcuts = false, preserveDuplicates = true): string {
+    const allMatches = this.attributeMatches(text, key);
+    let matches = onlyShortcuts ? allMatches.filter((match) => match.shortcut) : allMatches;
     if (matches.length === 0) {
-      if (value === false || value === undefined) return text;
+      if (onlyShortcuts || value === false || value === undefined) return text;
       return `${text}${text && !/\s$/.test(text) ? " " : ""}${this.attributeToString(key, value)}`;
+    }
+
+    let replacementMatch = value !== false && value !== undefined ? matches[0] : undefined;
+    if ((onlyShortcuts || preserveDuplicates) && replacementMatch) {
+      const metadataMatches = allMatches.filter((match) => !match.shortcut);
+      if (metadataMatches.length > 0) {
+        const lastMetadata = metadataMatches[metadataMatches.length - 1];
+        const parsedMetadata = this.parseSingleAttribute(text.slice(lastMetadata.start, lastMetadata.end));
+        if (onlyShortcuts && parsedMetadata?.[1] === value) {
+          replacementMatch = undefined;
+        } else {
+          matches = allMatches.filter((match) => match.shortcut || match === lastMetadata);
+          replacementMatch = lastMetadata;
+        }
+      } else if (preserveDuplicates) {
+        replacementMatch = matches[matches.length - 1];
+      }
     }
 
     let result = text;
     for (let index = matches.length - 1; index >= 0; index--) {
       const match = matches[index];
-      const replacement = index === 0 && value !== false && value !== undefined ? this.attributeToString(key, value) : "";
+      const replacementKey = match.shortcut ? key : (this.parseSingleAttribute(text.slice(match.start, match.end))?.[0] ?? key);
+      const replacement = match === replacementMatch && value !== false && value !== undefined ? this.attributeToString(replacementKey, value, match.parenthesized) : "";
       let end = match.end;
       let begin = match.start;
       if (!replacement) {
@@ -171,15 +215,16 @@ export class LineParser {
     return result;
   }
 
-  private attributeMatches(text: string, key: string): { start: number; end: number }[] {
+  private attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
     const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
-    const metadata = this.metadataSpans(text);
-    const shortcutIgnored = [...ignored, ...metadata];
-    const matches = [...text.matchAll(/\[\s*([^:\]]+?)\s*::\s*([^\]]*)\]/g)]
-      .filter((match) => match[1].trim().toLowerCase() === key.toLowerCase())
+    const containers = this.delimiterSpans(text, ignored);
+    const shortcutIgnored = [...ignored, ...containers];
+    const matches: { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] = [...text.matchAll(/\[\s*([^:[\]]+?)\s*::\s*([^[\]]*)\]|\(\s*([^:()[\]]+?)\s*::\s*([^()[\]]*)\)/g)]
+      .filter((match) => this.parseSingleAttribute(match[0]) !== null)
+      .filter((match) => (match[1] ?? match[3]).trim().toLowerCase() === key.toLowerCase())
       .filter((match) => !this.isInside(match.index, ignored))
-      .filter((match) => !metadata.some(([start, end]) => start < match.index && end >= match.index + match[0].length))
-      .map((match) => ({ start: match.index, end: match.index + match[0].length }));
+      .filter((match) => containers.some(([start, end]) => start === match.index && end === match.index + match[0].length))
+      .map((match) => ({ start: match.index, end: match.index + match[0].length, parenthesized: match[0][0] === "(" }));
 
     const shortcutSettings = this.settings?.atShortcutSettings;
     if (!shortcutSettings || shortcutSettings.enableAtShortcuts) {
@@ -195,16 +240,19 @@ export class LineParser {
         shortcuts.push(key);
       }
       for (const keyword of shortcuts) {
-        const pattern = new RegExp(`@${this.escapeRegex(keyword)}(?!\\w)`, "gi");
+        const pattern = new RegExp(`@${this.escapeRegex(keyword)}(?![(\\w])`, "gi");
         for (const match of text.matchAll(pattern)) {
-          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length });
+          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
         }
       }
       for (const shortcut of shortcutSettings?.customShortcuts ?? []) {
         if (shortcut.targetAttribute.toLowerCase() !== key.toLowerCase()) continue;
-        const pattern = new RegExp(`@${this.escapeRegex(shortcut.keyword)}(?!\\w)`, "gi");
+        if (!/^\w+$/.test(shortcut.keyword)) continue;
+        const resolved = this.parseSingleAttribute(`@${shortcut.keyword}`);
+        if (resolved === null || resolved[0].toLowerCase() !== shortcut.targetAttribute.toLowerCase() || resolved[1] !== shortcut.value) continue;
+        const pattern = new RegExp(`@${this.escapeRegex(shortcut.keyword)}(?![(\\w])`, "gi");
         for (const match of text.matchAll(pattern)) {
-          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length });
+          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
         }
       }
     }
@@ -214,7 +262,10 @@ export class LineParser {
 
   appendTag(text: string, tag: string): string {
     const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
-    const attribute = this.metadataSpans(text).find(([start, end]) => text[start] === "[" && text.slice(start, end).includes("::") && !this.isInside(start, ignored));
+    const attribute = this.topLevelMetadataSpans(text).find(([start, end]) => {
+      const closer = text[start] === "[" ? "]" : ")";
+      return text[end - 1] === closer && text.slice(start, end).includes("::") && !this.isInside(start, ignored);
+    });
     if (!attribute) return `${text}${text && !/\s$/.test(text) ? " " : ""}#${tag}`;
     const [index] = attribute;
     const before = text.slice(0, index);
@@ -242,25 +293,63 @@ export class LineParser {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
-  private metadataSpans(text: string): [number, number][] {
+  private delimiterSpans(text: string, ignored: [number, number][]): [number, number][] {
     const spans: [number, number][] = [];
     for (let start = 0; start < text.length; start++) {
       const opener = text[start];
-      if (opener !== "[" && opener !== "(") continue;
+      if ((opener !== "[" && opener !== "(") || this.isInside(start, ignored)) continue;
       const closer = opener === "[" ? "]" : ")";
       let depth = 1;
       let end = start + 1;
       while (end < text.length && depth > 0) {
+        if (this.isInside(end, ignored)) {
+          end++;
+          continue;
+        }
         if (text[end] === opener) depth++;
         else if (text[end] === closer) depth--;
         end++;
       }
-      const body = text.slice(start + 1, depth === 0 ? end - 1 : end);
-      if (!/^\s*[^()[\]]+::/.test(body)) continue;
       spans.push([start, end]);
       start = end - 1;
     }
     return spans;
+  }
+
+  private metadataSpans(text: string): [number, number][] {
+    const spans: [number, number][] = [];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
+    for (let start = 0; start < text.length; start++) {
+      const opener = text[start];
+      if ((opener !== "[" && opener !== "(") || this.isInside(start, ignored)) continue;
+      const closer = opener === "[" ? "]" : ")";
+      let depth = 1;
+      let end = start + 1;
+      while (end < text.length && depth > 0) {
+        if (this.isInside(end, ignored)) {
+          end++;
+          continue;
+        }
+        if (text[end] === opener) depth++;
+        else if (text[end] === closer) depth--;
+        end++;
+      }
+      if (!this.isMetadataSpan(text, start, end)) continue;
+      spans.push([start, end]);
+      start = end - 1;
+    }
+    return spans;
+  }
+
+  private topLevelMetadataSpans(text: string): [number, number][] {
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
+    return this.delimiterSpans(text, ignored).filter(([start, end]) => this.isMetadataSpan(text, start, end));
+  }
+
+  private isMetadataSpan(text: string, start: number, end: number): boolean {
+    const closer = text[start] === "[" ? "]" : ")";
+    const body = text.slice(start + 1, text[end - 1] === closer ? end - 1 : end);
+    return /^\s*[^()[\]]+::/.test(body);
   }
 
   private codeSpans(text: string): [number, number][] {

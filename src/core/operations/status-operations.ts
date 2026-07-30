@@ -12,41 +12,46 @@ export class StatusOperations {
 
   convertAttributes(line: string): string {
     const parsedLine = this.lineParser.parseLine(line);
-    let parsedAttributes = this.lineParser.parseAttributes(parsedLine.line);
-    parsedAttributes = this.convertDateAttributes(parsedAttributes);
-    parsedAttributes = this.convertPriorityAttributes(parsedAttributes);
-    parsedLine.line = this.lineParser.attributesToString(parsedAttributes);
+    const parsedAttributes = this.lineParser.parseAttributes(parsedLine.line);
+    const original: Record<string, string | boolean> = {};
+    for (const [key, value] of Object.entries(parsedAttributes.attributes)) original[key.toLowerCase()] = value;
+    const converted = this.convertAttributeEntries(parsedAttributes, this.lineParser.parseAttributeEntries(parsedLine.line));
+
+    for (const key of Object.keys(original)) {
+      if (!Object.keys(converted.attributes).some((convertedKey) => convertedKey.toLowerCase() === key)) parsedLine.line = this.lineParser.updateAttribute(parsedLine.line, key, undefined);
+    }
+    for (const [key, value] of Object.entries(converted.attributes)) {
+      parsedLine.line = this.lineParser.updateAttribute(parsedLine.line, key, value, original[key.toLowerCase()] === value, true);
+    }
     return this.lineParser.lineToString(parsedLine);
   }
 
-  private convertDateAttributes(attributes: AttributesStructure): AttributesStructure {
-    Object.keys(attributes.attributes).forEach((key) => {
-      const val = attributes.attributes[key];
-      if (typeof val === "string") {
-        const completion = Completion.completeDate(val);
+  private convertAttributeEntries(attributes: AttributesStructure, entries: [string, string | boolean][]): AttributesStructure {
+    const converted: Record<string, string | boolean> = {};
+    for (const [sourceKey, sourceValue] of entries) {
+      let key = sourceKey;
+      let value = sourceValue;
+      if (typeof value === "string") {
+        value = Completion.completeDate(value) ?? value;
+      } else if (value === true) {
+        const completion = Completion.completeDate(key.toLowerCase());
         if (completion !== null) {
-          attributes.attributes[key] = completion;
-        }
-      } else if (val === true) {
-        const completion = Completion.completeDate(key);
-        if (completion !== null) {
-          delete attributes.attributes[key];
-          attributes.attributes[this.settings?.dueDateAttribute || "due"] = completion;
+          key = this.settings?.dueDateAttribute || "due";
+          value = completion;
         }
       }
-    });
-    return attributes;
-  }
 
-  private convertPriorityAttributes(attributes: AttributesStructure): AttributesStructure {
-    Object.keys(attributes.attributes).forEach((key) => {
       const keyLower = key.toLowerCase();
       if (["critical", "high", "medium", "low", "lowest"].includes(keyLower)) {
-        delete attributes.attributes[key];
-        attributes.attributes["priority"] = keyLower;
+        key = "priority";
+        value = keyLower;
       }
-    });
-    return attributes;
+      for (const existingKey of Object.keys(converted)) {
+        if (existingKey.toLowerCase() === key.toLowerCase()) delete converted[existingKey];
+      }
+      converted[key] = value;
+    }
+    return { ...attributes, attributes: converted };
   }
 
   toggleTask(line: string): string {
