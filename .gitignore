@@ -29,3 +29,6 @@ yarn.lock
 # Testing
 coverage/
 junit.xml.worktrees/
+.obsidian-cache/
+.obsidian-downloads/
+artifacts/

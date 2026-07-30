@@ -22,3 +22,6 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+
+# Check out the byte-level line-ending fixture with CRLF on every platform.
+test/e2e/vault/Tasks.md text eol=crlf
