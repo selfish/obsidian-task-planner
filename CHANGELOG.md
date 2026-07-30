@@ -8,6 +8,10 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 - Raised the minimum supported Obsidian version to public 1.8.7, where Task Planner's existing vault-local settings APIs are public ([#136](https://github.com/selfish/obsidian-task-planner/issues/136)).
 
+### Fixed
+
+- Preserved `{date}`, `{time}`, and `{datetime}` text entered through Quick Add instead of treating it as part of the configured task template.
+
 ## [2.0.2] - 2026-07-30
 
 ### Added
