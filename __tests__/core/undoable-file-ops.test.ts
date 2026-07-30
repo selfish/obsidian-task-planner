@@ -18,6 +18,7 @@ jest.mock('../../src/core/operations/file-operations', () => {
       batchUpdateTaskStatus: jest.fn().mockResolvedValue(undefined),
       batchAppendTag: jest.fn().mockResolvedValue(undefined),
       batchRemoveTag: jest.fn().mockResolvedValue(undefined),
+      batchMove: jest.fn().mockResolvedValue(undefined),
     })),
   };
 });

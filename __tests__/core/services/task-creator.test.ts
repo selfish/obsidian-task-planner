@@ -304,6 +304,22 @@ describe("TaskCreator", () => {
 
       expect(mockApp.vault.modify).toHaveBeenCalledWith(dailyNoteFile, "# Daily Note\n- [ ] Buy milk");
     });
+
+    it("should append to the content supplied by the atomic update", async () => {
+      const inboxFile = new TFile("Inbox.md");
+      let written = "";
+      mockApp.vault.getAbstractFileByPath = jest.fn().mockReturnValue(inboxFile);
+      mockApp.vault.process = jest.fn(async (_file, update) => {
+        written = update("# Inbox\nConcurrent edit");
+        return written;
+      });
+      settings.quickAdd.destination = "inbox";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      await taskCreator.createTask("Buy milk");
+
+      expect(written).toBe("- [ ] Buy milk\n# Inbox\nConcurrent edit");
+    });
   });
 
   describe("getFrontmatterEndPosition", () => {

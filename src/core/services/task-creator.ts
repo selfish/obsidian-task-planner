@@ -22,10 +22,7 @@ export class TaskCreator {
       throw new Error("Could not determine target file for task");
     }
 
-    const currentContent = await this.app.vault.read(targetFile);
-    const newContent = this.insertContent(currentContent, taskLine);
-
-    await this.app.vault.modify(targetFile, newContent);
+    await this.app.vault.process(targetFile, (content) => this.insertContent(content, taskLine));
   }
 
   private formatTaskLine(task: string): string {

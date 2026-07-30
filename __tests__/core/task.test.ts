@@ -82,6 +82,14 @@ describe('getTaskId', () => {
 
     expect(getTaskId(todo1)).toBe(getTaskId(todo2));
   });
+
+  it('should keep an indexed id stable when a tag mutation changes the parsed text', () => {
+    const file = createMockFileAdapter('file-4', 'notes/tasks.md');
+    const before: TaskItem<unknown> = { status: TaskStatus.Todo, text: 'Task', file, line: 7 };
+    const after: TaskItem<unknown> = { status: TaskStatus.Todo, text: 'Task #planned', file, line: 7 };
+
+    expect(getTaskId(after)).toBe(getTaskId(before));
+  });
 });
 
 describe('TaskItem interface', () => {

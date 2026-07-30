@@ -1,3 +1,4 @@
+import { fencedCodeBlockLines } from "./code-block";
 import { ParseError } from "../../lib/errors";
 import { TaskPlannerSettings } from "../../settings";
 import { FileAdapter, TaskItem, TaskParsingResult } from "../../types";
@@ -68,10 +69,6 @@ export class FileTaskParser<TFile> {
     }
   }
 
-  private isCodeBlockFence(line: string): boolean {
-    return /^\s*```/.test(line);
-  }
-
   async parseMdFile(file: FileAdapter<TFile>): Promise<TaskItem<TFile>[]> {
     let content: string;
     try {
@@ -80,19 +77,11 @@ export class FileTaskParser<TFile> {
       throw new ParseError(`Failed to read file content: ${file.path}`, file.path, undefined, "MEDIUM", { originalError: error instanceof Error ? error.message : String(error) });
     }
 
-    const lines = content.split("\n");
-
-    // Track code block state to skip tasks inside fenced code blocks
-    let insideCodeBlock = false;
+    const lines = content.split(/\r\n|\r|\n/);
+    const fencedLines = fencedCodeBlockLines(lines);
 
     const parsingResults = lines.map((line, number) => {
-      // Check for code block fence (``` with optional language specifier)
-      if (this.isCodeBlockFence(line)) {
-        insideCodeBlock = !insideCodeBlock;
-      }
-
-      // Skip parsing tasks inside code blocks
-      if (insideCodeBlock && !this.isCodeBlockFence(line)) {
+      if (fencedLines.has(number)) {
         return {
           lineNumber: number,
           isTask: false,
@@ -100,8 +89,18 @@ export class FileTaskParser<TFile> {
         };
       }
 
-      return this.statusOperations.toTask<TFile>(line, number);
+      const result = this.statusOperations.toTask<TFile>(line, number);
+      if (result.task) result.task.sourceLine = line;
+      return result;
     });
+
+    const sourceLineCounts = new Map<string, number>();
+    for (const { task } of parsingResults) {
+      if (task?.sourceLine !== undefined) sourceLineCounts.set(task.sourceLine, (sourceLineCounts.get(task.sourceLine) ?? 0) + 1);
+    }
+    for (const { task } of parsingResults) {
+      if (task?.sourceLine !== undefined) task.sourceLineCount = sourceLineCounts.get(task.sourceLine);
+    }
 
     const taskParsingResults = parsingResults.filter((result) => result.isTask);
     this.createTaskTreeStructure(lines, taskParsingResults);

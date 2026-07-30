@@ -153,6 +153,9 @@ describe("Tasks metadata compatibility matrix", () => {
       setContent: async (value) => {
         content = value;
       },
+      processContent: async (update) => {
+        content = update(content);
+      },
       isInFolder: () => false,
     };
     const task: TaskItem<unknown> = {
@@ -160,6 +163,8 @@ describe("Tasks metadata compatibility matrix", () => {
       text: "Task",
       file,
       line: 0,
+      sourceLine: content,
+      sourceLineCount: 1,
       tags: [],
     };
 

@@ -17,6 +17,10 @@ All notable changes to Task Planner are documented here. The project follows [Se
 - Updated vulnerable development and build dependencies without changing generated plugin assets.
 - Pinned third-party GitHub Actions to immutable commit SHAs and migrated Codecov test-result uploads to the supported unified action.
 
+### Fixed
+
+- Made task, follow-up, and Quick Add writes atomic so stale task positions cannot overwrite concurrent vault edits ([#120](https://github.com/selfish/obsidian-task-planner/issues/120)).
+
 ## Historical releases
 
 Detailed notes and source comparisons for releases before this changelog are available on the [GitHub Releases](https://github.com/selfish/obsidian-task-planner/releases) page. This file intentionally does not invent retroactive release details.

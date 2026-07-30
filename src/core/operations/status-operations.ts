@@ -65,7 +65,7 @@ export class StatusOperations {
     return this.lineParser.lineToString(parsedLine);
   }
 
-  private markToStatus(mark: string): TaskStatus {
+  markToStatus(mark: string): TaskStatus {
     switch (mark.toLowerCase()) {
       case "]":
       case "-":

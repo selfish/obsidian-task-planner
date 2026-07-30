@@ -5,7 +5,7 @@ import { FileOperationError } from '../../src/lib/errors';
 
 const createMockFileAdapter = (content: string): FileAdapter<unknown> => {
   let currentContent = content;
-  return {
+  const file: FileAdapter<unknown> = {
     id: 'file-1',
     path: 'notes/todo.md',
     name: 'todo.md',
@@ -14,10 +14,15 @@ const createMockFileAdapter = (content: string): FileAdapter<unknown> => {
       currentContent = newContent;
       return Promise.resolve();
     }),
-    createOrSave: jest.fn().mockResolvedValue(undefined),
     isInFolder: jest.fn().mockReturnValue(false),
     file: {},
   };
+  file.processContent = jest.fn(async (update) => {
+    const current = await file.getContent();
+    const updated = update(current);
+    if (updated !== current) await file.setContent(updated);
+  });
+  return file;
 };
 
 const createTodo = (text: string, line: number, file: FileAdapter<unknown>, status = TaskStatus.Todo): TaskItem<unknown> => ({
@@ -105,7 +110,7 @@ describe('FileOperations', () => {
       await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toThrow(FileOperationError);
       await expect(operations.updateAttribute(todo, 'due', '2025-01-15')).rejects.toMatchObject({
         filePath: 'notes/todo.md',
-        operation: 'read',
+        operation: 'write',
         tier: 'HIGH',
       });
     });
@@ -340,7 +345,7 @@ describe('FileOperations', () => {
       await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toThrow(FileOperationError);
       await expect(operations.batchUpdateAttribute(todos, 'priority', 'high')).rejects.toMatchObject({
         filePath: 'notes/todo.md',
-        operation: 'read',
+        operation: 'write',
         tier: 'HIGH',
       });
     });

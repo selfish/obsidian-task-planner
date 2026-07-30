@@ -338,19 +338,7 @@ export class UndoableFileOperations {
     const effectiveDescription = description ?? UndoManager.createMoveDescription(tasks.length, String(attributeValue));
 
     if (!this.undoManager.isEnabled()) {
-      await this.fileOperations.batchUpdateAttribute(tasks, attributeName, attributeValue);
-      if (tag) {
-        await this.fileOperations.batchAppendTag(tasks, tag);
-      }
-      if (tagsToRemove && tagsToRemove.length > 0) {
-        for (const tagToRemove of tagsToRemove) {
-          await this.fileOperations.batchRemoveTag(tasks, tagToRemove);
-        }
-      }
-      if (newStatus !== undefined) {
-        tasks.forEach((t) => (t.status = newStatus));
-        await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
-      }
+      await this.fileOperations.batchMove(tasks, { attributeName, attributeValue, completedAttribute: this.settings.completedDateAttribute, tag, tagsToRemove, newStatus });
       return;
     }
 
@@ -416,20 +404,8 @@ export class UndoableFileOperations {
       }
     }
 
-    // Perform the actual operations
-    await this.fileOperations.batchUpdateAttribute(tasks, attributeName, attributeValue);
-    if (tag) {
-      await this.fileOperations.batchAppendTag(tasks, tag);
-    }
-    if (tagsToRemove && tagsToRemove.length > 0) {
-      for (const tagToRemove of tagsToRemove) {
-        await this.fileOperations.batchRemoveTag(tasks, tagToRemove);
-      }
-    }
-    if (newStatus !== undefined) {
-      tasks.forEach((t) => (t.status = newStatus));
-      await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
-    }
+    // Apply every move mutation in one atomic write per file.
+    await this.fileOperations.batchMove(tasks, { attributeName, attributeValue, completedAttribute: this.settings.completedDateAttribute, tag, tagsToRemove, newStatus });
 
     // Record combined operation
     const operation: UndoOperation = {
