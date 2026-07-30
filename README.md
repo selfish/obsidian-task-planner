@@ -45,7 +45,7 @@ This auto-conversion can be disabled in settings if you prefer manual control.
 
 ## Installation
 
-Task Planner requires Obsidian 1.4.10 or newer.
+Task Planner requires Obsidian 1.8.7 or newer.
 
 ### From Obsidian Community Plugins
 1. Open Obsidian Settings
@@ -180,7 +180,7 @@ The Linux x64 real-Obsidian suite builds the plugin, verifies pinned Obsidian an
 npm run test:e2e
 
 # Supported floor
-OBSIDIAN_VERSION=1.4.10 OBSIDIAN_INSTALLER_VERSION=1.1.9 npm run test:e2e
+OBSIDIAN_VERSION=1.8.7 OBSIDIAN_INSTALLER_VERSION=1.5.8 npm run test:e2e
 ```
 
 Verified archives are cached in `.obsidian-downloads/`. Executable runtime files are rebuilt from those verified archives on every run and are never restored from CI cache. Failure diagnostics are written to `artifacts/e2e/`.
