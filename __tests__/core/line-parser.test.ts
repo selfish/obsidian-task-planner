@@ -1,3 +1,4 @@
+import { StatusOperations } from '../../src/core/operations/status-operations';
 import { LineParser } from '../../src/core/parsers/line-parser';
 import { DEFAULT_SETTINGS, TaskPlannerSettings } from '../../src/settings/types';
 
@@ -568,7 +569,8 @@ describe('LineParser', () => {
       });
 
       expect(parser.updateAttribute('Task @high after', 'priority', 'low')).toBe('Task [priority:: low] after');
-      expect(parser.updateAttribute('Task @high middle [priority:: old] after', 'priority', 'low')).toBe('Task [priority:: low] middle after');
+      expect(parser.updateAttribute('Task @high middle [priority:: old] after', 'priority', 'low')).toBe('Task middle [priority:: low] after');
+      expect(parser.updateAttribute('Task @high middle @medium after', 'priority', 'low')).toBe('Task middle [priority:: low] after');
     });
 
     it('matches recognized shortcuts before punctuation', () => {
@@ -596,11 +598,71 @@ describe('LineParser', () => {
       expect(parser.appendTag('Task (note:: open', 'new')).toBe('Task (note:: open #new');
     });
 
+    it('does not treat delimiters in protected text as closing malformed metadata', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      for (const text of ['Task (note:: text `)` trailing', 'Task (note:: text [[Page|)]] trailing']) {
+        expect(parser.appendTag(text, 'new')).toBe(`${text} #new`);
+      }
+    });
+
+    it('appends tags outside arbitrary delimiter wrappers', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      expect(parser.appendTag('Task (wrapper (due:: 2026-07-23))', 'planned')).toBe('Task (wrapper (due:: 2026-07-23)) #planned');
+      expect(parser.appendTag('Task (wrapper (due:: inner)) (owner:: Alice)', 'planned')).toBe('Task (wrapper (due:: inner)) #planned (owner:: Alice)');
+    });
+
+    it('keeps nested metadata protected from tag mutations inside arbitrary wrappers', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const text = 'Task (wrapper (note:: #keep)) #remove';
+      expect(parser.hasTag(text, 'keep')).toBe(false);
+      expect(parser.removeTag(text, 'keep')).toBe(text);
+    });
+
     it('does not mutate square syntax nested inside unknown metadata', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const text = 'Task (note:: [priority:: high]) after';
       expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
       expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
+    });
+
+    it('updates only the last effective duplicate during ordinary edits', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      expect(parser.updateAttribute('Task (Priority:: low) [priority:: medium]', 'priority', 'critical')).toBe('Task (Priority:: low) [priority:: critical]');
+    });
+
+    it('preserves rejected function-like shortcut text while converting a real shortcut', () => {
+      const operations = new StatusOperations(DEFAULT_SETTINGS);
+      expect(operations.convertAttributes('- [ ] Task @high(Priority2099) @high')).toBe('- [ ] Task @high(Priority2099) [priority:: high]');
+    });
+
+    it('does not mutate custom shortcut keywords outside the parser grammar', () => {
+      const parser = new LineParser({
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          customShortcuts: [{ keyword: 'follow-up', targetAttribute: 'owner', value: 'Alice' }],
+        },
+      });
+      const text = 'Task @follow-up';
+      expect(parser.parseAttributes(text).attributes).toEqual({});
+      expect(parser.updateAttribute(text, 'owner', 'Bob')).toBe('Task @follow-up [owner:: Bob]');
+    });
+
+    it('preserves malformed empty metadata during update and removal', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      expect(parser.updateAttribute('Task (Due::)', 'due', '2026-08-01')).toBe('Task (Due::) [due:: 2026-08-01]');
+      expect(parser.updateAttribute('Task (Due::)', 'due', undefined)).toBe('Task (Due::)');
+    });
+
+    it.each(['Task (due:: marker `)` trailing', 'Task [due:: marker `]` trailing'])('does not use protected closers as metadata boundaries: %s', (text) => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      expect(parser.parseAttributes(text).attributes).toEqual({});
+      expect(parser.updateAttribute(text, 'due', '2026-08-01')).toBe(`${text} [due:: 2026-08-01]`);
+      expect(parser.updateAttribute(text, 'due', undefined)).toBe(text);
+    });
+
+    it.each(['- [ ] Task (high:: marker `)` trailing', '- [ ] Task [high:: marker `]` trailing'])('does not convert aliases closed only by protected text: %s', (text) => {
+      expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(text)).toBe(text);
     });
   });
 });

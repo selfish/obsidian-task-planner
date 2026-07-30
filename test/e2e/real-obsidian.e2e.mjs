@@ -57,7 +57,10 @@ describe("real Obsidian vault smoke", function () {
 
   it("atomically relocates a stale UI task and preserves unrelated CRLF bytes", async function () {
     await browser.executeObsidian(({ app, plugins }) => {
-      plugins.taskPlanner.settings.customHorizons = [{ label: "E2E", date: "2026-08-09", tag: "e2e", color: "accent", position: "end" }];
+      plugins.taskPlanner.settings.customHorizons = [
+        { label: "Initial", date: "2026-08-02", position: "end" },
+        { label: "E2E", date: "2026-08-09", tag: "e2e", color: "accent", position: "end" },
+      ];
       app.saveLocalStorage("TaskPlanner.PlanningSettings", JSON.stringify({ hideEmpty: false }));
     });
     await browser.executeObsidianCommand("task-planner:open-planning");
@@ -80,7 +83,7 @@ describe("real Obsidian vault smoke", function () {
     });
     expect(result.staleNodeWasConnected).toEqual(true);
 
-    const completedPattern = /^Inserted\r\n-   \[x\]\tTarget \(start:: 2026-07-01\) \[owner:: Alice\] ⏳ 2026-08-02 \[completed:: \d{4}-\d{2}-\d{2}\]\r\n  continuation \[note:: keep\]\r\n\r\n    loose continuation \(owner:: Bob\)\r\nUnrelated\r\n$/;
+    const completedPattern = /^Inserted\r\n-   \[x\]\tTarget \(due:: 2026-08-02\) \[owner:: Alice\] ⏳ 2026-08-02 \[completed:: \d{4}-\d{2}-\d{2}\]\r\n  continuation \[note:: keep\]\r\n\r\n    loose continuation \(owner:: Bob\)\r\nUnrelated\r\n$/;
     await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => completedPattern.test(text)), {
       timeout: 15000,
       timeoutMsg: "stale status mutation did not preserve the synthetic file",
@@ -108,7 +111,7 @@ describe("real Obsidian vault smoke", function () {
     expect(drag.targetTitle).toEqual("E2E");
     expect(drag.taskId).not.toEqual("");
 
-    const movedPattern = /-   \[ \]\tTarget \(start:: 2026-07-01\) #e2e \[owner:: Alice\] ⏳ 2026-08-02 \[due:: 2026-08-09\]/;
+    const movedPattern = /-   \[ \]\tTarget #e2e \(due:: 2026-08-09\) \[owner:: Alice\] ⏳ 2026-08-02/;
     await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => movedPattern.test(text)), {
       timeout: 15000,
       timeoutMsg: "date/tag drag mutation did not reach the vault",
@@ -116,11 +119,11 @@ describe("real Obsidian vault smoke", function () {
 
     await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector(".th-undo-toast-button"))), { timeout: 5000, timeoutMsg: "undo toast was not rendered after date/tag move" });
     await browser.execute(() => document.querySelector(".th-undo-toast-button").click());
-    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => !text.includes("#e2e") && !text.includes("[due:: 2026-08-09]")), {
+    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => !text.includes("#e2e") && !text.includes("(due:: 2026-08-09)")), {
       timeout: 15000,
       timeoutMsg: "UI undo did not restore the date/tag mutation",
     });
-    expect(await obsidianPage.read("Tasks.md")).toMatch(/-   \[x\]\tTarget/);
+    expect(await obsidianPage.read("Tasks.md")).toMatch(/-   \[x\]\tTarget \(due:: 2026-08-02\)/);
   });
 
   it("fails closed when duplicate source lines are ambiguous", async function () {

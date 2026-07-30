@@ -1,5 +1,5 @@
 import { StatusOperations } from '../../src/core/operations/status-operations';
-import { TaskPlannerSettings } from '../../src/settings/types';
+import { DEFAULT_SETTINGS, TaskPlannerSettings } from '../../src/settings/types';
 import { TaskStatus } from '../../src/types/task';
 
 describe('StatusOperations', () => {
@@ -249,6 +249,61 @@ describe('StatusOperations', () => {
         const result = operations.convertAttributes('- [ ] Task [myattr:: false]');
         expect(result).toBe('- [ ] Task [myattr:: false]');
       });
+
+      it('should not rewrite parenthesized fields for an unknown mention', () => {
+        const configuredOperations = new StatusOperations(DEFAULT_SETTINGS);
+        const source = '- [ ] Task   (due:: 2026-08-02) email @alice';
+
+        expect(configuredOperations.convertAttributes(source)).toBe(source);
+      });
+
+      it('should convert a shortcut without rewriting neighboring parenthesized fields', () => {
+        const configuredOperations = new StatusOperations(DEFAULT_SETTINGS);
+
+        expect(configuredOperations.convertAttributes('- [ ] Task   (due:: 2026-08-02) @high')).toBe('- [ ] Task   (due:: 2026-08-02) [priority:: high]');
+        expect(configuredOperations.convertAttributes('- [ ] Task (priority:: high) @high')).toBe('- [ ] Task (priority:: high)');
+      });
+
+      it.each([
+        ['parenthesized', '- [ ] Task (priority:: low) @high', '- [ ] Task (priority:: high)'],
+        ['square', '- [ ] Task [priority:: low] @high', '- [ ] Task [priority:: high]'],
+      ])('keeps the later conflicting shortcut value when %s metadata already exists', (_syntax, source, expected) => {
+        expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(source)).toBe(expected);
+      });
+
+      it('keeps a later conflicting custom shortcut value when metadata already exists', () => {
+        const configuredOperations = new StatusOperations({
+          ...DEFAULT_SETTINGS,
+          atShortcutSettings: {
+            ...DEFAULT_SETTINGS.atShortcutSettings,
+            customShortcuts: [{ keyword: 'alice', targetAttribute: 'owner', value: 'Alice' }],
+          },
+        });
+
+        expect(configuredOperations.convertAttributes('- [ ] Task (owner:: Bob) @alice')).toBe('- [ ] Task (owner:: Alice)');
+      });
+
+      it.each([
+        ['priority alias before explicit metadata', '- [ ] Task [high:: marker] (priority:: low)', '- [ ] Task (priority:: low)'],
+        ['date shortcut before explicit metadata', '- [ ] Task @today (due:: 2099-01-01)', '- [ ] Task (due:: 2099-01-01)'],
+      ])('preserves the later effective value for %s', (_scenario, source, expected) => {
+        expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(source)).toBe(expected);
+      });
+
+      it('updates only the last applicable metadata field for a conflicting shortcut', () => {
+        expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes('- [ ] Task (priority:: low) [priority:: medium] @high')).toBe('- [ ] Task (priority:: low) [priority:: high]');
+      });
+
+      it('preserves earlier duplicate targets when a later alias changes the effective value', () => {
+        expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes('- [ ] Task (priority:: low) [priority:: medium] [high:: marker]')).toBe('- [ ] Task (priority:: low) [priority:: high]');
+      });
+
+      it.each([
+        ['priority', '- [ ] Task [high:: marker] (Priority:: low)', '- [ ] Task (Priority:: low)'],
+        ['date', '- [ ] Task @today (Due:: 2099-01-01)', '- [ ] Task (Due:: 2099-01-01)'],
+      ])('uses case-insensitive source ordering for %s targets', (_scenario, source, expected) => {
+        expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(source)).toBe(expected);
+      });
     });
   });
 
@@ -261,6 +316,28 @@ describe('StatusOperations', () => {
     it('should use custom due date attribute name', () => {
       const result = operations.convertAttributes('- [ ] Task @today');
       expect(result).toMatch(/- \[ \] Task \[scheduled:: \d{4}-\d{2}-\d{2}\]/);
+    });
+
+    it('compares a case-varied configured due key in source order', () => {
+      const caseVariedOperations = new StatusOperations({ ...DEFAULT_SETTINGS, dueDateAttribute: 'Due' });
+      expect(caseVariedOperations.convertAttributes('- [ ] Task @today (due:: 2099-01-01)')).toBe('- [ ] Task (due:: 2099-01-01)');
+      expect(caseVariedOperations.convertAttributes('- [ ] Task @today')).toMatch(/- \[ \] Task \[Due:: \d{4}-\d{2}-\d{2}\]/);
+    });
+
+    it('uses parser precedence when custom shortcuts collide with builtins or each other', () => {
+      const configuredOperations = new StatusOperations({
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          customShortcuts: [
+            { keyword: 'high', targetAttribute: 'Owner', value: 'Alice' },
+            { keyword: 'alice', targetAttribute: 'owner', value: 'Alice' },
+            { keyword: 'alice', targetAttribute: 'reviewer', value: 'Carol' },
+          ],
+        },
+      });
+      expect(configuredOperations.convertAttributes('- [ ] Task (owner:: Bob) @high')).toBe('- [ ] Task (owner:: Bob) [priority:: high]');
+      expect(configuredOperations.convertAttributes('- [ ] Task (reviewer:: Bob) @alice')).toBe('- [ ] Task (reviewer:: Bob) [owner:: Alice]');
     });
   });
 
