@@ -70,6 +70,17 @@ describe("TaskCreator", () => {
       expect(result).toBe("- [ ] Buy milk (added 2026-01-19 14:30)");
     });
 
+    it("should preserve placeholders in task text", () => {
+      settings.quickAdd.taskPattern = "{date} - {task}";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      const result = (taskCreator as unknown as { formatTaskLine: (task: string) => string }).formatTaskLine(
+        "Keep {date}, {time}, and {datetime} literal"
+      );
+
+      expect(result).toBe("2026-01-19 - Keep {date}, {time}, and {datetime} literal");
+    });
+
     it("should convert \\n to actual newlines", () => {
       settings.quickAdd.taskPattern = "Line1\\nLine2\\nLine3";
       taskCreator = new TaskCreator(mockApp, settings);
