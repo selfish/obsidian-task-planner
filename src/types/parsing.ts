@@ -6,6 +6,9 @@ export interface LineStructure {
   checkbox: string;
   date: string;
   line: string;
+  listMarkerSuffix?: string;
+  checkboxSuffix?: string;
+  dateSuffix?: string;
 }
 
 export interface TaskParsingResult<T> {

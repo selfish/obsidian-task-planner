@@ -74,6 +74,12 @@ export class Vault {
   createBinary = jest.fn().mockResolvedValue(new TFile());
   createFolder = jest.fn().mockResolvedValue(undefined);
   modify = jest.fn().mockResolvedValue(undefined);
+  process = jest.fn(async (file: TFile, update: (content: string) => string) => {
+    const content = await this.read(file);
+    const updated = update(content);
+    await this.modify(file, updated);
+    return updated;
+  });
   modifyBinary = jest.fn().mockResolvedValue(undefined);
   delete = jest.fn().mockResolvedValue(undefined);
   rename = jest.fn().mockResolvedValue(undefined);

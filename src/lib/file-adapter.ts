@@ -36,4 +36,8 @@ export class ObsidianFile implements FileAdapter<TFile> {
   async setContent(content: string): Promise<void> {
     await this.app.vault.modify(this.file, content);
   }
+
+  async processContent(update: (content: string) => string): Promise<void> {
+    await this.app.vault.process(this.file, update);
+  }
 }

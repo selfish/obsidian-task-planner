@@ -487,4 +487,120 @@ describe('LineParser', () => {
       expect(result.attributes).toEqual({ valid: 'attr', priority: 'high' });
     });
   });
+
+  describe('lossless targeted mutations', () => {
+    it('preserves nonstandard task separators when rebuilding a line', () => {
+      const parser = new LineParser();
+      const source = '-   [ ]\t2026-08-01:\tTask';
+
+      expect(parser.lineToString(parser.parseLine(source))).toBe(source);
+    });
+
+    it('removes a leading attribute and its following separator', () => {
+      const parser = new LineParser();
+
+      expect(parser.updateAttribute('[due:: old]\tTask', 'due', undefined)).toBe('Task');
+    });
+
+    it('replaces a priority shortcut without touching code or wikilinks', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+
+      expect(parser.updateAttribute('Task `@high` [[Page|@high]] @high', 'priority', 'medium')).toBe(
+        'Task `@high` [[Page|@high]] [priority:: medium]'
+      );
+    });
+
+    it('replaces a matching custom shortcut and leaves other targets alone', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          customShortcuts: [
+            { keyword: 'work', targetAttribute: 'context', value: 'work' },
+            { keyword: 'soon', targetAttribute: 'due', value: 'tomorrow' },
+          ],
+        },
+      };
+      const parser = new LineParser(settings);
+
+      expect(parser.updateAttribute('Task @work @soon', 'context', 'home')).toBe('Task [context:: home] @soon');
+      expect(parser.updateAttribute('Task `@work` @work', 'context', 'home')).toBe('Task `@work` [context:: home]');
+    });
+
+    it('replaces enabled date shortcuts and leaves disabled ones literal', () => {
+      const enabled = new LineParser(DEFAULT_SETTINGS);
+      expect(enabled.updateAttribute('Task @today', 'today', '2026-08-01')).toBe('Task [today:: 2026-08-01]');
+
+      const disabled = new LineParser({
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: { ...DEFAULT_SETTINGS.atShortcutSettings, enableDateShortcuts: false },
+      });
+      expect(disabled.updateAttribute('Task @today', 'today', '2026-08-01')).toBe('Task @today [today:: 2026-08-01]');
+    });
+
+    it('leaves disabled shortcuts literal', () => {
+      const settings: TaskPlannerSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          enablePriorityShortcuts: false,
+          enableBuiltinShortcuts: false,
+        },
+      };
+      const parser = new LineParser(settings);
+
+      expect(parser.updateAttribute('Task @high @selected', 'priority', 'low')).toBe('Task @high @selected [priority:: low]');
+      expect(parser.updateAttribute('Task @high @selected', 'selected', undefined)).toBe('Task @high @selected');
+    });
+
+    it('preserves generic shortcut mutation without settings', () => {
+      const parser = new LineParser();
+      expect(parser.updateAttribute('Task @priority', 'priority', 'low')).toBe('Task [priority:: low]');
+    });
+
+    it('deduplicates overlapping shortcut matches without deleting trailing text', () => {
+      const parser = new LineParser({
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          customShortcuts: [{ keyword: 'high', targetAttribute: 'priority', value: 'critical' }],
+        },
+      });
+
+      expect(parser.updateAttribute('Task @high after', 'priority', 'low')).toBe('Task [priority:: low] after');
+      expect(parser.updateAttribute('Task @high middle [priority:: old] after', 'priority', 'low')).toBe('Task [priority:: low] middle after');
+    });
+
+    it('matches recognized shortcuts before punctuation', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      expect(parser.updateAttribute('Task @high.', 'priority', 'low')).toBe('Task [priority:: low].');
+      expect(parser.updateAttribute('Task @selected,', 'selected', undefined)).toBe('Task,');
+    });
+
+    it('does not mutate shortcuts inside another metadata value', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const text = 'Task [note:: ping @high] after';
+      expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
+      expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
+    });
+
+    it('preserves spacing boundaries while covering empty and malformed metadata inputs', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      expect(parser.updateAttribute('', 'due', 'new')).toBe('[due:: new]');
+      expect(parser.updateAttribute('Task ', 'due', 'new')).toBe('Task [due:: new]');
+      expect(parser.updateAttribute('[due:: old]', 'due', undefined)).toBe('');
+      expect(parser.appendTag('', 'new')).toBe('#new');
+      expect(parser.appendTag('Task ', 'new')).toBe('Task #new');
+      expect(parser.appendTag('[due:: old]', 'new')).toBe('#new [due:: old]');
+      expect(parser.appendTag('Task  [due:: old]', 'new')).toBe('Task  #new [due:: old]');
+      expect(parser.appendTag('Task (note:: open', 'new')).toBe('Task (note:: open #new');
+    });
+
+    it('does not mutate square syntax nested inside unknown metadata', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const text = 'Task (note:: [priority:: high]) after';
+      expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
+      expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
+    });
+  });
 });

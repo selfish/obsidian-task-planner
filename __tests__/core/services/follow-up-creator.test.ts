@@ -18,22 +18,27 @@ describe("FollowUpCreator", () => {
         adapter.content = val;
         return Promise.resolve();
       }),
+      processContent: jest.fn(async (update: (value: string) => string) => {
+        adapter.content = update(adapter.content);
+      }),
       isInFolder: jest.fn().mockReturnValue(false),
     };
     return adapter;
   }
 
-  function createMockTodo(
-    overrides: Partial<TaskItem<string>> = {},
-    fileContent = "- [ ] Original task\n"
-  ): TaskItem<string> {
-    return {
+  function createMockTodo(overrides: Partial<TaskItem<string>> = {}, fileContent = "- [ ] Original task\n"): TaskItem<string> {
+    const todo: TaskItem<string> = {
       status: TaskStatus.Todo,
       text: "Original task",
       file: createMockFileAdapter(fileContent),
       line: 0,
       ...overrides,
     };
+    if (todo.line !== undefined && todo.sourceLine === undefined) {
+      todo.sourceLine = fileContent.split(/\r\n|\r|\n/)[todo.line];
+      todo.sourceLineCount = 1;
+    }
+    return todo;
   }
 
   beforeEach(() => {
@@ -358,9 +363,7 @@ describe("FollowUpCreator", () => {
     it("should throw error when line number is undefined", async () => {
       const todo = createMockTodo({ line: undefined });
 
-      await expect(followUpCreator.createFollowUp(todo, null)).rejects.toThrow(
-        "Cannot insert follow-up: original task has no line number"
-      );
+      await expect(followUpCreator.createFollowUp(todo, null)).rejects.toThrow("Cannot insert follow-up: original task has no line number");
     });
 
     it("should stop at empty lines when finding subtasks", async () => {
@@ -375,6 +378,16 @@ describe("FollowUpCreator", () => {
       expect(lines[1]).toContain("Follow up: Original task");
       expect(lines[2]).toBe("");
       expect(lines[3]).toBe("- [ ] Next task");
+    });
+
+    it("should relocate the original task inside the atomic update", async () => {
+      const todo = createMockTodo({}, "- [ ] Original task\n- [ ] Next task\n");
+      const file = todo.file as ReturnType<typeof createMockFileAdapter>;
+      file.content = "Inserted\r\n- [ ] Original task\r\n- [ ] Next task\r\n";
+
+      await followUpCreator.createFollowUp(todo, null);
+
+      expect(file.content).toBe("Inserted\r\n- [ ] Original task\r\n- [ ] Follow up: Original task\r\n- [ ] Next task\r\n");
     });
   });
 

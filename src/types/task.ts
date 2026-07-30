@@ -17,9 +17,15 @@ export interface TaskItem<TFile> {
   attributes?: Record<string, string | boolean>;
   tags?: string[];
   line?: number;
+  sourceLine?: string;
+  sourceLineCount?: number;
   subtasks?: TaskItem<TFile>[];
 }
 
 export function getTaskId<T>(task: TaskItem<T>): string {
-  return task.file.id + "-" + (task.line || 0) + "-" + task.text;
+  const stableText = task.text
+    .replace(/#(?!\d+\b)[\p{L}\p{N}_/-]+/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `${task.file.id}-${task.line ?? 0}-${stableText}`;
 }

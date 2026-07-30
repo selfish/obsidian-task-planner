@@ -1,6 +1,7 @@
 import { TaskPlannerSettings } from "../../settings/types";
 import { TaskItem } from "../../types/task";
 import { moment } from "../../utils/moment";
+import { FileOperations } from "../operations/file-operations";
 
 export interface FollowUpOptions {
   /** Mark the original task as complete after creating the follow-up */
@@ -8,7 +9,11 @@ export interface FollowUpOptions {
 }
 
 export class FollowUpCreator<T> {
-  constructor(private settings: TaskPlannerSettings) {}
+  private fileOperations: FileOperations;
+
+  constructor(private settings: TaskPlannerSettings) {
+    this.fileOperations = new FileOperations(settings);
+  }
 
   async createFollowUp(todo: TaskItem<T>, dueDate: string | null, options?: FollowUpOptions): Promise<void> {
     const text = this.buildFollowUpText(todo);
@@ -98,19 +103,13 @@ export class FollowUpCreator<T> {
    */
   private markTaskComplete(line: string): string {
     // Replace checkbox [ ] with [x]
-    let updatedLine = line.replace(/^(\s*-\s*)\[[ ]\]/, "$1[x]");
+    const updatedLine = line.replace(/^(\s*-\s*)\[[ ]\]/, "$1[x]");
 
-    // Add completed date attribute if not already present
     const completedAttr = this.settings.completedDateAttribute;
     const completedDate = moment().format("YYYY-MM-DD");
-    const attrPattern = new RegExp(`\\[${completedAttr}::[^\\]]*\\]`);
-
-    if (!attrPattern.test(updatedLine)) {
-      // Add completed attribute at the end of the line
-      updatedLine = `${updatedLine} [${completedAttr}:: ${completedDate}]`;
-    }
-
-    return updatedLine;
+    const parsed = this.fileOperations.lineParser.parseLine(updatedLine);
+    parsed.line = this.fileOperations.lineParser.updateAttribute(parsed.line, completedAttr, completedDate);
+    return this.fileOperations.lineParser.lineToString(parsed);
   }
 
   async insertAfterOriginal(todo: TaskItem<T>, taskLine: string, completeOriginal?: boolean): Promise<void> {
@@ -118,33 +117,22 @@ export class FollowUpCreator<T> {
       throw new Error("Cannot insert follow-up: original task has no line number");
     }
 
-    const content = await todo.file.getContent();
-    const eol = content.includes("\r\n") ? "\r\n" : "\n";
-    const lines = content.split(eol);
+    await this.fileOperations.processTask(todo, (lines, lineNumber, separators) => {
+      if (completeOriginal) lines[lineNumber] = this.markTaskComplete(lines[lineNumber]);
 
-    // Mark original task as complete if requested
-    if (completeOriginal) {
-      lines[todo.line] = this.markTaskComplete(lines[todo.line]);
-    }
+      let insertLine = lineNumber + 1;
+      const originalIndent = this.getIndentation(lines[lineNumber]);
+      while (insertLine < lines.length) {
+        const currentLine = lines[insertLine];
+        if (currentLine.trim() === "" || this.getIndentation(currentLine) <= originalIndent) break;
+        insertLine++;
+      }
 
-    // Find insertion point (after original task, accounting for subtasks)
-    let insertLine = todo.line + 1;
-    const originalIndent = this.getIndentation(lines[todo.line]);
-
-    // Skip past any subtasks (lines with greater indentation)
-    while (insertLine < lines.length) {
-      const currentLine = lines[insertLine];
-      // Stop at empty lines or lines with same/less indentation
-      if (currentLine.trim() === "") break;
-      const lineIndent = this.getIndentation(currentLine);
-      if (lineIndent <= originalIndent) break;
-      insertLine++;
-    }
-
-    // Insert the follow-up task with same indentation as original
-    const indentedTaskLine = " ".repeat(originalIndent) + taskLine;
-    lines.splice(insertLine, 0, indentedTaskLine);
-
-    await todo.file.setContent(lines.join(eol));
+      const eol = separators[lineNumber] ?? separators[0] ?? "\n";
+      const oldLength = lines.length;
+      lines.splice(insertLine, 0, " ".repeat(originalIndent) + taskLine);
+      if (insertLine < oldLength) separators.splice(insertLine, 0, eol);
+      else separators[insertLine - 1] = eol;
+    });
   }
 }
