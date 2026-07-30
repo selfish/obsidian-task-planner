@@ -2,14 +2,6 @@ import { App } from "obsidian";
 
 import { PlanningSettings, getDefaultSettings } from "./planning-settings";
 
-// Type augmentation for Obsidian's App - these methods exist but aren't in public types
-declare module "obsidian" {
-  interface App {
-    loadLocalStorage(key: string): string | null;
-    saveLocalStorage(key: string, value: string | undefined): void;
-  }
-}
-
 const storageKey = "TaskPlanner.PlanningSettings";
 
 export class PlanningSettingsStore {

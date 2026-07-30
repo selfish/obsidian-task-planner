@@ -28,25 +28,25 @@
         "sha256": "4b716bb6a735df7b20512a2a2651e9f3f7e6c4759935bc8013b728994061fdbd"
       }
     },
-    "1.4.10/1.1.9": {
+    "1.8.7/1.5.8": {
       "app": {
-        "version": "1.4.10",
-        "url": "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.10/obsidian-1.4.10.asar.gz",
-        "sha256": "1d155ea1ce559bf30b6338cd71f1b314989cc6661775a63302b6136b52ff4242",
-        "minInstallerVersion": "1.1.9",
-        "maxInstallerVersion": "1.4.10"
+        "version": "1.8.7",
+        "url": "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.8.7/obsidian-1.8.7.asar.gz",
+        "sha256": "48c306514d535b4ce312773033d6e7c2bfb597cd01d303b6ca13b045c9ca0309",
+        "minInstallerVersion": "1.5.8",
+        "maxInstallerVersion": "1.8.7"
       },
       "installer": {
-        "version": "1.1.9",
-        "url": "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.1.9/Obsidian-1.1.9.AppImage",
-        "sha256": "181a65471d92b2df1f6c44780f551fafff9996868f5cd182fbda0857580ec645",
-        "electron": "21.3.3",
-        "chrome": "106.0.5249.199"
+        "version": "1.5.8",
+        "url": "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.5.8/Obsidian-1.5.8.AppImage",
+        "sha256": "41bf02e53cff52589847fd652bf683571833b8d6b096138d7077909789d59688",
+        "electron": "28.2.3",
+        "chrome": "120.0.6099.283"
       },
       "chromedriver": {
-        "electron": "21.3.3",
-        "url": "https://github.com/electron/electron/releases/download/v21.3.3/chromedriver-v21.3.3-linux-x64.zip",
-        "sha256": "72abf01d3d323b2a6e64d885640a117feea8f145ce8a7e35a06cadacb5402402"
+        "electron": "28.2.3",
+        "url": "https://github.com/electron/electron/releases/download/v28.2.3/chromedriver-v28.2.3-linux-x64.zip",
+        "sha256": "4b716bb6a735df7b20512a2a2651e9f3f7e6c4759935bc8013b728994061fdbd"
       }
     }
   }

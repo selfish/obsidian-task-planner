@@ -245,8 +245,8 @@ jobs:
         include:
           - obsidian: '1.12.7'
             installer: '1.5.8'
-          - obsidian: '1.4.10'
-            installer: '1.1.9'
+          - obsidian: '1.8.7'
+            installer: '1.5.8'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
