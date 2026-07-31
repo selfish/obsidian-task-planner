@@ -221,6 +221,10 @@ describe('StatusOperations', () => {
         expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
       });
 
+      it('should preserve date-like values in unrelated metadata', () => {
+        expect(operations.convertAttributes('- [ ] Task [owner:: tomorrow] @high')).toBe('- [ ] Task [owner:: tomorrow] [priority:: high]');
+      });
+
       it('should convert priority attribute key to priority property (e.g., [high:: value])', () => {
         const result = operations.convertAttributes('- [ ] Task [high:: something]');
         expect(result).toBe('- [ ] Task [priority:: high]');
