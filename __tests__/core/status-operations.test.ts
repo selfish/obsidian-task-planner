@@ -221,6 +221,10 @@ describe('StatusOperations', () => {
         expect(result).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
       });
 
+      it('should preserve unrecognized due-date text', () => {
+        expect(operations.convertAttributes('- [ ] Task [due:: someday]')).toBe('- [ ] Task [due:: someday]');
+      });
+
       it('should preserve date-like values in unrelated metadata', () => {
         expect(operations.convertAttributes('- [ ] Task [owner:: tomorrow] @high')).toBe('- [ ] Task [owner:: tomorrow] [priority:: high]');
       });
@@ -320,6 +324,10 @@ describe('StatusOperations', () => {
     it('should use custom due date attribute name', () => {
       const result = operations.convertAttributes('- [ ] Task @today');
       expect(result).toMatch(/- \[ \] Task \[scheduled:: \d{4}-\d{2}-\d{2}\]/);
+    });
+
+    it('should complete only the custom due field', () => {
+      expect(operations.convertAttributes('- [ ] Task [scheduled:: tomorrow] [owner:: tomorrow]')).toMatch(/^- \[ \] Task \[scheduled:: \d{4}-\d{2}-\d{2}\] \[owner:: tomorrow\]$/);
     });
 
     it('compares a case-varied configured due key in source order', () => {
