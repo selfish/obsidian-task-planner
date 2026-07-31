@@ -10,6 +10,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Fixed
 
+- Preserved dollar-sign sequences entered through Quick Add instead of interpreting them as JavaScript replacement tokens.
 - Restored the published Obsidian compatibility floor for each existing release so older app versions can still install the newest compatible Task Planner build.
 - Preserved `{date}`, `{time}`, and `{datetime}` text entered through Quick Add instead of treating it as part of the configured task template.
 
