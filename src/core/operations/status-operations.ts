@@ -32,7 +32,7 @@ export class StatusOperations {
       let key = sourceKey;
       let value = sourceValue;
       if (typeof value === "string") {
-        value = Completion.completeDate(value) ?? value;
+        if (key.toLowerCase() === (this.settings?.dueDateAttribute || "due").toLowerCase()) value = Completion.completeDate(value) ?? value;
       } else if (value === true) {
         const completion = Completion.completeDate(key.toLowerCase());
         if (completion !== null) {
