@@ -81,6 +81,15 @@ describe("TaskCreator", () => {
       expect(result).toBe("2026-01-19 - Keep {date}, {time}, and {datetime} literal");
     });
 
+    it.each(["$&", "$$", "$`", "$'"])("should preserve %s in task text", (text) => {
+      settings.quickAdd.taskPattern = "- [ ] {task}";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      const result = (taskCreator as unknown as { formatTaskLine: (task: string) => string }).formatTaskLine(text);
+
+      expect(result).toBe(`- [ ] ${text}`);
+    });
+
     it("should convert \\n to actual newlines", () => {
       settings.quickAdd.taskPattern = "Line1\\nLine2\\nLine3";
       taskCreator = new TaskCreator(mockApp, settings);

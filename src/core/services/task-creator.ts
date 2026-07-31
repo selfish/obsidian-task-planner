@@ -34,7 +34,7 @@ export class TaskCreator {
       .replace(/\{time\}/g, now.format("HH:mm"))
       .replace(/\{date\}/g, now.format("YYYY-MM-DD"))
       .replace(/\{datetime\}/g, now.format("YYYY-MM-DD HH:mm"))
-      .replace(/\{task\}/g, task);
+      .replace(/\{task\}/g, () => task);
   }
 
   private insertContent(content: string, taskLine: string): string {
