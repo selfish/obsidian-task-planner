@@ -91,8 +91,8 @@ Optional shorthand expansion can convert attributes when you complete a line:
 - **Open planning** — open the planning board
 - **Open todo report** — review completed tasks
 - **Quick add task** — create a task in the configured destination
-- **Mark todo as checked/unchecked** — toggle completion
-- **Mark todo as ongoing/unchecked** — toggle in-progress status
+- **Mark task as checked / unchecked** — toggle completion
+- **Mark task as ongoing / unchecked** — toggle in-progress status
 - **Complete line attributes** — expand enabled date, priority, and custom shortcuts
 
 ## Configuration
@@ -100,7 +100,7 @@ Optional shorthand expansion can convert attributes when you complete a line:
 Open **Settings → Task Planner** to configure:
 
 - visible day, week, month, quarter, and year horizons;
-- custom date- or tag-based horizons;
+- custom dated horizons with optional tag filtering;
 - the daily WIP limit;
 - attribute names such as `due`, `completed`, and `selected`;
 - ignored folders and archived-task filtering;
