@@ -4,6 +4,10 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+### Security
+
+- Updated every `brace-expansion` lockfile entry to its fixed compatible backport and removed the temporary development-audit exception ([#124](https://github.com/selfish/obsidian-task-planner/issues/124)).
+
 ## [2.0.3] - 2026-08-01
 
 ### Changed
