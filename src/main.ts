@@ -19,7 +19,7 @@ import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCo
 import { FileTaskParser, FolderTaskParser, StatusOperations, TaskIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice, showInfoNotice } from "./lib";
-import { DEFAULT_SETTINGS, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
+import { parseTaskPlannerSettings, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
 import { Logger } from "./types";
 import { OnboardingModal } from "./ui/onboarding-modal";
 import { QuickAddModal } from "./ui/quick-add-modal";
@@ -267,8 +267,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
   async loadSettings(): Promise<void> {
     const loaded: unknown = await this.loadData();
-    const saved = loaded !== null && typeof loaded === "object" && !Array.isArray(loaded) ? loaded : {};
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
+    this.settings = parseTaskPlannerSettings(loaded);
   }
 
   async saveSettings(): Promise<void> {

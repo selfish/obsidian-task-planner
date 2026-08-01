@@ -9,14 +9,31 @@ export class PlanningSettingsStore {
 
   getSettings(): PlanningSettings {
     const serializedValue: unknown = this.app.loadLocalStorage(storageKey);
-    const value = getDefaultSettings();
-    if (typeof serializedValue === "string" && serializedValue) {
-      const saved: unknown = JSON.parse(serializedValue);
-      if (saved !== null && typeof saved === "object" && !Array.isArray(saved)) {
-        Object.assign(value, saved);
-      }
+    const defaults = getDefaultSettings();
+    if (typeof serializedValue !== "string" || !serializedValue) return defaults;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(serializedValue);
+    } catch {
+      return defaults;
     }
-    return value;
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return defaults;
+
+    const saved = parsed as Record<string, unknown>;
+    const searchParameters = saved.searchParameters !== null && typeof saved.searchParameters === "object" && !Array.isArray(saved.searchParameters) ? (saved.searchParameters as Record<string, unknown>) : {};
+    const viewModes: readonly PlanningSettings["viewMode"][] = ["default", "today", "future"];
+    return {
+      ...saved,
+      searchParameters: {
+        ...searchParameters,
+        searchPhrase: typeof searchParameters.searchPhrase === "string" ? searchParameters.searchPhrase : defaults.searchParameters.searchPhrase,
+      },
+      hideEmpty: typeof saved.hideEmpty === "boolean" ? saved.hideEmpty : defaults.hideEmpty,
+      hideDone: typeof saved.hideDone === "boolean" ? saved.hideDone : defaults.hideDone,
+      viewMode: typeof saved.viewMode === "string" && viewModes.includes(saved.viewMode as PlanningSettings["viewMode"]) ? (saved.viewMode as PlanningSettings["viewMode"]) : defaults.viewMode,
+      showLoadColors: typeof saved.showLoadColors === "boolean" ? saved.showLoadColors : defaults.showLoadColors,
+    };
   }
 
   saveSettings(settings: PlanningSettings): void {
