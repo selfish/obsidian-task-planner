@@ -224,7 +224,7 @@ export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
   return {
     ...loaded,
     version: numberValue(loaded, "version", DEFAULT_SETTINGS.version, (number) => Number.isInteger(number) && number >= 0),
-    ignoredFolders: Array.isArray(loaded.ignoredFolders) ? loaded.ignoredFolders.filter((folder): folder is string => typeof folder === "string") : DEFAULT_SETTINGS.ignoredFolders,
+    ignoredFolders: Array.isArray(loaded.ignoredFolders) ? loaded.ignoredFolders.filter((folder): folder is string => typeof folder === "string") : [...DEFAULT_SETTINGS.ignoredFolders],
     ignoreArchivedTasks: booleanValue(loaded, "ignoreArchivedTasks", DEFAULT_SETTINGS.ignoreArchivedTasks),
     dailyWipLimit: numberValue(loaded, "dailyWipLimit", DEFAULT_SETTINGS.dailyWipLimit, (number) => Number.isFinite(number) && number >= 0),
     dueDateAttribute: stringValue(loaded, "dueDateAttribute", DEFAULT_SETTINGS.dueDateAttribute),
@@ -233,7 +233,7 @@ export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
     fuzzySearch: booleanValue(loaded, "fuzzySearch", DEFAULT_SETTINGS.fuzzySearch),
     autoConvertAttributes: booleanValue(loaded, "autoConvertAttributes", DEFAULT_SETTINGS.autoConvertAttributes),
     firstWeekday: numberValue(loaded, "firstWeekday", DEFAULT_SETTINGS.firstWeekday, (number) => Number.isInteger(number) && number >= 0 && number <= 6),
-    customHorizons: Array.isArray(loaded.customHorizons) ? loaded.customHorizons.map(parseCustomHorizon).filter((horizon): horizon is CustomHorizon => horizon !== undefined) : DEFAULT_SETTINGS.customHorizons,
+    customHorizons: Array.isArray(loaded.customHorizons) ? loaded.customHorizons.map(parseCustomHorizon).filter((horizon): horizon is CustomHorizon => horizon !== undefined) : DEFAULT_SETTINGS.customHorizons.map((horizon) => ({ ...horizon })),
     horizonVisibility: {
       ...horizonVisibility,
       showBacklog: booleanValue(horizonVisibility, "showBacklog", DEFAULT_SETTINGS.horizonVisibility.showBacklog),
@@ -259,7 +259,9 @@ export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
       enableDateShortcuts: booleanValue(atShortcutSettings, "enableDateShortcuts", DEFAULT_SETTINGS.atShortcutSettings.enableDateShortcuts),
       enablePriorityShortcuts: booleanValue(atShortcutSettings, "enablePriorityShortcuts", DEFAULT_SETTINGS.atShortcutSettings.enablePriorityShortcuts),
       enableBuiltinShortcuts: booleanValue(atShortcutSettings, "enableBuiltinShortcuts", DEFAULT_SETTINGS.atShortcutSettings.enableBuiltinShortcuts),
-      customShortcuts: Array.isArray(atShortcutSettings.customShortcuts) ? atShortcutSettings.customShortcuts.map(parseCustomShortcut).filter((shortcut): shortcut is CustomAtShortcut => shortcut !== undefined) : DEFAULT_SETTINGS.atShortcutSettings.customShortcuts,
+      customShortcuts: Array.isArray(atShortcutSettings.customShortcuts)
+        ? atShortcutSettings.customShortcuts.map(parseCustomShortcut).filter((shortcut): shortcut is CustomAtShortcut => shortcut !== undefined)
+        : DEFAULT_SETTINGS.atShortcutSettings.customShortcuts.map((shortcut) => ({ ...shortcut })),
     },
     quickAdd: {
       ...quickAdd,
