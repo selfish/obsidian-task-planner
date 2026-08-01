@@ -19,7 +19,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
  * Delays execution for a specified number of milliseconds
  */
 function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 /**

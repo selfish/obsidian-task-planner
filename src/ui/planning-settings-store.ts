@@ -8,11 +8,13 @@ export class PlanningSettingsStore {
   constructor(private app: App) {}
 
   getSettings(): PlanningSettings {
-    const serializedValue = this.app.loadLocalStorage(storageKey);
+    const serializedValue: unknown = this.app.loadLocalStorage(storageKey);
     const value = getDefaultSettings();
-    if (serializedValue && typeof serializedValue === "string") {
-      const saved = JSON.parse(serializedValue);
-      Object.assign(value, saved);
+    if (typeof serializedValue === "string" && serializedValue) {
+      const saved: unknown = JSON.parse(serializedValue);
+      if (saved !== null && typeof saved === "object" && !Array.isArray(saved)) {
+        Object.assign(value, saved);
+      }
     }
     return value;
   }

@@ -55,6 +55,33 @@ describe("real Obsidian vault smoke", function () {
     await waitForTaskCount(1);
   });
 
+  it("renders searchable settings through the current API with a legacy fallback", async function () {
+    const isDeclarativeHost = await browser.executeObsidian(({ app }) => typeof app.setting.getCurrentPageEl === "function");
+    const openedTabId = await browser.executeObsidian(({ app }) => {
+      app.setting.openTabById("task-planner");
+      return app.setting.activeTab?.id;
+    });
+    expect(openedTabId).toEqual("task-planner");
+
+    const getSettingNames = () =>
+      browser.executeObsidian(({ app }) => {
+        const root = app.setting.getCurrentPageEl?.() ?? app.setting.activeTab?.containerEl;
+        return root ? [...root.querySelectorAll(".setting-item-name")].map((element) => element.textContent?.trim()) : [];
+      });
+
+    if (isDeclarativeHost) {
+      await browser.waitUntil(async () => {
+        const names = await getSettingNames();
+        return ["Essential", "Horizons", "Advanced"].every((name) => names.includes(name));
+      }, { timeout: 15000, timeoutMsg: "Declarative settings pages were not rendered" });
+    } else {
+      await browser.waitUntil(async () => (await getSettingNames()).includes("Destination"), {
+        timeout: 15000,
+        timeoutMsg: "Legacy settings fallback did not render",
+      });
+    }
+  });
+
   it("atomically relocates a stale UI task and preserves unrelated CRLF bytes", async function () {
     await browser.executeObsidian(({ app, plugins }) => {
       plugins.taskPlanner.settings.customHorizons = [
