@@ -10,7 +10,7 @@ Be respectful, professional, and constructive in all interactions. We're here to
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js 22 or newer
 - npm
 - Obsidian (for testing)
 
@@ -120,6 +120,8 @@ chore(deps): update typescript to 5.3.0
 | `npm run test` | Run tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage |
+| `npm run test:e2e` | Build and test in a pinned real Obsidian runtime |
+| `npm run audit` | Audit production and development dependencies |
 | `npm run lint` | Run ESLint |
 | `npm run lint:fix` | Run ESLint with auto-fix |
 | `npm run format` | Format code with Prettier |

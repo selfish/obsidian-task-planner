@@ -93,6 +93,35 @@ describe("real Obsidian vault smoke", function () {
     await browser.executeObsidianCommand("task-planner:open-planning");
     await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('[aria-label^="Task: Target"] .checkbox'))), { timeout: 15000, timeoutMsg: "Target task checkbox was not rendered" });
 
+    const measureToolbar = async (width) => {
+      await browser.sendCommand("Emulation.setDeviceMetricsOverride", {
+        width,
+        height: 1000,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      return browser.execute(() => {
+        const header = document.querySelector('.workspace-leaf-content[data-type="task-planner.planning"] .board > .header');
+        const controls = header?.querySelector(".controls");
+        const search = controls?.querySelector(".search");
+        const rect = (element) => {
+          const bounds = element?.getBoundingClientRect();
+          return bounds ? { left: bounds.left, right: bounds.right, width: bounds.width } : null;
+        };
+        return { header: rect(header), controls: rect(controls), search: rect(search) };
+      });
+    };
+
+    const wideToolbar = await measureToolbar(1600);
+    expect(wideToolbar.controls.right).toBeGreaterThanOrEqual(wideToolbar.header.right - 2.5);
+    expect(wideToolbar.search.width).toBeGreaterThanOrEqual(200);
+    expect(wideToolbar.search.width).toBeLessThan(250);
+
+    const narrowToolbar = await measureToolbar(1024);
+    expect(narrowToolbar.controls.right).toBeGreaterThanOrEqual(narrowToolbar.header.right - 2.5);
+    expect(narrowToolbar.controls.width).toBeGreaterThanOrEqual(narrowToolbar.header.width - 4);
+    expect(narrowToolbar.search.width).toBeGreaterThan(wideToolbar.search.width);
+
     const result = await browser.executeObsidian(async ({ app }) => {
       const staleCheckbox = document.querySelector('[aria-label^="Task: Target"] .checkbox');
       const file = app.vault.getAbstractFileByPath("Tasks.md");

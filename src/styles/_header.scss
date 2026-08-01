@@ -3,6 +3,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    container-type: inline-size;
     gap: var(--space-lg);
     padding-left: var(--space-xs);
     padding-right: var(--space-xs);
@@ -33,6 +34,7 @@
       flex-wrap: wrap;
       order: 2;
       justify-content: flex-end;
+      margin-left: auto;
 
       .spacer {
         width: 1px;
@@ -55,6 +57,19 @@
         &.separator {
           color: var(--text-faint);
         }
+      }
+    }
+  }
+
+  @container (max-width: 1099px) {
+    .board > .header .controls {
+      flex: 1 1 100%;
+      width: 100%;
+
+      .search {
+        flex: 1 1 240px;
+        width: auto;
+        max-width: none;
       }
     }
   }
