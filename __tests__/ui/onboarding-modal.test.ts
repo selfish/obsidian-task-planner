@@ -65,6 +65,7 @@ const mockSetIcon = jest.fn();
 // Mock vault methods
 const mockVaultRead = jest.fn();
 const mockVaultModify = jest.fn();
+const mockVaultProcess = jest.fn();
 const mockVaultCreate = jest.fn();
 const mockGetAbstractFileByPath = jest.fn();
 
@@ -107,6 +108,7 @@ describe("OnboardingModal", () => {
     vault: {
       read: jest.Mock;
       modify: jest.Mock;
+      process: jest.Mock;
       create: jest.Mock;
       getAbstractFileByPath: jest.Mock;
     };
@@ -119,6 +121,7 @@ describe("OnboardingModal", () => {
       vault: {
         read: mockVaultRead,
         modify: mockVaultModify,
+        process: mockVaultProcess,
         create: mockVaultCreate,
         getAbstractFileByPath: mockGetAbstractFileByPath,
       },
@@ -130,6 +133,7 @@ describe("OnboardingModal", () => {
     mockSetIcon.mockClear();
     mockVaultRead.mockReset();
     mockVaultModify.mockReset();
+    mockVaultProcess.mockReset();
     mockVaultCreate.mockReset();
     mockGetAbstractFileByPath.mockReset();
 
@@ -503,10 +507,12 @@ describe("OnboardingModal", () => {
       expect(mockVaultCreate.mock.calls[0][1]).toContain("# Task Planner Examples");
     });
 
-    it("should append to existing file when file exists", async () => {
+    it("should atomically append to the latest existing file content", async () => {
       const mockFile = new TFile("Task Planner Examples.md");
       mockGetAbstractFileByPath.mockReturnValue(mockFile);
-      mockVaultRead.mockResolvedValue("# Existing content\n\nSome tasks...");
+      mockVaultProcess.mockImplementation(async (_file, update) =>
+        update("# Existing content\n\nConcurrent edit")
+      );
 
       const modal = createModal();
       navigateToExamples(modal);
@@ -517,10 +523,12 @@ describe("OnboardingModal", () => {
       // Wait for async operation
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      expect(mockVaultRead).toHaveBeenCalledWith(mockFile);
-      expect(mockVaultModify).toHaveBeenCalled();
-      expect(mockVaultModify.mock.calls[0][1]).toContain("# Existing content");
-      expect(mockVaultModify.mock.calls[0][1]).toContain("# Task Planner Examples");
+      expect(mockVaultProcess).toHaveBeenCalledWith(mockFile, expect.any(Function));
+      expect(await mockVaultProcess.mock.results[0].value).toContain(
+        "# Existing content\n\nConcurrent edit\n\n# Task Planner Examples"
+      );
+      expect(mockVaultRead).not.toHaveBeenCalled();
+      expect(mockVaultModify).not.toHaveBeenCalled();
     });
 
     it("should create example tasks with correct due date attribute", async () => {
