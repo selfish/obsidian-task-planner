@@ -69,7 +69,7 @@ export class QuickAddModal extends Modal {
     submitBtn.addEventListener("click", () => void this.submit());
 
     // Focus the input
-    (this.inputEl.ownerDocument.defaultView ?? window).setTimeout(() => this.inputEl.focus(), 10);
+    this.inputEl.win.setTimeout(() => this.inputEl.focus(), 10);
   }
 
   onClose(): void {
@@ -91,8 +91,8 @@ export class QuickAddModal extends Modal {
 
     // Close on Escape
     if (evt.key === "Escape") {
-      (this.inputEl.ownerDocument.defaultView ?? window).setTimeout(() => {
-        if (!this.inputEl.ownerDocument.querySelector(".suggestion-container")) {
+      this.inputEl.win.setTimeout(() => {
+        if (!this.inputEl.doc.querySelector(".suggestion-container")) {
           this.close();
         }
       }, 10);
@@ -108,7 +108,7 @@ export class QuickAddModal extends Modal {
     if (!urlPattern.test(clipboardText.trim())) return;
 
     // Check if there's selected text
-    const selection = this.inputEl.ownerDocument.defaultView?.getSelection();
+    const selection = this.inputEl.win.getSelection();
     if (!selection || selection.isCollapsed) return;
 
     const selectedText = selection.toString().trim();
