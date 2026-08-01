@@ -20,6 +20,19 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 - Updated every `brace-expansion` lockfile entry to its fixed compatible backport and removed the temporary development-audit exception ([#124](https://github.com/selfish/obsidian-task-planner/issues/124)).
 
+## [2.0.5] - 2026-08-01
+
+### Fixed
+
+- Removed a redundant V8-only stack-trace call that triggered the final community scanner finding.
+
+## [2.0.4] - 2026-08-01
+
+### Fixed
+
+- Validated persisted settings recursively, isolated loaded settings from mutable defaults, and blocked downgrade writes for future settings schemas.
+- Replaced unsafe DOM and runtime patterns identified by the Obsidian community scanner while preserving current and minimum-version settings behavior.
+
 ## [2.0.3] - 2026-08-01
 
 ### Changed
