@@ -4,7 +4,7 @@
 	"author": "Selfish",
 	"description": "Manage tasks with drag-and-drop planning, Today focus, backlog, overdue tracking, and weekly time horizons.",
 	"authorUrl": "https://github.com/selfish",
-	"version": "2.0.4",
+	"version": "2.0.5",
 	"minAppVersion": "1.8.7",
 	"isDesktopOnly": true
 }

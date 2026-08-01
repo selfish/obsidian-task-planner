@@ -14,10 +14,6 @@ export class TaskPlannerError extends Error {
   ) {
     super(message);
     this.name = "TaskPlannerError";
-    // Maintains proper stack trace for where error was thrown (only in V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
   }
 }
 
