@@ -1,6 +1,6 @@
 {
   "name": "obsidian-task-planner",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Obsidian task management and planner with drag-and-drop task planning, Today focus, backlog, overdue, and weekly time horizons.",
   "main": "main.js",
   "scripts": {
@@ -59,7 +59,7 @@
     "esbuild-sass-plugin": "3.7.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-obsidianmd": "0.1.9",
+    "eslint-plugin-obsidianmd": "0.4.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "17.3.0",
     "jest": "^30.2.0",

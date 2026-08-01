@@ -112,6 +112,7 @@ export default [
       "obsidianmd/no-plugin-as-component": "error",
       "obsidianmd/no-sample-code": "error",
       "obsidianmd/no-tfile-tfolder-cast": "error",
+      "obsidianmd/no-unsupported-api": "error",
       "obsidianmd/no-view-references-in-plugin": "error",
       "obsidianmd/no-static-styles-assignment": "error",
       "obsidianmd/object-assign": "error",
@@ -122,7 +123,13 @@ export default [
       "obsidianmd/sample-names": "error",
       "obsidianmd/validate-manifest": "error",
       "obsidianmd/validate-license": "error",
-      "obsidianmd/ui/sentence-case": ["error", { enforceCamelCaseLower: true }],
+      "obsidianmd/ui/sentence-case": [
+        "error",
+        {
+          enforceCamelCaseLower: true,
+          ignoreRegex: ["^\\d+ (?:week|month)s?(?: \\(in \\d+(?:-\\d+)? weeks\\))?$"],
+        },
+      ],
 
       // SDL rules
       "@microsoft/sdl/no-document-write": "error",
