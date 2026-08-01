@@ -4,6 +4,18 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+## [2.0.6] - 2026-08-01
+
+### Added
+
+- Added a real Obsidian product screenshot above the fold and a social-preview crop based on the same synthetic planning scene.
+
+### Changed
+
+- Kept planning controls pinned to the right on wide boards while allowing search to consume the available row on narrow boards.
+- Reworked the README and release metadata around the concrete workflow of planning Markdown tasks that remain in their source notes.
+- Updated contributor guidance for the Node.js 22 development baseline and real-Obsidian test command.
+
 ### Security
 
 - Updated every `brace-expansion` lockfile entry to its fixed compatible backport and removed the temporary development-audit exception ([#124](https://github.com/selfish/obsidian-task-planner/issues/124)).
