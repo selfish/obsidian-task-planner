@@ -1,4 +1,4 @@
-import { createRoot } from "react-dom/client";
+import { createRoot, Root } from "react-dom/client";
 
 import { App, TFile, setIcon } from "obsidian";
 
@@ -1213,8 +1213,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   );
 }
 
-export function mountPlanningComponent(onElement: HTMLElement, props: PlanningComponentProps) {
+export function mountPlanningComponent(onElement: HTMLElement, props: PlanningComponentProps, client?: Root): Root {
   onElement.addClass("task-planner");
-  const client = createRoot(onElement);
+  client ??= createRoot(onElement);
   client.render(<PlanningComponent {...props}></PlanningComponent>);
+  return client;
 }

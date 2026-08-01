@@ -122,7 +122,6 @@ export default class TaskPlannerPlugin extends Plugin {
         this.settings,
         leaf
       );
-      view.render();
       return view;
     });
 
