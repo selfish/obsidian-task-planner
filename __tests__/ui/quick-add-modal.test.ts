@@ -5,6 +5,8 @@ import { TaskCreator } from "../../src/core/services/task-creator";
 // Helper to add Obsidian extensions to an element
 const addExtensions = (el: HTMLElement) => {
   const extEl = el as HTMLElement & {
+    doc: Document;
+    win: Window;
     addClass: (cls: string) => void;
     removeClass: (cls: string) => void;
     createDiv: (options?: { cls?: string; text?: string; attr?: Record<string, string> }) => HTMLElement;
@@ -13,6 +15,11 @@ const addExtensions = (el: HTMLElement) => {
     empty: () => void;
     setText: (text: string) => void;
   };
+
+  Object.defineProperties(extEl, {
+    doc: { get: () => extEl.ownerDocument },
+    win: { get: () => extEl.ownerDocument.defaultView ?? window },
+  });
 
   extEl.addClass = function (cls: string) {
     this.classList.add(cls);
