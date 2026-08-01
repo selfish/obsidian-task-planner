@@ -1,3 +1,5 @@
+import { Root } from "react-dom/client";
+
 import { ItemView, Platform, TFile, WorkspaceLeaf } from "obsidian";
 
 import { TaskIndex } from "../core";
@@ -15,6 +17,7 @@ export interface PlanningViewDeps {
 export class PlanningView extends ItemView {
   static viewType = "task-planner.planning";
   private contentView: HTMLDivElement;
+  private root?: Root;
 
   constructor(
     private deps: PlanningViewDeps,
@@ -46,18 +49,28 @@ export class PlanningView extends ItemView {
     this.render();
   }
 
+  onClose(): Promise<void> {
+    this.root?.unmount();
+    this.root = undefined;
+    return Promise.resolve();
+  }
+
   render(): void {
     this.deps.logger.info("Rendering planning view");
-    mountPlanningComponent(this.contentView, {
-      deps: this.deps,
-      settings: this.settings,
-      app: this.app,
-      onRefresh: () => this.render(),
-      onOpenReport: () => {
-        void this.openReport();
+    this.root = mountPlanningComponent(
+      this.contentView,
+      {
+        deps: this.deps,
+        settings: this.settings,
+        app: this.app,
+        onRefresh: () => this.render(),
+        onOpenReport: () => {
+          void this.openReport();
+        },
+        onQuickAdd: this.deps.onQuickAdd,
       },
-      onQuickAdd: this.deps.onQuickAdd,
-    });
+      this.root
+    );
   }
 
   private async openReport(): Promise<void> {

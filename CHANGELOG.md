@@ -10,6 +10,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Fixed
 
+- Reused and unmounted the planning view's React root so repeated refreshes do not leak subscriptions or document listeners.
 - Preserved date-like values such as `tomorrow` in unrelated Dataview fields during attribute completion.
 - Preserved concurrent edits when adding onboarding examples to an existing note.
 - Preserved dollar-sign sequences entered through Quick Add instead of interpreting them as JavaScript replacement tokens.
