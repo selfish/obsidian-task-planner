@@ -1,224 +1,133 @@
 # Task Planner
 
-[![Obsidian Plugin](https://img.shields.io/badge/Obsidian-Plugin-purple)](https://obsidian.md)
+**Plan the tasks already in your vault.**
+
+Task Planner turns Markdown checkboxes across your notes into a drag-and-drop time-planning board for Today, backlog, overdue, and future horizons. Move a card and its source task updates in place.
+
+[Install in Obsidian](obsidian://show-plugin?id=task-planner) · [View the community listing](https://community.obsidian.md/plugins/task-planner)
+
+![Task Planner in Obsidian showing Today columns and future horizons for backlog, overdue, weekdays, and a custom launch date](docs/assets/task-planner-hero.png)
+
 [![GitHub release](https://img.shields.io/github/v/release/selfish/obsidian-task-planner)](https://github.com/selfish/obsidian-task-planner/releases)
 [![CI](https://github.com/selfish/obsidian-task-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/selfish/obsidian-task-planner/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/selfish/obsidian-task-planner/branch/main/graph/badge.svg)](https://codecov.io/gh/selfish/obsidian-task-planner)
-[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](LICENSE)
 
-A professional task management plugin for Obsidian that helps you track tasks across your vault, organize your day with intelligent planning, and manage your workload effectively.
+## Why Task Planner
 
-## Features
+- **Keep tasks in your notes.** Task Planner reads ordinary Markdown checkboxes throughout your vault instead of moving them into a separate database.
+- **Plan by time.** Drag tasks between Today, backlog, overdue, weekdays, weeks, months, quarters, years, or your own custom horizons.
+- **See the day clearly.** Todo, In Progress, and Completed columns provide a focused daily workflow, with an optional WIP limit.
+- **Update the source.** Moving a card changes the status, due date, selection state, or tag on its original Markdown task.
 
-### Planning Board
-- Kanban-style planning view with time-based horizons
-- Today section with Todo, In Progress, and Done columns
-- Future planning with configurable day, week, month, quarter, and year horizons
-- Drag and drop tasks between time periods
-- Custom horizons filtered by tag or specific dates
-- WIP (Work In Progress) limits to manage daily workload
+## Quick start
 
-### Task Management
-- Track tasks from any markdown file in your vault
-- Support for multiple task statuses: Todo, In Progress, Complete, Canceled, Delegated
-- Priority levels: Critical, High, Medium, Low, Lowest
-- Due date tracking with flexible attribute syntax
-- Pin important tasks to keep them visible
-- Subtask support with collapsible groups
+1. [Install Task Planner](obsidian://show-plugin?id=task-planner) and enable it under **Settings → Community plugins**.
+2. Run **Task Planner: Open planning** from the command palette.
+3. Drag tasks into Today or a future horizon. Task Planner writes the change back to the source note.
 
-### Dataview-Compatible Syntax
-Task attributes use the Dataview inline field format:
+Add tasks anywhere in your vault using Markdown checkbox syntax:
 
 ```markdown
-- [ ] Buy groceries [due:: 2025-01-15] [priority:: high]
+- [ ] Review the launch brief [due:: 2026-08-07] [priority:: high] #launch
+- [>] Prepare the demo [due:: 2026-08-01]
 ```
 
-This syntax is compatible with the popular Dataview plugin and is the Obsidian community standard.
+Task Planner does not require a special task file or a separate database.
 
-### Smart Attribute Conversion
-Type shorthand attributes and Task Planner automatically converts them to Dataview format when you move to the next line:
-- `@today` → `[due:: 2025-01-17]`
-- `@tomorrow` → `[due:: 2025-01-18]`
-- `@high` → `[priority:: high]`
+## Core capabilities
 
-This auto-conversion can be disabled in settings if you prefer manual control.
+### Plan across the whole vault
 
-## Installation
+- Gather tasks from any Markdown file
+- Filter by task text
+- Ignore selected folders or archived content
+- Group cards by their source note
+- Pin important tasks so they remain visible
+- Collapse and expand subtasks
 
-Task Planner requires Obsidian 1.8.7 or newer.
+### Work with time horizons
 
-### From Obsidian Community Plugins
-1. Open Obsidian Settings
-2. Navigate to Community Plugins
-3. Search for "Task Planner"
-4. Click Install, then Enable
+- Backlog and overdue columns
+- Today, tomorrow, and individual weekdays
+- Configurable week, month, quarter, and year horizons
+- Custom horizons based on a date, tag, or both
+- Today and Future focus modes
+- Drag-and-drop movement between horizons
 
-### Manual Installation
-1. Download the latest release from GitHub
-2. Extract to your vault's `.obsidian/plugins/task-planner/` directory
-3. Enable the plugin in Obsidian Settings > Community Plugins
+### Manage status and priority
 
-## Usage
+Supported task statuses:
 
-### Creating Tasks
-Add tasks anywhere in your markdown files using standard checkbox syntax:
 ```markdown
-- [ ] Unchecked task
-- [x] Completed task
+- [ ] Todo
 - [>] In progress
+- [x] Completed
 - [-] Canceled
 - [d] Delegated
 - [!] Attention required
 ```
 
-### Adding Attributes
-Add due dates, priorities, and other metadata:
+Priority values are `critical`, `high`, `medium`, `low`, and `lowest`.
+
+### Use readable Markdown metadata
+
+Task Planner reads and writes Dataview-compatible inline fields:
+
 ```markdown
-- [ ] Review quarterly report [due:: 2025-03-31] [priority:: high]
-- [ ] Schedule team meeting [due:: 2025-01-20] [selected:: true]
+- [ ] Schedule the review [due:: 2026-08-10] [priority:: medium]
+- [ ] Keep this visible [selected:: true]
 ```
 
-### Using Hashtags
-Use standard hashtags to categorize tasks. Custom horizons can filter by these tags:
-```markdown
-- [ ] Buy groceries #shopping #household
-- [ ] Review PR #work #urgent
-```
+Dataview is not required. The Markdown remains readable and editable without Task Planner.
 
-### Commands
-- **Open planning**: Opens the planning board view
-- **Open todo report**: Opens the completed tasks report
-- **Mark todo as checked/unchecked**: Toggle task completion
-- **Mark todo as ongoing/unchecked**: Toggle in-progress status
-- **Complete line attributes**: Expand shorthand dates and priorities
+Optional shorthand expansion can convert attributes when you complete a line:
 
-### Settings
+- `@today` → `[due:: YYYY-MM-DD]` for the current day
+- `@tomorrow` → `[due:: YYYY-MM-DD]` for the next day
+- `@high` → `[priority:: high]`
 
-Configure Task Planner in Settings > Task Planner:
+## Commands
 
-- **Planning Board**: Configure visible time horizons (days, weeks, months, quarters)
-- **Custom Horizons**: Create tag-filtered or date-specific columns
-- **Task Attributes**: Customize attribute names (due, completed, selected)
-- **Filtering**: Ignore specific folders or archived content
+- **Open planning** — open the planning board
+- **Open todo report** — review completed tasks
+- **Quick add task** — create a task in the configured destination
+- **Mark todo as checked/unchecked** — toggle completion
+- **Mark todo as ongoing/unchecked** — toggle in-progress status
+- **Complete line attributes** — expand enabled date, priority, and custom shortcuts
 
-## Development
+## Configuration
 
-### Prerequisites
+Open **Settings → Task Planner** to configure:
 
-- Node.js 22+
-- npm
+- visible day, week, month, quarter, and year horizons;
+- custom date- or tag-based horizons;
+- the daily WIP limit;
+- attribute names such as `due`, `completed`, and `selected`;
+- ignored folders and archived-task filtering;
+- shortcut expansion and quick-add behavior.
 
-### Quick Start
+## Compatibility and data ownership
 
-```bash
-# Install dependencies
-npm install
+- Requires **Obsidian 1.8.7 or newer**
+- Desktop only
+- Stores tasks in user-owned Markdown files
+- Uses inline fields for planning metadata
+- Does not require Dataview or an external service
 
-# Development build with watch mode
-npm run dev
-
-# Production build
-npm run build
-
-# Run all validation (lint, types, format, tests)
-npm run validate
-```
-
-### Available Scripts
-
-| Script                  | Description                       |
-|-------------------------|-----------------------------------|
-| `npm run dev`           | Development build with watch mode |
-| `npm run build`         | Production build                  |
-| `npm run test`          | Run tests                         |
-| `npm run test:watch`    | Run tests in watch mode           |
-| `npm run test:coverage` | Run tests with coverage report    |
-| `npm run test:e2e`      | Run tests in real Obsidian        |
-| `npm run lint`          | Run ESLint                        |
-| `npm run lint:fix`      | Run ESLint with auto-fix          |
-| `npm run format`        | Format code with Prettier         |
-| `npm run format:check`  | Check code formatting             |
-| `npm run typecheck`     | TypeScript type checking          |
-| `npm run validate`      | Run all checks                    |
-| `npm run audit`         | Audit production and development dependencies |
-
-### Project Structure
-```
-src/
-  commands/       # Editor commands
-  core/           # Core business logic
-  events/         # Event handling
-  lib/            # Shared utilities
-  settings/       # Plugin settings
-  types/          # TypeScript types
-  ui/             # React components
-  views/          # Obsidian views
-__tests__/        # Jest test files
-  __mocks__/      # Mock implementations
-test/e2e/         # Real-Obsidian smoke tests and synthetic vault
-```
-
-### Testing
-
-We use Jest for testing with comprehensive Obsidian API mocks:
-
-```bash
-# Run tests
-npm run test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Generate coverage report
-npm run test:coverage
-```
-
-The Linux x64 real-Obsidian suite builds the plugin, verifies pinned Obsidian and Electron chromedriver archives against `test/e2e/runtime-lock.json`, installs that exact bundle into a copied synthetic vault, and exercises stale writes, date/tag moves, undo, and ambiguous-task protection. CI runs both the pinned current runtime and the declared supported floor.
-
-```bash
-# Latest supported runtime
-npm run test:e2e
-
-# Supported floor
-OBSIDIAN_VERSION=1.8.7 OBSIDIAN_INSTALLER_VERSION=1.5.8 npm run test:e2e
-```
-
-Verified archives are cached in `.obsidian-downloads/`. Executable runtime files are rebuilt from those verified archives on every run and are never restored from CI cache. Failure diagnostics are written to `artifacts/e2e/`.
-
-### Code Quality
-
-- **Prettier** for code formatting
-- **ESLint** with React and TypeScript plugins
-- **TypeScript** with gradual strictness
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a Pull Request.
-
-We use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
-
-```bash
-feat(planning): add drag-and-drop reordering
-fix(parser): handle empty attributes correctly
-docs: update installation instructions
-```
-
-Quick start:
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes and run `npm run validate`
-4. Commit using conventional commits
-5. Push and open a Pull Request
-
-## License
-
-This project is licensed under the GNU General Public License v2.0 - see the [LICENSE](LICENSE) file for details.
-
-### Attribution
-
-This software is based on [Proletarian Wizard](https://github.com/cfe84/obsidian-pw) by cfe84 and contributors, licensed under GPL v2.0.
+Task Planner updates the specific source task when you change it from the board. Keep normal vault backups or version control as you would for any tool that edits notes.
 
 ## Support
 
-- Report issues on [GitHub Issues](https://github.com/selfish/obsidian-task-planner/issues)
-- Join the discussion in the Obsidian community forums
+- [Report a bug or request a feature](https://github.com/selfish/obsidian-task-planner/issues)
+- [View releases and release notes](https://github.com/selfish/obsidian-task-planner/releases)
+- [Open the Obsidian community listing](https://community.obsidian.md/plugins/task-planner)
+
+## Development and contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development environment, validation commands, real-Obsidian tests, and pull-request guidelines.
+
+## License and attribution
+
+Task Planner is licensed under the [GNU General Public License v2.0](LICENSE).
+
+It is based on [Proletarian Wizard](https://github.com/cfe84/obsidian-pw) by cfe84 and contributors, also licensed under GPL v2.0.
