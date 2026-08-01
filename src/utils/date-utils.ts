@@ -12,7 +12,7 @@ export interface DateOption {
 
 /**
  * Calculate the start of next week based on the user's configured first weekday
- * @param firstWeekday - 0=Sunday, 1=Monday, etc.
+ * @param firstWeekday - 1=Monday, ..., 7=Sunday
  * @returns Moment representing the start of next week
  */
 export function getStartOfNextWeek(firstWeekday: number): Moment {

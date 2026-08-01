@@ -35,6 +35,22 @@ export interface PlanningComponentProps {
   onQuickAdd?: () => void;
 }
 
+interface AutoScrollTimer {
+  id: number;
+  ownerWindow: Window;
+}
+
+function startAutoScroll(container: HTMLDivElement, delta: number): AutoScrollTimer | null {
+  const ownerWindow = container.ownerDocument.defaultView;
+  if (!ownerWindow) return null;
+  return {
+    id: ownerWindow.setInterval(() => {
+      container.scrollLeft += delta;
+    }, 16),
+    ownerWindow,
+  };
+}
+
 export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport, onQuickAdd }: PlanningComponentProps) {
   const settingsStore = React.useMemo(() => new PlanningSettingsStore(app), [app]);
   const savedSettings = React.useMemo(() => settingsStore.getSettings(), [settingsStore]);
@@ -140,26 +156,18 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     }
   }, [undoManager, undoableFileOps, deps.logger, findTodo]);
 
-  // Handle keyboard shortcut for undo (Mod+Z)
-  React.useEffect(() => {
-    if (!settings.undo.enableUndo) return undefined;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMod = e.metaKey || e.ctrlKey;
-      if (isMod && e.key === "z" && !e.shiftKey) {
-        if (undoManager.canUndo()) {
-          e.preventDefault();
-          e.stopPropagation();
-          void handleUndo();
-        }
+  // Keep Task Planner undo scoped to this view, including when it is popped out.
+  const handleUndoKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const isMod = event.metaKey || event.ctrlKey;
+      if (settings.undo.enableUndo && isMod && event.key === "z" && !event.shiftKey && undoManager.canUndo()) {
+        event.preventDefault();
+        event.stopPropagation();
+        void handleUndo();
       }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [settings.undo.enableUndo, undoManager, handleUndo]);
+    },
+    [handleUndo, settings.undo.enableUndo, undoManager]
+  );
 
   // Flatten todos to include subtasks with their own due dates as independent items
   const flattenedTodos = React.useMemo(() => {
@@ -1117,55 +1125,49 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return completedTodos.length;
   }, [filteredTodos, settings.completedDateAttribute]);
 
+  const boardRef = React.useRef<HTMLDivElement>(null);
   const futureSectionRef = React.useRef<HTMLDivElement>(null);
-  const scrollIntervalRef = React.useRef<number | null>(null);
+  const scrollIntervalRef = React.useRef<AutoScrollTimer | null>(null);
 
   // Auto-scroll during drag
   React.useEffect(() => {
-    const container = futureSectionRef.current;
-    if (!container) return undefined;
-    const ownerDocument = container.ownerDocument;
-    const ownerWindow = ownerDocument.defaultView ?? window;
+    const board = boardRef.current;
+    if (!board) return undefined;
+
+    const clearAutoScroll = () => {
+      if (scrollIntervalRef.current) {
+        scrollIntervalRef.current.ownerWindow.clearInterval(scrollIntervalRef.current.id);
+        scrollIntervalRef.current = null;
+      }
+    };
 
     const handleDragOver = (e: DragEvent) => {
+      const container = futureSectionRef.current;
+      clearAutoScroll();
+      if (!container) return;
+
       const rect = container.getBoundingClientRect();
       const scrollThreshold = 200;
       const scrollSpeed = 10;
 
-      if (scrollIntervalRef.current) {
-        ownerWindow.clearInterval(scrollIntervalRef.current);
-        scrollIntervalRef.current = null;
-      }
-
       if (e.clientX - rect.left < scrollThreshold && e.clientX > rect.left) {
-        scrollIntervalRef.current = ownerWindow.setInterval(() => {
-          container.scrollLeft -= scrollSpeed;
-        }, 16);
+        scrollIntervalRef.current = startAutoScroll(container, -scrollSpeed);
       } else if (rect.right - e.clientX < scrollThreshold && e.clientX < rect.right) {
-        scrollIntervalRef.current = ownerWindow.setInterval(() => {
-          container.scrollLeft += scrollSpeed;
-        }, 16);
+        scrollIntervalRef.current = startAutoScroll(container, scrollSpeed);
       }
     };
 
-    const handleDragEnd = () => {
-      if (scrollIntervalRef.current) {
-        ownerWindow.clearInterval(scrollIntervalRef.current);
-        scrollIntervalRef.current = null;
-      }
-    };
+    const handleDragEnd = () => clearAutoScroll();
 
-    ownerDocument.addEventListener("dragover", handleDragOver);
-    ownerDocument.addEventListener("dragend", handleDragEnd);
-    ownerDocument.addEventListener("drop", handleDragEnd);
+    board.addEventListener("dragover", handleDragOver);
+    board.addEventListener("dragend", handleDragEnd);
+    board.addEventListener("drop", handleDragEnd);
 
     return () => {
-      if (scrollIntervalRef.current) {
-        ownerWindow.clearInterval(scrollIntervalRef.current);
-      }
-      ownerDocument.removeEventListener("dragover", handleDragOver);
-      ownerDocument.removeEventListener("dragend", handleDragEnd);
-      ownerDocument.removeEventListener("drop", handleDragEnd);
+      clearAutoScroll();
+      board.removeEventListener("dragover", handleDragOver);
+      board.removeEventListener("dragend", handleDragEnd);
+      board.removeEventListener("drop", handleDragEnd);
     };
   }, []);
 
@@ -1175,7 +1177,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const boardClass = boardClasses.join(" ");
 
   return (
-    <div className={boardClass}>
+    <div className={boardClass} ref={boardRef} onKeyDown={handleUndoKeyDown}>
       <PlanningSettingsComponent
         planningSettings={planningSettings}
         setPlanningSettings={setPlanningSettings}

@@ -36,7 +36,7 @@ describe("date-utils", () => {
       expect(mockToday.add).toHaveBeenCalledWith(5, "days");
     });
 
-    it("should return next Sunday when firstWeekday is Sunday (0) and today is Wednesday", () => {
+    it("should return next Sunday when firstWeekday is Sunday (7) and today is Wednesday", () => {
       const mockToday = {
         day: jest.fn().mockReturnValue(3), // Wednesday
         clone: jest.fn().mockReturnThis(),
@@ -47,9 +47,9 @@ describe("date-utils", () => {
         startOf: jest.fn().mockReturnValue(mockToday),
       } as unknown as ReturnType<typeof moment>);
 
-      const result = getStartOfNextWeek(0); // Sunday start
+      const result = getStartOfNextWeek(7); // Sunday start
 
-      // Wednesday (3) to Sunday (0): (0 - 3 + 7) % 7 = 4 days
+      // Wednesday (3) to Sunday (7): (7 - 3 + 7) % 7 = 4 days
       expect(mockToday.add).toHaveBeenCalledWith(4, "days");
     });
 
@@ -81,7 +81,7 @@ describe("date-utils", () => {
         startOf: jest.fn().mockReturnValue(mockToday),
       } as unknown as ReturnType<typeof moment>);
 
-      const result = getStartOfNextWeek(0); // Sunday start
+      const result = getStartOfNextWeek(7); // Sunday start
 
       // Sunday (0) to Sunday (0): should be 7 days (not 0)
       expect(mockToday.add).toHaveBeenCalledWith(7, "days");
