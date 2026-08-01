@@ -17,11 +17,11 @@ export function UndoToast({ message, onUndo, onDismiss, durationMs, isUndone }: 
 
   const startDismissTimer = React.useCallback(() => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current);
+      window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
       setExiting(true);
-      setTimeout(() => {
+      window.setTimeout(() => {
         setVisible(false);
         onDismiss();
       }, 200); // Match animation duration
@@ -32,21 +32,21 @@ export function UndoToast({ message, onUndo, onDismiss, durationMs, isUndone }: 
     startDismissTimer();
     return () => {
       if (timerRef.current) {
-        clearTimeout(timerRef.current);
+        window.clearTimeout(timerRef.current);
       }
     };
   }, [startDismissTimer]);
 
   const handleUndo = React.useCallback(() => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current);
+      window.clearTimeout(timerRef.current);
     }
     onUndo();
   }, [onUndo]);
 
   const handleMouseEnter = React.useCallback(() => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current);
+      window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
   }, []);

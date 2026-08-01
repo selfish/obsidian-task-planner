@@ -69,7 +69,7 @@ export class QuickAddModal extends Modal {
     submitBtn.addEventListener("click", () => void this.submit());
 
     // Focus the input
-    setTimeout(() => this.inputEl.focus(), 10);
+    (this.inputEl.ownerDocument.defaultView ?? window).setTimeout(() => this.inputEl.focus(), 10);
   }
 
   onClose(): void {
@@ -91,8 +91,8 @@ export class QuickAddModal extends Modal {
 
     // Close on Escape
     if (evt.key === "Escape") {
-      setTimeout(() => {
-        if (!document.querySelector(".suggestion-container")) {
+      (this.inputEl.ownerDocument.defaultView ?? window).setTimeout(() => {
+        if (!this.inputEl.ownerDocument.querySelector(".suggestion-container")) {
           this.close();
         }
       }, 10);
@@ -108,7 +108,7 @@ export class QuickAddModal extends Modal {
     if (!urlPattern.test(clipboardText.trim())) return;
 
     // Check if there's selected text
-    const selection = window.getSelection();
+    const selection = this.inputEl.ownerDocument.defaultView?.getSelection();
     if (!selection || selection.isCollapsed) return;
 
     const selectedText = selection.toString().trim();
@@ -118,7 +118,7 @@ export class QuickAddModal extends Modal {
     evt.preventDefault();
 
     // Create a styled link span
-    const linkSpan = document.createElement("span");
+    const linkSpan = this.inputEl.createSpan();
     linkSpan.className = "quick-add-link";
     linkSpan.dataset.url = clipboardText.trim();
     linkSpan.textContent = selectedText;

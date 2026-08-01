@@ -139,7 +139,7 @@ export function PlanningTaskColumn({ icon, title, hideIfEmpty, onTodoDropped, on
         void onBatchTodoDropped(todoIds);
       } else if (onTodoDropped) {
         todoIds.forEach((taskId, index) => {
-          setTimeout(() => {
+          window.setTimeout(() => {
             onTodoDropped(taskId);
           }, index * 30);
         });

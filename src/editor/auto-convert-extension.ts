@@ -23,7 +23,7 @@ export function createAutoConvertExtension(getSettings: () => TaskPlannerSetting
         if (currentLine !== this.lastLine && this.lastLine >= 0) {
           const lineToConvert = this.lastLine;
           // Defer to avoid "update during update" error
-          setTimeout(() => this.convertLine(lineToConvert), 0);
+          window.setTimeout(() => this.convertLine(lineToConvert), 0);
         }
 
         this.lastLine = currentLine;

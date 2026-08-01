@@ -8,7 +8,8 @@ export function cleanFileName(fileName: string): string {
 
 export function getFileDisplayName(file: TFile, app: App): string {
   const cache = app.metadataCache.getFileCache(file);
-  const frontmatterTitle = cache?.frontmatter?.title;
+  const frontmatter: unknown = cache?.frontmatter;
+  const frontmatterTitle = frontmatter !== null && typeof frontmatter === "object" && "title" in frontmatter ? frontmatter.title : undefined;
 
   if (frontmatterTitle && typeof frontmatterTitle === "string") {
     return frontmatterTitle;
@@ -22,7 +23,7 @@ export function getFileDisplayName(file: TFile, app: App): string {
  * This properly handles creating frontmatter if none exists and preserving existing properties.
  */
 export async function setFrontmatterProperty(app: App, file: TFile, key: string, value: unknown): Promise<void> {
-  await app.fileManager.processFrontMatter(file, (frontmatter) => {
+  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
     frontmatter[key] = value;
   });
 }
@@ -31,7 +32,7 @@ export async function setFrontmatterProperty(app: App, file: TFile, key: string,
  * Remove a frontmatter property from a file.
  */
 export async function removeFrontmatterProperty(app: App, file: TFile, key: string): Promise<void> {
-  await app.fileManager.processFrontMatter(file, (frontmatter) => {
+  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
     delete frontmatter[key];
   });
 }

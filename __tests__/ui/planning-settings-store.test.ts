@@ -85,6 +85,19 @@ describe('PlanningSettingsStore', () => {
       // Empty string is falsy, should return defaults
       expect(settings).toEqual(getDefaultSettings());
     });
+
+    it('should ignore non-string storage values', () => {
+      mockApp.loadLocalStorage.mockReturnValue({ showCompleted: true });
+
+      expect(store.getSettings()).toEqual(getDefaultSettings());
+    });
+
+    it('should ignore parsed arrays and primitive values', () => {
+      for (const stored of ['[]', 'true', '42', 'null']) {
+        mockApp.loadLocalStorage.mockReturnValue(stored);
+        expect(store.getSettings()).toEqual(getDefaultSettings());
+      }
+    });
   });
 
   describe('saveSettings', () => {

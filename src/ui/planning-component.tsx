@@ -1122,25 +1122,27 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Auto-scroll during drag
   React.useEffect(() => {
-    const handleDragOver = (e: DragEvent) => {
-      if (!futureSectionRef.current) return;
+    const container = futureSectionRef.current;
+    if (!container) return undefined;
+    const ownerDocument = container.ownerDocument;
+    const ownerWindow = ownerDocument.defaultView ?? window;
 
-      const container = futureSectionRef.current;
+    const handleDragOver = (e: DragEvent) => {
       const rect = container.getBoundingClientRect();
       const scrollThreshold = 200;
       const scrollSpeed = 10;
 
       if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current);
+        ownerWindow.clearInterval(scrollIntervalRef.current);
         scrollIntervalRef.current = null;
       }
 
       if (e.clientX - rect.left < scrollThreshold && e.clientX > rect.left) {
-        scrollIntervalRef.current = window.setInterval(() => {
+        scrollIntervalRef.current = ownerWindow.setInterval(() => {
           container.scrollLeft -= scrollSpeed;
         }, 16);
       } else if (rect.right - e.clientX < scrollThreshold && e.clientX < rect.right) {
-        scrollIntervalRef.current = window.setInterval(() => {
+        scrollIntervalRef.current = ownerWindow.setInterval(() => {
           container.scrollLeft += scrollSpeed;
         }, 16);
       }
@@ -1148,22 +1150,22 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
     const handleDragEnd = () => {
       if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current);
+        ownerWindow.clearInterval(scrollIntervalRef.current);
         scrollIntervalRef.current = null;
       }
     };
 
-    document.addEventListener("dragover", handleDragOver);
-    document.addEventListener("dragend", handleDragEnd);
-    document.addEventListener("drop", handleDragEnd);
+    ownerDocument.addEventListener("dragover", handleDragOver);
+    ownerDocument.addEventListener("dragend", handleDragEnd);
+    ownerDocument.addEventListener("drop", handleDragEnd);
 
     return () => {
       if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current);
+        ownerWindow.clearInterval(scrollIntervalRef.current);
       }
-      document.removeEventListener("dragover", handleDragOver);
-      document.removeEventListener("dragend", handleDragEnd);
-      document.removeEventListener("drop", handleDragEnd);
+      ownerDocument.removeEventListener("dragover", handleDragOver);
+      ownerDocument.removeEventListener("dragend", handleDragEnd);
+      ownerDocument.removeEventListener("drop", handleDragEnd);
     };
   }, []);
 

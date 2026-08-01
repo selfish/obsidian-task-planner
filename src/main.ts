@@ -189,7 +189,7 @@ export default class TaskPlannerPlugin extends Plugin {
   }
 
   private loadFiles(): void {
-    setTimeout(() => {
+    window.setTimeout(() => {
       const files = this.app.vault.getMarkdownFiles().map((file) => new ObsidianFile(this.app, file));
       void this.taskIndex.filesLoaded(files);
     }, 50);
@@ -266,7 +266,9 @@ export default class TaskPlannerPlugin extends Plugin {
   onunload(): void {}
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loaded: unknown = await this.loadData();
+    const saved = loaded !== null && typeof loaded === "object" && !Array.isArray(loaded) ? loaded : {};
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
   }
 
   async saveSettings(): Promise<void> {

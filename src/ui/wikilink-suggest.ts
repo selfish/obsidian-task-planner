@@ -56,7 +56,7 @@ export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
     const after = text.slice(cursorPos);
 
     // Create the wikilink span
-    const linkSpan = document.createElement("span");
+    const linkSpan = this.inputEl.createSpan();
     linkSpan.className = "quick-add-wikilink";
     linkSpan.dataset.target = file.basename;
     linkSpan.textContent = file.basename;
@@ -65,11 +65,11 @@ export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
     // Rebuild the content
     this.inputEl.innerHTML = "";
     if (before) {
-      this.inputEl.appendChild(document.createTextNode(before));
+      this.inputEl.appendChild(this.inputEl.ownerDocument.createTextNode(before));
     }
     this.inputEl.appendChild(linkSpan);
     // Add a space after for easier continued typing
-    const afterText = document.createTextNode(" " + after);
+    const afterText = this.inputEl.ownerDocument.createTextNode(" " + after);
     this.inputEl.appendChild(afterText);
 
     // Move cursor after the link
@@ -83,23 +83,23 @@ export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
   }
 
   private getCursorPosition(): number {
-    const selection = window.getSelection();
+    const selection = this.inputEl.ownerDocument.defaultView?.getSelection();
     if (!selection || selection.rangeCount === 0) return 0;
 
     const range = selection.getRangeAt(0);
     if (!this.inputEl.contains(range.startContainer)) return 0;
 
-    const preRange = document.createRange();
+    const preRange = this.inputEl.ownerDocument.createRange();
     preRange.selectNodeContents(this.inputEl);
     preRange.setEnd(range.startContainer, range.startOffset);
     return preRange.toString().length;
   }
 
   private setCursorAfter(element: HTMLElement): void {
-    const selection = window.getSelection();
+    const selection = this.inputEl.ownerDocument.defaultView?.getSelection();
     if (!selection) return;
 
-    const range = document.createRange();
+    const range = this.inputEl.ownerDocument.createRange();
     if (element.nextSibling) {
       range.setStart(element.nextSibling, 1); // After the space
       range.collapse(true);
