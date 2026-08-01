@@ -242,8 +242,7 @@ ${exampleTasks.join("\n")}
     const existingFile = this.app.vault.getAbstractFileByPath(filePath);
     if (existingFile instanceof TFile) {
       // Append to existing file
-      const existingContent = await this.app.vault.read(existingFile);
-      await this.app.vault.modify(existingFile, existingContent + "\n\n" + content);
+      await this.app.vault.process(existingFile, (existingContent) => existingContent + "\n\n" + content);
     } else {
       // Create new file
       await this.app.vault.create(filePath, content);
