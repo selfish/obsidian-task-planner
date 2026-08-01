@@ -19,7 +19,7 @@ import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCo
 import { FileTaskParser, FolderTaskParser, StatusOperations, TaskIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice, showInfoNotice } from "./lib";
-import { parseTaskPlannerSettings, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
+import { DEFAULT_SETTINGS, parseTaskPlannerSettings, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
 import { Logger } from "./types";
 import { OnboardingModal } from "./ui/onboarding-modal";
 import { QuickAddModal } from "./ui/quick-add-modal";
@@ -31,6 +31,8 @@ export default class TaskPlannerPlugin extends Plugin {
   fileTaskParser!: FileTaskParser<TFile>;
   folderTaskParser!: FolderTaskParser<TFile>;
   taskIndex!: TaskIndex<TFile>;
+  private settingsWritesBlockedForDowngrade = false;
+  private hasWarnedAboutBlockedSettingsWrite = false;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
@@ -268,9 +270,24 @@ export default class TaskPlannerPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     const loaded: unknown = await this.loadData();
     this.settings = parseTaskPlannerSettings(loaded);
+    this.settingsWritesBlockedForDowngrade = this.settings.version > DEFAULT_SETTINGS.version;
+    this.hasWarnedAboutBlockedSettingsWrite = false;
   }
 
   async saveSettings(): Promise<void> {
+    if (this.settingsWritesBlockedForDowngrade) {
+      if (!this.hasWarnedAboutBlockedSettingsWrite) {
+        const message = `Task Planner settings use schema version ${this.settings.version}, newer than this plugin supports (${DEFAULT_SETTINGS.version}). Settings changes will not be saved, protecting newer data.`;
+        this.logger.warn(message, {
+          loadedVersion: this.settings.version,
+          supportedVersion: DEFAULT_SETTINGS.version,
+        });
+        showInfoNotice(message);
+        this.hasWarnedAboutBlockedSettingsWrite = true;
+      }
+      return;
+    }
+
     try {
       await saveSettingsWithRetry(() => this.saveData(this.settings));
     } catch (error) {
