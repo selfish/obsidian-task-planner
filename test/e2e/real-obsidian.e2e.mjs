@@ -102,18 +102,20 @@ describe("real Obsidian vault smoke", function () {
       });
       return browser.execute(() => {
         const header = document.querySelector('.workspace-leaf-content[data-type="task-planner.planning"] .board > .header');
+        const title = header?.querySelector(".title");
         const controls = header?.querySelector(".controls");
         const search = controls?.querySelector(".search");
         const rect = (element) => {
           const bounds = element?.getBoundingClientRect();
-          return bounds ? { left: bounds.left, right: bounds.right, width: bounds.width } : null;
+          return bounds ? { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom, width: bounds.width } : null;
         };
-        return { header: rect(header), controls: rect(controls), search: rect(search) };
+        return { header: rect(header), title: rect(title), controls: rect(controls), search: rect(search) };
       });
     };
 
     const wideToolbar = await measureToolbar(1600);
     expect(wideToolbar.controls.right).toBeGreaterThanOrEqual(wideToolbar.header.right - 2.5);
+    expect(Math.min(wideToolbar.title.bottom, wideToolbar.controls.bottom) - Math.max(wideToolbar.title.top, wideToolbar.controls.top)).toBeGreaterThan(0);
     expect(wideToolbar.search.width).toBeGreaterThanOrEqual(200);
     expect(wideToolbar.search.width).toBeLessThan(250);
 
