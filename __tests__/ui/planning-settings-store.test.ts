@@ -118,6 +118,25 @@ describe("PlanningSettingsStore", () => {
         futureSetting: "preserved",
       });
     });
+    it("should accept every valid persisted planning setting", () => {
+      mockApp.loadLocalStorage.mockReturnValue(
+        JSON.stringify({
+          searchParameters: { searchPhrase: "owner:selfish" },
+          hideEmpty: false,
+          hideDone: true,
+          viewMode: "today",
+          showLoadColors: false,
+        })
+      );
+
+      expect(store.getSettings()).toEqual({
+        searchParameters: { searchPhrase: "owner:selfish" },
+        hideEmpty: false,
+        hideDone: true,
+        viewMode: "today",
+        showLoadColors: false,
+      });
+    });
   });
 
   describe("saveSettings", () => {

@@ -175,7 +175,7 @@ function booleanValue(record: UnknownRecord, key: string, fallback: boolean): bo
   return typeof record[key] === "boolean" ? record[key] : fallback;
 }
 
-function numberValue(record: UnknownRecord, key: string, fallback: number, isValid: (value: number) => boolean = Number.isFinite): number {
+function numberValue(record: UnknownRecord, key: string, fallback: number, isValid: (value: number) => boolean): number {
   const value = record[key];
   return typeof value === "number" && isValid(value) ? value : fallback;
 }
@@ -185,9 +185,15 @@ function enumValue<T extends string>(record: UnknownRecord, key: string, values:
   return typeof value === "string" && values.includes(value as T) ? (value as T) : fallback;
 }
 
+function isIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 function parseCustomHorizon(value: unknown): CustomHorizon | undefined {
   const record = asRecord(value);
-  if (!record || typeof record.label !== "string" || typeof record.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(record.date)) return undefined;
+  if (!record || typeof record.label !== "string" || typeof record.date !== "string" || !isIsoDate(record.date)) return undefined;
   const positions = ["before", "after", "end", "inline"] as const;
   if (typeof record.position !== "string" || !positions.includes(record.position as CustomHorizon["position"])) return undefined;
 
@@ -232,7 +238,7 @@ export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
     selectedAttribute: stringValue(loaded, "selectedAttribute", DEFAULT_SETTINGS.selectedAttribute),
     fuzzySearch: booleanValue(loaded, "fuzzySearch", DEFAULT_SETTINGS.fuzzySearch),
     autoConvertAttributes: booleanValue(loaded, "autoConvertAttributes", DEFAULT_SETTINGS.autoConvertAttributes),
-    firstWeekday: numberValue(loaded, "firstWeekday", DEFAULT_SETTINGS.firstWeekday, (number) => Number.isInteger(number) && number >= 0 && number <= 6),
+    firstWeekday: numberValue(loaded, "firstWeekday", DEFAULT_SETTINGS.firstWeekday, (number) => Number.isInteger(number) && number >= 1 && number <= 7),
     customHorizons: Array.isArray(loaded.customHorizons) ? loaded.customHorizons.map(parseCustomHorizon).filter((horizon): horizon is CustomHorizon => horizon !== undefined) : DEFAULT_SETTINGS.customHorizons.map((horizon) => ({ ...horizon })),
     horizonVisibility: {
       ...horizonVisibility,
