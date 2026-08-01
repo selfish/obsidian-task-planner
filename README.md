@@ -15,7 +15,7 @@ Task Planner turns Markdown checkboxes across your notes into a drag-and-drop ti
 ## Why Task Planner
 
 - **Keep tasks in your notes.** Task Planner reads ordinary Markdown checkboxes throughout your vault instead of moving them into a separate database.
-- **Plan by time.** Drag tasks between Today, backlog, overdue, weekdays, weeks, months, quarters, years, or your own custom horizons.
+- **Plan by time.** Drag tasks between Today, backlog, weekdays, weeks, months, quarters, years, or your own custom horizons; overdue tasks remain visible for rescheduling.
 - **See the day clearly.** Todo, In Progress, and Completed columns provide a focused daily workflow, with an optional WIP limit.
 - **Update the source.** Moving a card changes the status, due date, or optional tag on its original Markdown task.
 
