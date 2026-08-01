@@ -2,7 +2,12 @@ import { DEFAULT_SETTINGS, parseTaskPlannerSettings } from "../../src/settings/t
 
 describe("parseTaskPlannerSettings", () => {
   it.each([undefined, null, true, 42, "settings", []])("uses defaults for a non-object persisted value", (value) => {
-    expect(parseTaskPlannerSettings(value)).toEqual(DEFAULT_SETTINGS);
+    const parsed = parseTaskPlannerSettings(value);
+    expect(parsed).toEqual(DEFAULT_SETTINGS);
+    expect(parsed).not.toBe(DEFAULT_SETTINGS);
+    expect(parsed.ignoredFolders).not.toBe(DEFAULT_SETTINGS.ignoredFolders);
+    expect(parsed.customHorizons).not.toBe(DEFAULT_SETTINGS.customHorizons);
+    expect(parsed.atShortcutSettings.customShortcuts).not.toBe(DEFAULT_SETTINGS.atShortcutSettings.customShortcuts);
   });
 
   it("validates known values recursively while preserving unknown keys", () => {
