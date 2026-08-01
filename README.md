@@ -4,7 +4,7 @@
 
 Task Planner turns Markdown checkboxes across your notes into a drag-and-drop time-planning board for Today, backlog, overdue, and future horizons. Move a card and its source task updates in place.
 
-[Install in Obsidian](obsidian://show-plugin?id=task-planner) · [View the community listing](https://community.obsidian.md/plugins/task-planner)
+[Install from Obsidian's plugin directory](https://obsidian.md/plugins?id=task-planner)
 
 ![Task Planner in Obsidian showing Today columns and future horizons for backlog, overdue, weekdays, and a custom launch date](docs/assets/task-planner-hero.png)
 
@@ -21,7 +21,7 @@ Task Planner turns Markdown checkboxes across your notes into a drag-and-drop ti
 
 ## Quick start
 
-1. [Install Task Planner](obsidian://show-plugin?id=task-planner) and enable it under **Settings → Community plugins**.
+1. [Open Task Planner in Obsidian's plugin directory](https://obsidian.md/plugins?id=task-planner), then install and enable it.
 2. Run **Task Planner: Open planning** from the command palette.
 3. Drag tasks into Today or a future horizon. Task Planner writes the change back to the source note.
 
@@ -50,7 +50,7 @@ Task Planner does not require a special task file or a separate database.
 - Backlog and overdue columns
 - Today, tomorrow, and individual weekdays
 - Configurable week, month, quarter, and year horizons
-- Custom horizons based on a date, tag, or both
+- Custom horizons based on a date and, optionally, a tag
 - Today and Future focus modes
 - Drag-and-drop movement between horizons
 
