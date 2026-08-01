@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { browser } from "@wdio/globals";
 import { obsidianPage } from "wdio-obsidian-service";
 
-const appVersion = process.env.OBSIDIAN_VERSION ?? "1.12.7";
+const appVersion = process.env.OBSIDIAN_VERSION ?? "1.13.4";
 const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.5.8";
 
 export const config = {

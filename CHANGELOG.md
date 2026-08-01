@@ -4,6 +4,8 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-08-01
+
 ### Changed
 
 - Raised the minimum supported Obsidian version to public 1.8.7, where Task Planner's existing vault-local settings APIs are public ([#136](https://github.com/selfish/obsidian-task-planner/issues/136)).
