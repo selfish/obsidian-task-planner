@@ -21,7 +21,9 @@ export class ObsidianFile implements FileAdapter<TFile> {
   }
 
   isInFolder(folder: string): boolean {
-    return this.file.path.toLowerCase().startsWith(folder.toLowerCase());
+    const path = this.file.path.toLowerCase();
+    const normalizedFolder = folder.toLowerCase().replace(/^\/+|\/+$/g, "");
+    return normalizedFolder !== "" && (path === normalizedFolder || path.startsWith(`${normalizedFolder}/`));
   }
 
   shouldIgnore(): boolean {

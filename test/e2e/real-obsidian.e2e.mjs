@@ -55,6 +55,29 @@ describe("real Obsidian vault smoke", function () {
     await waitForTaskCount(1);
   });
 
+  it("keeps the index current across ignored-folder renames", async function () {
+    await browser.executeObsidian(async ({ app, plugins }) => {
+      plugins.taskPlanner.settings.ignoreArchivedTasks = true;
+      plugins.taskPlanner.settings.ignoredFolders = ["Archive"];
+      await app.vault.createFolder("Archive");
+      await app.vault.createFolder("Archive2");
+      await app.vault.create("Archive/Hidden.md", "- [ ] Hidden\n");
+      await app.vault.create("Archive2/Visible.md", "- [ ] Prefix sibling\n");
+    });
+    await waitForTaskCount(2);
+
+    await browser.executeObsidian(async ({ app }) => {
+      await app.vault.rename(app.vault.getAbstractFileByPath("Archive/Hidden.md"), "Restored.md");
+    });
+    await waitForTaskCount(3);
+
+    await browser.executeObsidian(async ({ app }) => {
+      await app.vault.rename(app.vault.getAbstractFileByPath("Restored.md"), "Archive/Restored.md");
+      await app.vault.rename(app.vault.getAbstractFileByPath("Archive2/Visible.md"), "Archive/Visible.md");
+    });
+    await waitForTaskCount(1);
+  });
+
   it("renders searchable settings through the current API with a legacy fallback", async function () {
     const isDeclarativeHost = await browser.executeObsidian(({ app }) => typeof app.setting.getCurrentPageEl === "function");
     const openedTabId = await browser.executeObsidian(({ app }) => {
