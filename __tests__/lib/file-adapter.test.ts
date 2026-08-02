@@ -15,3 +15,13 @@ describe("ObsidianFile atomic writes", () => {
     expect(app.vault.modify).not.toHaveBeenCalled();
   });
 });
+
+describe("ObsidianFile folder matching", () => {
+  it("requires a complete folder name", () => {
+    const app = new App();
+
+    expect(new ObsidianFile(app, new TFile("Archive/Tasks.md")).isInFolder("archive")).toBe(true);
+    expect(new ObsidianFile(app, new TFile("Archive/Tasks.md")).isInFolder("Archive/")).toBe(true);
+    expect(new ObsidianFile(app, new TFile("Archive2/Tasks.md")).isInFolder("archive")).toBe(false);
+  });
+});

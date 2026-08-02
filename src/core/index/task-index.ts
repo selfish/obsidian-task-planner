@@ -17,6 +17,9 @@ export interface TaskIndexSettings {
 export class TaskIndex<T> {
   files: TasksInFiles<T>[] = [];
   private _tasksCache: TaskItem<T>[] | null = null;
+  private parseSequence = 0;
+  private activeParses = new Map<T, number>();
+  private filesLoading: Set<T> | null = null;
 
   get tasks(): TaskItem<T>[] {
     if (this._tasksCache === null) {
@@ -51,27 +54,34 @@ export class TaskIndex<T> {
   }
 
   async filesLoaded(files: FileAdapter<T>[]): Promise<void> {
+    const changedFiles = new Set<T>();
+    this.filesLoading = changedFiles;
     const filteredFiles = files.filter((file) => !this.ignoreFile(file));
     try {
       const tasks = await this.deps.folderTaskParser.parseFiles(filteredFiles);
-      this.files = tasks;
+      if (this.filesLoading !== changedFiles) return;
+      this.filesLoading = null;
+      this.files = tasks.filter((entry) => !changedFiles.has(entry.file.file) && !this.ignoreFile(entry.file)).concat(this.files.filter((entry) => changedFiles.has(entry.file.file) && !this.ignoreFile(entry.file)));
       this.invalidateCache();
       await this.triggerUpdate();
     } catch (err) {
+      if (this.filesLoading === changedFiles) this.filesLoading = null;
       this.deps.logger.error(`Failed to load files: ${err}`);
     }
   }
 
   async fileUpdated(file: FileAdapter<T>): Promise<void> {
-    const fileIndex = this.files.findIndex((tasksInFile) => tasksInFile.file.id === file.id);
+    const fileIndex = this.findFileIndexByIdentity(file, file.id);
     const fileInIndex = fileIndex >= 0;
 
     // Check if file should be ignored (e.g., frontmatter changed to task-planner-ignore: true)
     if (this.ignoreFile(file)) {
+      this.markChanged(file);
+      this.activeParses.delete(file.file);
       // If file was previously tracked, remove it from the index
       if (fileInIndex) {
         this.deps.logger.debug(`TaskIndex: File now ignored, removing from index: ${file.id}`);
-        this.files.splice(fileIndex, 1);
+        this.removeFileEntries(file, file.id);
         this.invalidateCache();
         await this.triggerUpdate();
       }
@@ -81,84 +91,124 @@ export class TaskIndex<T> {
     // If file is not in index but should be tracked, add it
     if (!fileInIndex) {
       this.deps.logger.debug(`TaskIndex: File no longer ignored, adding to index: ${file.id}`);
-      try {
-        const tasks = await this.deps.fileTaskParser.parseMdFile(file);
-        this.files.push({ tasks, file });
-        this.invalidateCache();
-        await this.triggerUpdate();
-      } catch (err) {
-        this.deps.logger.error(`Failed to add previously ignored file ${file.id}: ${err}`);
-      }
+      await this.parseAndIndex(file, `Failed to add previously ignored file ${file.id}`);
       return;
     }
 
     this.deps.logger.debug(`TaskIndex: File updated: ${file.id}`);
-    try {
-      const tasks = await this.deps.fileTaskParser.parseMdFile(file);
-      this.files[fileIndex].tasks = tasks;
-      this.invalidateCache();
-      await this.triggerUpdate();
-    } catch (err) {
-      this.deps.logger.error(`Failed to update file ${file.id}: ${err}`);
-    }
+    await this.parseAndIndex(file, `Failed to update file ${file.id}`);
   }
 
   async fileRenamed(id: string, file: FileAdapter<T>): Promise<void> {
     this.deps.logger.debug(`TaskIndex: File renamed: ${id} to ${file.id}`);
 
-    // Find the old file entry by the old id
-    const index = this.files.findIndex((tasksInFile) => tasksInFile.file.id === id);
+    const ignored = this.ignoreFile(file);
+    if (ignored) {
+      this.markChanged(file);
+      this.activeParses.delete(file.file);
+    }
+
+    // Obsidian mutates the existing TFile path before firing the rename event.
+    const index = this.findFileIndexByIdentity(file, id);
     if (index < 0) {
       this.deps.logger.debug(`TaskIndex: File not found in index during rename: ${id}`);
+      if (!ignored) await this.fileCreated(file);
       return;
     }
 
     // Check if the new location should be ignored
-    if (this.ignoreFile(file)) {
+    if (ignored) {
       // File moved to ignored folder, remove it from the index
-      this.files.splice(index, 1);
+      this.removeFileEntries(file, id);
       this.invalidateCache();
       await this.triggerUpdate();
       return;
     }
 
     // Update the file reference to the new file
+    this.markChanged(file);
     this.files[index].file = file;
     this.invalidateCache();
     await this.triggerUpdate();
   }
 
   async fileDeleted(file: FileAdapter<T>): Promise<void> {
+    const loading = this.filesLoading !== null;
+    this.markChanged(file);
+    this.activeParses.delete(file.file);
     if (this.ignoreFile(file)) return;
 
     this.deps.logger.debug(`TaskIndex: File deleted: ${file.id}`);
-    const index = this.findFileIndex(file);
-    this.files.splice(index, 1);
+    const index = this.findFileIndexByIdentity(file, file.id);
+    if (index < 0) {
+      if (loading) return;
+      this.deps.logger.error(`Tasks not found for file '${file.name}'`);
+      throw Error(`TaskIndex: File not found in index: ${file.id}`);
+    }
+    this.removeFileEntries(file, file.id);
     this.invalidateCache();
     await this.triggerUpdate();
   }
 
   async fileCreated(file: FileAdapter<T>): Promise<void> {
-    if (this.ignoreFile(file)) return;
+    if (this.ignoreFile(file)) {
+      this.markChanged(file);
+      this.activeParses.delete(file.file);
+      return;
+    }
 
     this.deps.logger.debug(`TaskIndex: File created: ${file.id}`);
-    try {
-      const tasks = await this.deps.fileTaskParser.parseMdFile(file);
-      this.files.push({ tasks, file });
-      this.invalidateCache();
-      await this.triggerUpdate();
-    } catch (err) {
-      this.deps.logger.error(`Failed to parse created file ${file.id}: ${err}`);
-    }
+    await this.parseAndIndex(file, `Failed to parse created file ${file.id}`);
   }
 
-  private findFileIndex(file: FileAdapter<T>): number {
-    const index = this.files.findIndex((tasksInFile) => tasksInFile.file.id === file.id);
-    if (index < 0) {
-      this.deps.logger.error(`Tasks not found for file '${file.name}'`);
-      throw Error(`TaskIndex: File not found in index: ${file.id}`);
+  private async parseAndIndex(file: FileAdapter<T>, failureMessage: string): Promise<void> {
+    const sequence = ++this.parseSequence;
+    this.activeParses.set(file.file, sequence);
+
+    let tasks: TaskItem<T>[];
+    try {
+      tasks = await this.deps.fileTaskParser.parseMdFile(file);
+    } catch (err) {
+      if (this.activeParses.get(file.file) !== sequence) return;
+      this.activeParses.delete(file.file);
+      this.deps.logger.error(`${failureMessage}: ${err}`);
+      return;
     }
-    return index;
+
+    if (this.activeParses.get(file.file) !== sequence) return;
+    this.activeParses.delete(file.file);
+    this.markChanged(file);
+
+    if (this.ignoreFile(file)) {
+      if (!this.removeFileEntries(file, file.id)) return;
+    } else {
+      const index = this.findFileIndexByIdentity(file, file.id);
+      if (index < 0) this.files.push({ tasks, file });
+      else this.files[index] = { tasks, file };
+      this.removeDuplicateFileEntries(file);
+    }
+
+    this.invalidateCache();
+    await this.triggerUpdate();
+  }
+
+  private markChanged(file: FileAdapter<T>): void {
+    this.filesLoading?.add(file.file);
+  }
+
+  private findFileIndexByIdentity(file: FileAdapter<T>, id: string): number {
+    return this.files.findIndex((tasksInFile) => tasksInFile.file.id === id || tasksInFile.file.file === file.file);
+  }
+
+  private removeFileEntries(file: FileAdapter<T>, id: string): boolean {
+    const length = this.files.length;
+    this.files = this.files.filter((tasksInFile) => tasksInFile.file.id !== id && tasksInFile.file.file !== file.file);
+    return this.files.length !== length;
+  }
+
+  private removeDuplicateFileEntries(file: FileAdapter<T>): void {
+    const index = this.findFileIndexByIdentity(file, file.id);
+    this.files = this.files.filter((tasksInFile, candidate) => candidate === index || (tasksInFile.file.id !== file.id && tasksInFile.file.file !== file.file));
   }
 
   private async triggerUpdate(): Promise<void> {

@@ -152,6 +152,81 @@ describe('TaskIndex', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(`Failed to load files: ${parseError}`);
     });
+
+    it('should keep a file moved out of an ignored folder during the initial load', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+      const index = new TaskIndex(deps, settings);
+      const archived = createMockFileAdapter('archive/moved', true);
+      const restored = createMockFileAdapter('restored');
+      restored.file = archived.file;
+      const other = createMockFileAdapter('other');
+      let resolveLoad!: (files: TasksInFiles<unknown>[]) => void;
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockImplementation(
+        () => new Promise(resolve => (resolveLoad = resolve))
+      );
+
+      const loading = index.filesLoaded([archived, other]);
+      await index.fileRenamed('archive/moved', restored);
+      resolveLoad([{ file: other, tasks: [createTodo('Other', other)] }]);
+      await loading;
+
+      expect(index.files.map(file => file.file.id).sort()).toEqual(['other', 'restored']);
+    });
+
+    it('should not restore a file moved into an ignored folder during the initial load', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+      const index = new TaskIndex(deps, settings);
+      const moved = createMockFileAdapter('moved');
+      const archived = createMockFileAdapter('archive/moved', true);
+      archived.file = moved.file;
+      let resolveLoad!: (files: TasksInFiles<unknown>[]) => void;
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockImplementation(
+        () => new Promise(resolve => (resolveLoad = resolve))
+      );
+
+      const loading = index.filesLoaded([moved]);
+      await index.fileRenamed('moved', archived);
+      resolveLoad([{ file: archived, tasks: [createTodo('Moved', archived)] }]);
+      await loading;
+
+      expect(index.files).toHaveLength(0);
+    });
+
+    it('should not restore a deleted file after the initial load', async () => {
+      const index = new TaskIndex(deps, settings);
+      const file = createMockFileAdapter('deleted');
+      let resolveLoad!: (files: TasksInFiles<unknown>[]) => void;
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockImplementation(
+        () => new Promise(resolve => (resolveLoad = resolve))
+      );
+
+      const loading = index.filesLoaded([file]);
+      await index.fileDeleted(file);
+      resolveLoad([{ file, tasks: [createTodo('Deleted', file)] }]);
+      await loading;
+
+      expect(index.files).toHaveLength(0);
+    });
+
+    it('should keep the initial scan result when an overlapping update fails', async () => {
+      const index = new TaskIndex(deps, settings);
+      const file = createMockFileAdapter('updated');
+      const scannedTasks = [createTodo('Scanned', file)];
+      let resolveLoad!: (files: TasksInFiles<unknown>[]) => void;
+      (mockFolderTodoParser.parseFiles as jest.Mock).mockImplementation(
+        () => new Promise(resolve => (resolveLoad = resolve))
+      );
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockRejectedValue(new Error('Transient read failure'));
+
+      const loading = index.filesLoaded([file]);
+      await index.fileUpdated(file);
+      resolveLoad([{ file, tasks: scannedTasks }]);
+      await loading;
+
+      expect(index.files).toEqual([{ file, tasks: scannedTasks }]);
+    });
   });
 
   describe('fileUpdated', () => {
@@ -238,6 +313,25 @@ describe('TaskIndex', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(`Failed to update file file1: ${parseError}`);
     });
+
+    it('should discard a parsed update when the file becomes ignored', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+      const file = createMockFileAdapter('file1');
+      const index = new TaskIndex(deps, settings);
+      index.files = [{ file, tasks: [] }];
+      let resolveParse!: (tasks: TaskItem<unknown>[]) => void;
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockImplementation(
+        () => new Promise(resolve => (resolveParse = resolve))
+      );
+
+      const updating = index.fileUpdated(file);
+      (file.isInFolder as jest.Mock).mockReturnValue(true);
+      resolveParse([]);
+      await updating;
+
+      expect(index.files).toHaveLength(0);
+    });
   });
 
   describe('fileDeleted', () => {
@@ -323,6 +417,24 @@ describe('TaskIndex', () => {
       expect(mockFileTodoParser.parseMdFile).not.toHaveBeenCalled();
     });
 
+    it('should not add a parsed file that becomes ignored', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+      const file = createMockFileAdapter('new');
+      const index = new TaskIndex(deps, settings);
+      let resolveParse!: (tasks: TaskItem<unknown>[]) => void;
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockImplementation(
+        () => new Promise(resolve => (resolveParse = resolve))
+      );
+
+      const creating = index.fileCreated(file);
+      (file.isInFolder as jest.Mock).mockReturnValue(true);
+      resolveParse([]);
+      await creating;
+
+      expect(index.files).toHaveLength(0);
+    });
+
     it('should log error when parsing created file fails', async () => {
       const newFile = createMockFileAdapter('new');
       const parseError = new Error('Parse error');
@@ -347,18 +459,18 @@ describe('TaskIndex', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith('TaskIndex: File renamed: oldname to newname');
     });
 
-    it('should return early when file not found in index', async () => {
+    it('should index a file moved from an ignored folder', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
       const file = createMockFileAdapter('newname');
+      const task = createTodo('Task 1', file);
       const index = new TaskIndex(deps, settings);
       index.files = [];
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockResolvedValue([task]);
 
-      const updateHandler = jest.fn().mockResolvedValue(undefined);
-      index.onUpdateEvent.listen(updateHandler);
+      await index.fileRenamed('archive/oldname', file);
 
-      await index.fileRenamed('nonexistent', file);
-
-      expect(mockLogger.debug).toHaveBeenCalledWith('TaskIndex: File not found in index during rename: nonexistent');
-      expect(updateHandler).not.toHaveBeenCalled();
+      expect(index.files).toEqual([{ file, tasks: [task] }]);
     });
 
     it('should update file reference when file is renamed', async () => {
@@ -399,6 +511,63 @@ describe('TaskIndex', () => {
 
       expect(index.files).toHaveLength(0);
       expect(updateHandler).toHaveBeenCalled();
+    });
+
+    it('should remove a moved file after Obsidian mutates its path', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+      const index = new TaskIndex(deps, settings);
+      const trackedFile = createMockFileAdapter('archive/task');
+      const archivedFile = createMockFileAdapter('archive/task', true);
+      archivedFile.file = trackedFile.file;
+      index.files = [{ file: trackedFile, tasks: [createTodo('Task 1', trackedFile)] }];
+
+      await index.fileRenamed('task', archivedFile);
+
+      expect(index.files).toHaveLength(0);
+    });
+
+    it('should commit only the latest overlapping parse for a moved file', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+      const index = new TaskIndex(deps, settings);
+      const file = createMockFileAdapter('task');
+      const task = createTodo('Task 1', file);
+      const resolvers: Array<(tasks: TaskItem<unknown>[]) => void> = [];
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockImplementation(
+        () => new Promise(resolve => resolvers.push(resolve))
+      );
+      const updateHandler = jest.fn().mockResolvedValue(undefined);
+      index.onUpdateEvent.listen(updateHandler);
+
+      const rename = index.fileRenamed('archive/task', file);
+      const update = index.fileUpdated(file);
+      resolvers[1]([task]);
+      await update;
+      resolvers[0]([task]);
+      await rename;
+
+      expect(index.files).toEqual([{ file, tasks: [task] }]);
+      expect(updateHandler).toHaveBeenCalledTimes(1);
+    });
+
+    it('should discard a pending parse after the file returns to an ignored folder', async () => {
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+      const index = new TaskIndex(deps, settings);
+      const file = createMockFileAdapter('task');
+      let resolveParse!: (tasks: TaskItem<unknown>[]) => void;
+      (mockFileTodoParser.parseMdFile as jest.Mock).mockImplementation(
+        () => new Promise(resolve => (resolveParse = resolve))
+      );
+
+      const movedOut = index.fileRenamed('archive/task', file);
+      (file.isInFolder as jest.Mock).mockReturnValue(true);
+      await index.fileRenamed('task', file);
+      resolveParse([createTodo('Task 1', file)]);
+      await movedOut;
+
+      expect(index.files).toHaveLength(0);
     });
 
     it('should invalidate cache when file is renamed', async () => {

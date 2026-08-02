@@ -4,6 +4,10 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+### Fixed
+
+- Kept the task index accurate when notes move into or out of ignored folders, including during the initial vault scan, without hiding similarly named sibling folders.
+
 ## [2.0.6] - 2026-08-01
 
 ### Added
