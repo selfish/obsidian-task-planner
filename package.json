@@ -52,7 +52,7 @@
     "@wdio/globals": "9.28.0",
     "@wdio/local-runner": "9.28.0",
     "@wdio/mocha-framework": "9.28.0",
-    "@wdio/spec-reporter": "9.28.0",
+    "@wdio/spec-reporter": "9.29.1",
     "@typescript-eslint/eslint-plugin": "8.59.2",
     "@typescript-eslint/parser": "8.59.2",
     "esbuild": "0.28.1",
