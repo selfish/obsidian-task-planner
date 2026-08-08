@@ -100,13 +100,13 @@ export class LineParser {
   private static readonly PRIORITY_SHORTCUTS = ["critical", "high", "medium", "low", "lowest"];
 
   private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
+  private static readonly ESCAPABLE_PUNCTUATION = /[!-/:-@[-`{-~]/;
 
   private parseHashtags(text: string): string[] {
-    const matches = text.matchAll(LineParser.HASHTAG_REGEX);
     const tags: string[] = [];
-    for (const match of matches) {
-      if (!tags.includes(match[1])) {
-        tags.push(match[1]);
+    for (const segment of this.outsideTagContexts(text)) {
+      for (const match of segment.matchAll(LineParser.HASHTAG_REGEX)) {
+        if (!tags.includes(match[1])) tags.push(match[1]);
       }
     }
     return tags;
@@ -317,26 +317,38 @@ export class LineParser {
   }
 
   private metadataSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [];
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
-    for (let start = 0; start < text.length; start++) {
-      const opener = text[start];
-      if ((opener !== "[" && opener !== "(") || this.isInside(start, ignored)) continue;
-      const closer = opener === "[" ? "]" : ")";
-      let depth = 1;
-      let end = start + 1;
-      while (end < text.length && depth > 0) {
-        if (this.isInside(end, ignored)) {
-          end++;
-          continue;
-        }
-        if (text[end] === opener) depth++;
-        else if (text[end] === closer) depth--;
-        end++;
+    const candidates: [number, number][] = [];
+    const squareStack: number[] = [];
+    const roundStack: number[] = [];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)].sort(([left], [right]) => left - right);
+    let ignoredIndex = 0;
+    for (let index = 0; index < text.length; index++) {
+      while (ignoredIndex < ignored.length && index >= ignored[ignoredIndex][1]) ignoredIndex++;
+      if (ignored[ignoredIndex] && index >= ignored[ignoredIndex][0]) {
+        index = ignored[ignoredIndex][1] - 1;
+        continue;
       }
-      if (!this.isMetadataSpan(text, start, end)) continue;
-      spans.push([start, end]);
-      start = end - 1;
+      if (text[index] === "[") squareStack.push(index);
+      else if (text[index] === "(") roundStack.push(index);
+      else if (text[index] === "]") {
+        const start = squareStack.pop();
+        if (start !== undefined) candidates.push([start, index + 1]);
+      } else if (text[index] === ")") {
+        const start = roundStack.pop();
+        if (start !== undefined) candidates.push([start, index + 1]);
+      }
+    }
+    for (const start of squareStack) candidates.push([start, text.length]);
+    for (const start of roundStack) candidates.push([start, text.length]);
+
+    candidates.sort(([leftStart], [rightStart]) => leftStart - rightStart);
+    const spans: [number, number][] = [];
+    let coveredUntil = -1;
+    for (const [start, end] of candidates) {
+      if (start >= coveredUntil && this.isMetadataSpan(text, start, end)) {
+        spans.push([start, end]);
+        coveredUntil = end;
+      }
     }
     return spans;
   }
@@ -348,8 +360,13 @@ export class LineParser {
 
   private isMetadataSpan(text: string, start: number, end: number): boolean {
     const closer = text[start] === "[" ? "]" : ")";
-    const body = text.slice(start + 1, text[end - 1] === closer ? end - 1 : end);
-    return /^\s*[^()[\]]+::/.test(body);
+    const limit = text[end - 1] === closer ? end - 1 : end;
+    let index = start + 1;
+    while (index < limit && /\s/.test(text[index])) index++;
+    for (; index < limit && !/[()[\]]/.test(text[index]); index++) {
+      if (text[index] === ":" && text[index + 1] === ":") return true;
+    }
+    return false;
   }
 
   private codeSpans(text: string): [number, number][] {
@@ -360,12 +377,134 @@ export class LineParser {
     return [...text.matchAll(/\[\[.*?\]\]/g)].map((match) => [match.index, match.index + match[0].length]);
   }
 
+  private angleContextSpans(text: string): [number, number][] {
+    const spans: [number, number][] = [];
+    let start = -1;
+    let quote = "";
+    for (let index = 0; index < text.length; index++) {
+      if (start < 0) {
+        if (text[index] === "<" && /[A-Za-z!?/]/.test(text.charAt(index + 1))) start = index;
+      } else if (quote) {
+        if (text[index] === quote) quote = "";
+      } else if (text[index] === '"' || text[index] === "'") quote = text[index];
+      else if (text[index] === ">") {
+        spans.push([start, index + 1]);
+        start = -1;
+      }
+    }
+    return spans;
+  }
+
+  private markdownLinkDestinationSpans(text: string): [number, number][] {
+    const spans: [number, number][] = [];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text)].sort(([left], [right]) => left - right);
+    const escaped = new Uint8Array(text.length);
+    for (let index = 0; index < text.length - 1; index++) {
+      if (text[index] === "\\" && !escaped[index] && LineParser.ESCAPABLE_PUNCTUATION.test(text[index + 1])) escaped[index + 1] = 1;
+    }
+    const brackets: { containsLink: boolean; image: boolean }[] = [];
+    let ignoredIndex = 0;
+    for (let index = 0; index < text.length; index++) {
+      while (ignoredIndex < ignored.length && index >= ignored[ignoredIndex][1]) ignoredIndex++;
+      if (ignored[ignoredIndex] && index >= ignored[ignoredIndex][0]) {
+        index = ignored[ignoredIndex][1] - 1;
+        continue;
+      }
+      if (escaped[index]) continue;
+      if (text[index] === "[") brackets.push({ containsLink: false, image: text[index - 1] === "!" && !escaped[index - 1] });
+      else if (text[index] === "]") {
+        const label = brackets.pop();
+        if (!label || label.containsLink || text[index + 1] !== "(") continue;
+        const end = this.markdownLinkDestinationEnd(text, index + 2);
+        if (end === undefined) continue;
+        spans.push([index + 2, end]);
+        if (!label.image) {
+          for (let bracket = brackets.length - 1; bracket >= 0 && !brackets[bracket].image; bracket--) brackets[bracket].containsLink = true;
+        }
+        index = end;
+      }
+    }
+    return spans;
+  }
+
+  private markdownLinkDestinationEnd(text: string, start: number): number | undefined {
+    let index = start;
+    while (/\s/.test(text.charAt(index))) index++;
+    if (text[index] === "<") {
+      for (index++; index < text.length && text[index] !== ">"; index++) {
+        if (text[index] === "\\" && LineParser.ESCAPABLE_PUNCTUATION.test(text.charAt(index + 1))) index++;
+        else if (text[index] === "<" || /[\r\n]/.test(text[index])) return undefined;
+      }
+      if (text[index] !== ">") return undefined;
+      index++;
+    } else {
+      let depth = 0;
+      while (index < text.length && !/\s/.test(text[index])) {
+        if (text[index] === "\\" && LineParser.ESCAPABLE_PUNCTUATION.test(text.charAt(index + 1))) index += 2;
+        else if (text[index] === "<" || text[index] === ">") return undefined;
+        else if (text[index] === "(") {
+          if (depth === 32) return undefined; // CommonMark's nesting limit also bounds malformed-input work.
+          depth++;
+          index++;
+        } else if (text[index] === ")") {
+          if (depth === 0) return index;
+          depth--;
+          index++;
+        } else index++;
+      }
+      if (depth > 0) return undefined;
+    }
+    if (text[index] === ")") return index;
+    if (!/\s/.test(text.charAt(index))) return undefined;
+    while (/\s/.test(text.charAt(index))) index++;
+    if (text[index] === ")") return index;
+
+    const titleEnd = text[index] === "(" ? ")" : text[index] === '"' || text[index] === "'" ? text[index] : undefined;
+    if (!titleEnd) return undefined;
+    for (index++; index < text.length && text[index] !== titleEnd; index++) {
+      if (text[index] === "\\" && LineParser.ESCAPABLE_PUNCTUATION.test(text.charAt(index + 1))) index++;
+      else if (titleEnd === ")" && text[index] === "(") return undefined;
+    }
+    if (text[index] !== titleEnd) return undefined;
+    index++;
+    if (!/\s|\)/.test(text.charAt(index))) return undefined;
+    while (/\s/.test(text.charAt(index))) index++;
+    return text[index] === ")" ? index : undefined;
+  }
+
+  private uriSpans(text: string): [number, number][] {
+    const spans: [number, number][] = [];
+    const uriStart = /\b[a-z][a-z0-9+.-]*:(?!:)/gi;
+    let match: RegExpExecArray | null;
+    while ((match = uriStart.exec(text))) {
+      if (text[match.index - 1] === "#") continue;
+      let end = match.index + match[0].length;
+      let parentheses = 0;
+      let squares = 0;
+      while (end < text.length && !/(?:\s|[<>"'`{}])/.test(text[end])) {
+        if (text[end] === "(") parentheses++;
+        else if (text[end] === ")") {
+          if (parentheses === 0) break;
+          parentheses--;
+        } else if (text[end] === "[") squares++;
+        else if (text[end] === "]") {
+          if (squares === 0) break;
+          squares--;
+        }
+        end++;
+      }
+      spans.push([match.index, end]);
+      uriStart.lastIndex = end;
+    }
+    return spans;
+  }
+
   private isInside(index: number, spans: [number, number][]): boolean {
     return spans.some(([start, end]) => index >= start && index < end);
   }
 
   private tagContextSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...[...text.matchAll(/\[\[.*?\]\]/g)].map((match) => [match.index, match.index + match[0].length] as [number, number])].sort(([left], [right]) => left - right);
+    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text)].sort(([left], [right]) => left - right);
     const merged: [number, number][] = [];
     for (const [start, end] of spans) {
       const previous = merged[merged.length - 1];

@@ -618,6 +618,111 @@ describe('LineParser', () => {
       expect(parser.removeTag(text, 'keep')).toBe(text);
     });
 
+    it('preserves hashtag-looking URL fragments while parsing and removing tags', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const text = 'Read [docs](https://example.com/#work) or https://example.com/#work #work';
+
+      expect(parser.parseAttributes('Read [docs](#work) or https://example.com/#work').tags).toEqual([]);
+      expect(parser.parseAttributes(text).tags).toEqual(['work']);
+      expect(parser.removeTag(text, 'work')).toBe('Read [docs](https://example.com/#work) or https://example.com/#work');
+
+      expect(parser.parseAttributes('Read [docs](https://example.com)#work').tags).toEqual(['work']);
+      expect(parser.removeTag('Read [docs](https://example.com)#work', 'work')).toBe('Read [docs](https://example.com)');
+
+      for (const destination of [
+        ' ',
+        'relative\\)#work',
+        'relative(nested)#work',
+        'relative "title #work"',
+        "relative 'title #work'",
+        'relative "title \\" #work"',
+        'relative (title #work)',
+        '<relative\\>#work>',
+        '<relative #work>',
+        ' #work',
+      ]) {
+        const linked = `Read [docs](${destination})`;
+        expect({ destination, tags: parser.parseAttributes(linked).tags }).toEqual({ destination, tags: [] });
+        expect(parser.hasTag(linked, 'work')).toBe(false);
+        expect(parser.removeTag(linked, 'work')).toBe(linked);
+      }
+
+      const nested = 'Read [outer [inner]](#work) or https://example.com/path_(nested)#work';
+      expect(parser.parseAttributes(nested).tags).toEqual([]);
+      expect(parser.hasTag(nested, 'work')).toBe(false);
+      expect(parser.removeTag(nested, 'work')).toBe(nested);
+
+      const uris = '<urn:example:foo#work> https://[::1]/#work mailto:user@example.com#work #work';
+      expect(parser.parseAttributes(uris).tags).toEqual(['work']);
+      expect(parser.removeTag(uris, 'work')).toBe('<urn:example:foo#work> https://[::1]/#work mailto:user@example.com#work');
+
+      const quotedTitle = 'Read [docs](relative "title ) #work")';
+      expect(parser.parseAttributes(quotedTitle).tags).toEqual([]);
+      expect(parser.hasTag(quotedTitle, 'work')).toBe(false);
+      expect(parser.removeTag(quotedTitle, 'work')).toBe(quotedTitle);
+
+      const protectedText = 'Task `#work` [[Page#work]] [note:: #work]';
+      expect(parser.parseAttributes(protectedText).tags).toEqual([]);
+      expect(parser.hasTag(protectedText, 'work')).toBe(false);
+      expect(parser.removeTag(protectedText, 'work')).toBe(protectedText);
+
+      for (const linkedImage of ['[![moon](moon.jpg)](#work)', '![foo [bar](/url)](#work)']) {
+        expect(parser.parseAttributes(linkedImage).tags).toEqual([]);
+        expect(parser.hasTag(linkedImage, 'work')).toBe(false);
+        expect(parser.removeTag(linkedImage, 'work')).toBe(linkedImage);
+      }
+
+      const protectedClosers = '[[https://example.com/#keep]]#work [note:: https://example.com/#keep]#work';
+      expect(parser.parseAttributes(protectedClosers).tags).toEqual(['work']);
+      expect(parser.hasTag(protectedClosers, 'work')).toBe(true);
+      expect(parser.removeTag(protectedClosers, 'work')).toBe('[[https://example.com/#keep]] [note:: https://example.com/#keep]');
+
+      for (const richLabel of ['[x <xx:a](x)>](#work)', '[x <i a="](x)">](#work)']) {
+        expect(parser.parseAttributes(richLabel).tags).toEqual([]);
+        expect(parser.hasTag(richLabel, 'work')).toBe(false);
+        expect(parser.removeTag(richLabel, 'work')).toBe(richLabel);
+      }
+
+      const punctuatedTag = 'Task #work: details';
+      expect(parser.parseAttributes(punctuatedTag).tags).toEqual(['work']);
+      expect(parser.hasTag(punctuatedTag, 'work')).toBe(true);
+      expect(parser.removeTag(punctuatedTag, 'work')).toBe('Task : details');
+
+      for (const [malformed, removed] of [
+        ['Read [docs](relative( #work)', 'Read [docs](relative( )'],
+        ['Task ](#work)', 'Task ]()'],
+        ['Task \\](#work)', 'Task \\]()'],
+        ['Task \\[docs](#work)', 'Task \\[docs]()'],
+        ['Task [docs](relative #work)', 'Task [docs](relative )'],
+        ['Task [docs](foo\\ #work)', 'Task [docs](foo\\ )'],
+        ['Task [x](<url>"title #work")', 'Task [x](<url>"title ")'],
+        ['Task [outer [inner](dest)](#work)', 'Task [outer [inner](dest)]()'],
+        ['Task `https://example.com/#fragment`#work', 'Task `https://example.com/#fragment`'],
+      ]) {
+        expect(parser.parseAttributes(malformed).tags).toEqual(['work']);
+        expect(parser.hasTag(malformed, 'work')).toBe(true);
+        expect(parser.removeTag(malformed, 'work')).toBe(removed);
+      }
+
+      for (const malformed of [
+        'Read [docs](<relative< #work>)',
+        'Read [docs](<relative #work',
+        'Read [docs](relative<value #work)',
+        'Read [docs](relative (nested(title) #work))',
+        'Read [docs](relative "title #work)',
+        'Read [docs](relative "title"suffix #work)',
+      ]) {
+        expect(parser.parseAttributes(malformed).tags).toEqual(['work']);
+        expect(parser.hasTag(malformed, 'work')).toBe(true);
+        expect(parser.removeTag(malformed, 'work')).toBe(malformed.endsWith('#work') ? malformed.replace(' #work', '') : malformed.replace('#work', ''));
+      }
+
+      const tooDeep = `Read [docs](${'('.repeat(33)} #work${')'.repeat(34)}`;
+      expect(parser.parseAttributes(tooDeep).tags).toEqual(['work']);
+      expect(parser.hasTag(tooDeep, 'work')).toBe(true);
+      expect(parser.removeTag(tooDeep, 'work')).toBe(tooDeep.replace('#work', ''));
+    });
+
     it('does not mutate square syntax nested inside unknown metadata', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const text = 'Task (note:: [priority:: high]) after';
