@@ -748,13 +748,32 @@ describe('LineParser', () => {
 
     it('preserves recognized shortcuts inside bare email addresses', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
-      const text = 'Contact alice@high.example';
+      const operations = new StatusOperations(DEFAULT_SETTINGS);
 
-      expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
-      expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
-      expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
-      expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(`- [ ] ${text}`)).toBe(`- [ ] ${text}`);
-      expect(parser.parseAttributes(`${text};@high`).attributes).toEqual({ priority: 'high' });
+      for (const text of ['Contact alice@high.example', 'Contact "alice"@high.example', 'Contact 用户@high.example']) {
+        expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
+        expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
+        expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
+        expect(operations.convertAttributes(`- [ ] ${text}`)).toBe(`- [ ] ${text}`);
+      }
+
+      const customSettings = {
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          customShortcuts: [{ keyword: 'work', targetAttribute: 'context', value: 'work' }],
+        },
+      };
+      const customParser = new LineParser(customSettings);
+      const customText = 'Contact "alice"@work.example';
+      expect(customParser.parseAttributes(customText).attributes).toEqual({});
+      expect(customParser.updateAttribute(customText, 'context', 'home')).toBe(`${customText} [context:: home]`);
+      expect(customParser.updateAttribute(customText, 'context', undefined)).toBe(customText);
+      expect(new StatusOperations(customSettings).convertAttributes(`- [ ] ${customText}`)).toBe(`- [ ] ${customText}`);
+
+      expect(parser.parseAttributes('Task.@high').attributes).toEqual({ priority: 'high' });
+      expect(parser.updateAttribute('Task.@high', 'priority', 'low')).toBe('Task.[priority:: low]');
+      expect(parser.parseAttributes('Contact alice@high.example;@high').attributes).toEqual({ priority: 'high' });
     });
 
     it('does not mutate square syntax nested inside unknown metadata', () => {
