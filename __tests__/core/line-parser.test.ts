@@ -746,6 +746,17 @@ describe('LineParser', () => {
       expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(`- [ ] ${text}`)).toBe(`- [ ] ${text}`);
     });
 
+    it('preserves recognized shortcuts inside bare email addresses', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const text = 'Contact alice@high.example';
+
+      expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
+      expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
+      expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
+      expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(`- [ ] ${text}`)).toBe(`- [ ] ${text}`);
+      expect(parser.parseAttributes(`${text};@high`).attributes).toEqual({ priority: 'high' });
+    });
+
     it('does not mutate square syntax nested inside unknown metadata', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const text = 'Task (note:: [priority:: high]) after';

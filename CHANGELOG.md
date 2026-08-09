@@ -6,6 +6,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Fixed
 
+- Preserved enabled `@` shortcuts inside bare email addresses during metadata parsing and edits.
 - Preserved angle-bracket links and HTML containing field-like text during metadata parsing and edits.
 - Preserved escaped literal hashtags when reading or removing task tags.
 - Preserved URL fragments that resemble hashtags when reading or removing task tags.
