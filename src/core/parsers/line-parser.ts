@@ -499,12 +499,26 @@ export class LineParser {
     return spans;
   }
 
+  private escapedHashSpans(text: string): [number, number][] {
+    const spans: [number, number][] = [];
+    let backslashes = 0;
+    for (let index = 0; index < text.length; index++) {
+      if (text[index] === "\\") {
+        backslashes++;
+        continue;
+      }
+      if (text[index] === "#" && backslashes % 2 === 1) spans.push([index, index + 1]);
+      backslashes = 0;
+    }
+    return spans;
+  }
+
   private isInside(index: number, spans: [number, number][]): boolean {
     return spans.some(([start, end]) => index >= start && index < end);
   }
 
   private tagContextSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text)].sort(([left], [right]) => left - right);
+    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.escapedHashSpans(text)].sort(([left], [right]) => left - right);
     const merged: [number, number][] = [];
     for (const [start, end] of spans) {
       const previous = merged[merged.length - 1];
