@@ -381,15 +381,29 @@ export class LineParser {
     const spans: [number, number][] = [];
     let start = -1;
     let quote = "";
+    let endMarker = "";
+    let uri = false;
     for (let index = 0; index < text.length; index++) {
       if (start < 0) {
-        if (text[index] === "<" && /[A-Za-z!?/]/.test(text.charAt(index + 1))) start = index;
-      } else if (quote) {
+        if (text[index] === "<" && /[A-Za-z!?/]/.test(text.charAt(index + 1))) {
+          start = index;
+          endMarker = text.startsWith("<!--", index) ? "-->" : text.startsWith("<?", index) ? "?>" : text.startsWith("<![CDATA[", index) ? "]]>" : "";
+          uri = !endMarker && /^<[A-Za-z][A-Za-z0-9+.-]{1,31}:/.test(text.slice(index));
+        }
+      } else if (endMarker) {
+        if (text.startsWith(endMarker, index)) {
+          spans.push([start, index + endMarker.length]);
+          index += endMarker.length - 1;
+          start = -1;
+          endMarker = "";
+        }
+      } else if (!uri && quote) {
         if (text[index] === quote) quote = "";
-      } else if (text[index] === '"' || text[index] === "'") quote = text[index];
+      } else if (!uri && (text[index] === '"' || text[index] === "'")) quote = text[index];
       else if (text[index] === ">") {
         spans.push([start, index + 1]);
         start = -1;
+        uri = false;
       }
     }
     return spans;

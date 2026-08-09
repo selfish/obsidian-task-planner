@@ -132,7 +132,14 @@ describe("Tasks metadata compatibility matrix", () => {
     });
   });
 
-  it.each(["Read <https://example.test/[due::secret]>", 'Read <span data-note="[due:: secret]">now</span>'])("preserves field-like text inside angle contexts: %s", (text) => {
+  it.each([
+    "Read <https://example.test/[due::secret]>",
+    'Read <https://example.test/"[due::secret]>',
+    'Read <span data-note="[due:: secret]">now</span>',
+    "Read <!-- compare > [due:: secret] -->",
+    "Read <?instruction > [due:: secret]?>",
+    "Read <![CDATA[> [due:: secret]]]>",
+  ])("preserves field-like text inside angle contexts: %s", (text) => {
     expect(parseAndRoundTrip(`- [ ] ${text} [due:: 2026-07-23]`)).toEqual({
       attributes: { due: "2026-07-23" },
       output: `- [ ] ${text} [due:: 2026-07-23]`,
