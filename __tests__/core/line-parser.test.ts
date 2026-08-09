@@ -618,6 +618,19 @@ describe('LineParser', () => {
       expect(parser.removeTag(text, 'keep')).toBe(text);
     });
 
+    it('preserves escaped hashtags while parsing and removing tags', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const escaped = String.raw`Literal \#work`;
+      const mixed = String.raw`Literal \#work #work`;
+
+      expect(parser.parseAttributes(escaped).tags).toEqual([]);
+      expect(parser.hasTag(escaped, 'work')).toBe(false);
+      expect(parser.removeTag(escaped, 'work')).toBe(escaped);
+      expect(parser.parseAttributes(mixed).tags).toEqual(['work']);
+      expect(parser.removeTag(mixed, 'work')).toBe(escaped);
+      expect(parser.parseAttributes(String.raw`Literal \\#work`).tags).toEqual(['work']);
+    });
+
     it('preserves hashtag-looking URL fragments while parsing and removing tags', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const text = 'Read [docs](https://example.com/#work) or https://example.com/#work #work';
