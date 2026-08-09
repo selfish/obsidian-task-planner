@@ -163,6 +163,12 @@ describe("Tasks metadata compatibility matrix", () => {
     expect(parser.updateAttribute(text, "due", undefined)).toBe(text);
   });
 
+  it("does not rescan every ignored angle span for each delimiter", () => {
+    const isInside = jest.spyOn(parser as unknown as { isInside(index: number, spans: [number, number][]): boolean }, "isInside");
+    expect(parser.parseAttributes(`${'<a title="[]"> '.repeat(1_000)}[due:: real]`).attributes).toEqual({ due: "real" });
+    expect(isInside.mock.calls.length).toBeLessThan(20);
+  });
+
   it.each(["- [ ] Task `(due:: same)` (due:: same)", "- [ ] Task [[Page|(due:: same)]] (due:: same)"])("preserves identical protected field text when parsing real metadata: %s", (source) => {
     expect(parseAndRoundTrip(source)).toEqual({
       attributes: { due: "same" },
