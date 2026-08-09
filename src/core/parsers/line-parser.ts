@@ -121,6 +121,7 @@ export class LineParser {
     if (matches.length === 0) return { textWithoutAttributes: text, attributes: res, tags };
 
     const accepted = this.acceptedAttributes(text, matches);
+    if (accepted.length === 0) return { textWithoutAttributes: text, attributes: res, tags };
     accepted.forEach(({ key: attrKey, value: attrValue }) => {
       if (LineParser.PRIORITY_SHORTCUTS.includes(attrKey) && attrValue === true) {
         res["priority"] = attrKey;
@@ -144,7 +145,7 @@ export class LineParser {
   }
 
   private acceptedAttributes(text: string, matches: RegExpMatchArray[] = [...text.matchAll(this.getAttributeRegex())]): { match: RegExpMatchArray; key: string; value: string | boolean }[] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)];
+    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
     const accepted: { match: RegExpMatchArray; key: string; value: string | boolean }[] = [];
     for (const match of matches) {
@@ -216,9 +217,9 @@ export class LineParser {
   }
 
   private attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)];
+    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
-    const shortcutIgnored = [...ignored, ...containers];
+    const shortcutIgnored = this.mergeSpans([...ignored, ...containers]);
     const matches: { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] = [...text.matchAll(/\[\s*([^:[\]]+?)\s*::\s*([^[\]]*)\]|\(\s*([^:()[\]]+?)\s*::\s*([^()[\]]*)\)/g)]
       .filter((match) => this.parseSingleAttribute(match[0]) !== null)
       .filter((match) => (match[1] ?? match[3]).trim().toLowerCase() === key.toLowerCase())
@@ -261,7 +262,7 @@ export class LineParser {
   }
 
   appendTag(text: string, tag: string): string {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
+    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text)]);
     const attribute = this.topLevelMetadataSpans(text).find(([start, end]) => {
       const closer = text[start] === "[" ? "]" : ")";
       return text[end - 1] === closer && text.slice(start, end).includes("::") && !this.isInside(start, ignored);
@@ -573,8 +574,28 @@ export class LineParser {
     return spans;
   }
 
+  private mergeSpans(spans: [number, number][]): [number, number][] {
+    spans.sort(([left], [right]) => left - right);
+    const merged: [number, number][] = [];
+    for (const [start, end] of spans) {
+      const previous = merged[merged.length - 1];
+      if (previous && start <= previous[1]) previous[1] = Math.max(previous[1], end);
+      else merged.push([start, end]);
+    }
+    return merged;
+  }
+
   private isInside(index: number, spans: [number, number][]): boolean {
-    return spans.some(([start, end]) => index >= start && index < end);
+    let low = 0;
+    let high = spans.length - 1;
+    while (low <= high) {
+      const middle = (low + high) >> 1;
+      const [start, end] = spans[middle];
+      if (index < start) high = middle - 1;
+      else if (index >= end) low = middle + 1;
+      else return true;
+    }
+    return false;
   }
 
   private tagContextSpans(text: string): [number, number][] {

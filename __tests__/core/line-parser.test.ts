@@ -779,15 +779,22 @@ describe('LineParser', () => {
       expect(parser.parseAttributes('Task.@high').attributes).toEqual({ priority: 'high' });
       expect(parser.updateAttribute('Task.@high', 'priority', 'low')).toBe('Task.[priority:: low]');
       expect(parser.parseAttributes('Contact alice@high.example;@high').attributes).toEqual({ priority: 'high' });
+      const spaced = '  Contact\t alice@high.example  ';
+      expect(parser.parseAttributes(spaced)).toEqual({ textWithoutAttributes: spaced, attributes: {}, tags: [] });
     });
 
-    it('keeps unmatched email-like text bounded', () => {
+    it('keeps email-like input parsing bounded', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const local = 'x'.repeat(64_000);
       const started = Date.now();
       const parsed = parser.parseAttributes(`${local}@high`);
       expect(Date.now() - started).toBeLessThan(500);
       expect(parsed).toEqual({ textWithoutAttributes: local, attributes: { priority: 'high' }, tags: [] });
+
+      const repeated = 'a@high.x '.repeat(64_000);
+      const repeatedStarted = Date.now();
+      expect(parser.parseAttributes(repeated).textWithoutAttributes).toBe(repeated);
+      expect(Date.now() - repeatedStarted).toBeLessThan(1_000);
     });
 
     it('does not mutate square syntax nested inside unknown metadata', () => {
