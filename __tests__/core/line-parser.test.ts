@@ -736,6 +736,16 @@ describe('LineParser', () => {
       expect(parser.removeTag(tooDeep, 'work')).toBe(tooDeep.replace('#work', ''));
     });
 
+    it('preserves recognized shortcuts inside bare URIs', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const text = 'Read https://example.test/@high/docs';
+
+      expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
+      expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
+      expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
+      expect(new StatusOperations(DEFAULT_SETTINGS).convertAttributes(`- [ ] ${text}`)).toBe(`- [ ] ${text}`);
+    });
+
     it('does not mutate square syntax nested inside unknown metadata', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const text = 'Task (note:: [priority:: high]) after';
