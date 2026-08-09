@@ -132,6 +132,16 @@ describe("Tasks metadata compatibility matrix", () => {
     });
   });
 
+  it.each(["Read <https://example.test/[due::secret]>", 'Read <span data-note="[due:: secret]">now</span>'])("preserves field-like text inside angle contexts: %s", (text) => {
+    expect(parseAndRoundTrip(`- [ ] ${text} [due:: 2026-07-23]`)).toEqual({
+      attributes: { due: "2026-07-23" },
+      output: `- [ ] ${text} [due:: 2026-07-23]`,
+    });
+    expect(parser.updateAttribute(text, "due", "2026-07-23")).toBe(`${text} [due:: 2026-07-23]`);
+    expect(parser.updateAttribute(text, "due", undefined)).toBe(text);
+    expect(parser.appendTag(text, "next")).toBe(`${text} #next`);
+  });
+
   it.each(["- [ ] Task `(due:: same)` (due:: same)", "- [ ] Task [[Page|(due:: same)]] (due:: same)"])("preserves identical protected field text when parsing real metadata: %s", (source) => {
     expect(parseAndRoundTrip(source)).toEqual({
       attributes: { due: "same" },
