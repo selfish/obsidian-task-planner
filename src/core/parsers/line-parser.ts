@@ -378,9 +378,35 @@ export class LineParser {
   }
 
   private angleContextSpans(text: string): [number, number][] {
-    const opaque = /<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<!\[CDATA\[[\s\S]*?\]\]>|<![A-Za-z][^>]*>|<[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*>|<[^\s<>]+@[^\s<>]+>/g;
+    const spans: [number, number][] = [];
+    for (const [open, close] of [
+      ["<!--", "-->"],
+      ["<?", "?>"],
+      ["<![CDATA[", "]]>"],
+    ]) {
+      let start = 0;
+      while ((start = text.indexOf(open, start)) >= 0) {
+        const end = text.indexOf(close, start + open.length);
+        if (end < 0) break;
+        spans.push([start, end + close.length]);
+        start = end + close.length;
+      }
+    }
+    let declaration = 0;
+    while ((declaration = text.indexOf("<!", declaration)) >= 0) {
+      if (!/[A-Za-z]/.test(text.charAt(declaration + 2))) {
+        declaration += 2;
+        continue;
+      }
+      const end = text.indexOf(">", declaration + 3);
+      if (end < 0) break;
+      spans.push([declaration, end + 1]);
+      declaration = end + 1;
+    }
+    const opaque = /<[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*>|<[^\s<>]+@[^\s<>]+>/g;
     const tags = /<\/?[A-Za-z](?:"[^"]*"|'[^']*'|[^'"<>])*?>/g;
-    const spans = [...text.matchAll(opaque), ...text.matchAll(tags)].map((match): [number, number] => [match.index, match.index + match[0].length]).sort(([left], [right]) => left - right);
+    spans.push(...[...text.matchAll(opaque), ...text.matchAll(tags)].map((match): [number, number] => [match.index, match.index + match[0].length]));
+    spans.sort(([left], [right]) => left - right);
     const merged: [number, number][] = [];
     for (const [start, end] of spans) {
       const previous = merged[merged.length - 1];
