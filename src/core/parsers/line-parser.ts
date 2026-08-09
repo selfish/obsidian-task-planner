@@ -534,7 +534,7 @@ export class LineParser {
   }
 
   private emailSpans(text: string): [number, number][] {
-    const email = /(?:[^\s"(),:;<>@.[\]\\]+(?:\.[^\s"(),:;<>@.[\]\\]+)*|"(?:\\.|[^"\\])*")@[^\s"(),:;<>@.[\]\\]+(?:\.[^\s"(),:;<>@.[\]\\]+)+/gu;
+    const email = /(?:[^\s"(),:;<>@.[\]\\]+(?:\.[^\s"(),:;<>@.[\]\\]+)*|"(?:\\.|[^"\\])*")@[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?)+/gu;
     return [...text.matchAll(email)].map((match) => [match.index, match.index + match[0].length]);
   }
 
