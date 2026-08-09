@@ -101,6 +101,11 @@ export class LineParser {
 
   private static readonly HASHTAG_REGEX = /#([a-zA-Z][a-zA-Z0-9_-]*)/g;
   private static readonly ESCAPABLE_PUNCTUATION = /[!-/:-@[-`{-~]/;
+  private static readonly EMAIL_LOCAL_PART_CHARACTER = /[\w.!#$%&'*+/=?^_`{|}~-]/;
+
+  private isShortcutStart(text: string, index: number): boolean {
+    return index === 0 || !LineParser.EMAIL_LOCAL_PART_CHARACTER.test(text[index - 1]);
+  }
 
   private parseHashtags(text: string): string[] {
     const tags: string[] = [];
@@ -152,7 +157,7 @@ export class LineParser {
       const opener = match[0][0];
       if (opener === "[" || opener === "(") {
         if (!containers.some(([start, end]) => start === match.index && end === match.index + match[0].length)) continue;
-      } else if (this.isInside(match.index, containers)) {
+      } else if (!this.isShortcutStart(text, match.index) || this.isInside(match.index, containers)) {
         continue;
       }
       const parsed = this.parseSingleAttribute(match[0]);
@@ -242,7 +247,7 @@ export class LineParser {
       for (const keyword of shortcuts) {
         const pattern = new RegExp(`@${this.escapeRegex(keyword)}(?![(\\w])`, "gi");
         for (const match of text.matchAll(pattern)) {
-          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
+          if (this.isShortcutStart(text, match.index) && !this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
         }
       }
       for (const shortcut of shortcutSettings?.customShortcuts ?? []) {
@@ -252,7 +257,7 @@ export class LineParser {
         if (resolved === null || resolved[0].toLowerCase() !== shortcut.targetAttribute.toLowerCase() || resolved[1] !== shortcut.value) continue;
         const pattern = new RegExp(`@${this.escapeRegex(shortcut.keyword)}(?![(\\w])`, "gi");
         for (const match of text.matchAll(pattern)) {
-          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
+          if (this.isShortcutStart(text, match.index) && !this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
         }
       }
     }
