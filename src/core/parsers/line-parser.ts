@@ -382,13 +382,16 @@ export class LineParser {
     let start = -1;
     let quote = "";
     let endMarker = "";
-    let uri = false;
+    let quoteAware = true;
     for (let index = 0; index < text.length; index++) {
       if (start < 0) {
-        if (text[index] === "<" && /[A-Za-z!?/]/.test(text.charAt(index + 1))) {
+        if (text[index] === "<") {
+          const close = text.indexOf(">", index + 1);
+          const email = close >= 0 && /^[^\s<>]+@[^\s<>]+$/.test(text.slice(index + 1, close));
+          if (!email && !/[A-Za-z!?/]/.test(text.charAt(index + 1))) continue;
           start = index;
           endMarker = text.startsWith("<!--", index) ? "-->" : text.startsWith("<?", index) ? "?>" : text.startsWith("<![CDATA[", index) ? "]]>" : "";
-          uri = !endMarker && /^<[A-Za-z][A-Za-z0-9+.-]{1,31}:/.test(text.slice(index));
+          quoteAware = !/^<[A-Za-z][A-Za-z0-9+.-]{1,31}:/.test(text.slice(index)) && !email && !/^<![A-Z]/.test(text.slice(index));
         }
       } else if (endMarker) {
         if (text.startsWith(endMarker, index)) {
@@ -397,13 +400,13 @@ export class LineParser {
           start = -1;
           endMarker = "";
         }
-      } else if (!uri && quote) {
+      } else if (quoteAware && quote) {
         if (text[index] === quote) quote = "";
-      } else if (!uri && (text[index] === '"' || text[index] === "'")) quote = text[index];
+      } else if (quoteAware && (text[index] === '"' || text[index] === "'")) quote = text[index];
       else if (text[index] === ">") {
         spans.push([start, index + 1]);
         start = -1;
-        uri = false;
+        quoteAware = true;
       }
     }
     return spans;
