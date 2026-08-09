@@ -295,15 +295,28 @@ export class LineParser {
 
   private delimiterSpans(text: string, ignored: [number, number][]): [number, number][] {
     const spans: [number, number][] = [];
+    ignored.sort(([left], [right]) => left - right);
+    let ignoredIndex = 0;
+    const ignoredEnd = (index: number): number | undefined => {
+      while (ignoredIndex < ignored.length && index >= ignored[ignoredIndex][1]) ignoredIndex++;
+      const span = ignored[ignoredIndex];
+      return span && index >= span[0] ? span[1] : undefined;
+    };
     for (let start = 0; start < text.length; start++) {
+      const skipTo = ignoredEnd(start);
+      if (skipTo !== undefined) {
+        start = skipTo - 1;
+        continue;
+      }
       const opener = text[start];
-      if ((opener !== "[" && opener !== "(") || this.isInside(start, ignored)) continue;
+      if (opener !== "[" && opener !== "(") continue;
       const closer = opener === "[" ? "]" : ")";
       let depth = 1;
       let end = start + 1;
       while (end < text.length && depth > 0) {
-        if (this.isInside(end, ignored)) {
-          end++;
+        const skipTo = ignoredEnd(end);
+        if (skipTo !== undefined) {
+          end = skipTo;
           continue;
         }
         if (text[end] === opener) depth++;
