@@ -378,38 +378,16 @@ export class LineParser {
   }
 
   private angleContextSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [];
-    let start = -1;
-    let quote = "";
-    let endMarker = "";
-    let quoteAware = true;
-    for (let index = 0; index < text.length; index++) {
-      if (start < 0) {
-        if (text[index] === "<") {
-          const close = text.indexOf(">", index + 1);
-          const email = close >= 0 && /^[^\s<>]+@[^\s<>]+$/.test(text.slice(index + 1, close));
-          if (!email && !/[A-Za-z!?/]/.test(text.charAt(index + 1))) continue;
-          start = index;
-          endMarker = text.startsWith("<!--", index) ? "-->" : text.startsWith("<?", index) ? "?>" : text.startsWith("<![CDATA[", index) ? "]]>" : "";
-          quoteAware = !/^<[A-Za-z][A-Za-z0-9+.-]{1,31}:/.test(text.slice(index)) && !email && !/^<![A-Z]/.test(text.slice(index));
-        }
-      } else if (endMarker) {
-        if (text.startsWith(endMarker, index)) {
-          spans.push([start, index + endMarker.length]);
-          index += endMarker.length - 1;
-          start = -1;
-          endMarker = "";
-        }
-      } else if (quoteAware && quote) {
-        if (text[index] === quote) quote = "";
-      } else if (quoteAware && (text[index] === '"' || text[index] === "'")) quote = text[index];
-      else if (text[index] === ">") {
-        spans.push([start, index + 1]);
-        start = -1;
-        quoteAware = true;
-      }
+    const opaque = /<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<!\[CDATA\[[\s\S]*?\]\]>|<![A-Za-z][^>]*>|<[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*>|<[^\s<>]+@[^\s<>]+>/g;
+    const tags = /<\/?[A-Za-z](?:"[^"]*"|'[^']*'|[^'"<>])*?>/g;
+    const spans = [...text.matchAll(opaque), ...text.matchAll(tags)].map((match): [number, number] => [match.index, match.index + match[0].length]).sort(([left], [right]) => left - right);
+    const merged: [number, number][] = [];
+    for (const [start, end] of spans) {
+      const previous = merged[merged.length - 1];
+      if (previous && start <= previous[1]) previous[1] = Math.max(previous[1], end);
+      else merged.push([start, end]);
     }
-    return spans;
+    return merged;
   }
 
   private markdownLinkDestinationSpans(text: string): [number, number][] {

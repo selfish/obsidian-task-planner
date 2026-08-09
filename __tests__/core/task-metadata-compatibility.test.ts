@@ -152,9 +152,15 @@ describe("Tasks metadata compatibility matrix", () => {
     expect(parser.appendTag(text, "next")).toBe(`${text} #next`);
   });
 
-  it("edits metadata after an angle-bracket declaration", () => {
-    const text = "Decl <!ELEMENT foo '>[due:: 2026-07-23]'>";
-    expect(parser.updateAttribute(text, "due", "2026-07-24")).toBe("Decl <!ELEMENT foo '>[due:: 2026-07-24]'>");
+  it.each(["ELEMENT", "doctype"])("edits metadata after an angle-bracket %s declaration", (name) => {
+    const text = `Decl <!${name} foo '>[due:: 2026-07-23]'>`;
+    expect(parser.updateAttribute(text, "due", "2026-07-24")).toBe(`Decl <!${name} foo '>[due:: 2026-07-24]'>`);
+  });
+
+  it.each(['<span title="oops then ', "<!-- then ", "<? then ", "<![CDATA[ then "])("recovers a later angle context after malformed text: %s", (prefix) => {
+    const text = `Broken ${prefix}<https://example.test/[due::hidden]>`;
+    expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
+    expect(parser.updateAttribute(text, "due", undefined)).toBe(text);
   });
 
   it.each(["- [ ] Task `(due:: same)` (due:: same)", "- [ ] Task [[Page|(due:: same)]] (due:: same)"])("preserves identical protected field text when parsing real metadata: %s", (source) => {
