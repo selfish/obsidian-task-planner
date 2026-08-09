@@ -750,7 +750,12 @@ describe('LineParser', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const operations = new StatusOperations(DEFAULT_SETTINGS);
 
-      for (const text of ['Contact alice@high.example', 'Contact "alice"@high.example', 'Contact 用户@high.example']) {
+      for (const text of [
+        'Contact alice@high.example',
+        'Contact "alice"@high.example',
+        'Contact 用户@high.example',
+        'Contact alice@high.example/bob@low.test',
+      ]) {
         expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
         expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
         expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
@@ -765,7 +770,7 @@ describe('LineParser', () => {
         },
       };
       const customParser = new LineParser(customSettings);
-      const customText = 'Contact "alice"@work.example';
+      const customText = 'Contact alice@work.example/bob@work.test';
       expect(customParser.parseAttributes(customText).attributes).toEqual({});
       expect(customParser.updateAttribute(customText, 'context', 'home')).toBe(`${customText} [context:: home]`);
       expect(customParser.updateAttribute(customText, 'context', undefined)).toBe(customText);
