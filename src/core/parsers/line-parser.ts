@@ -534,8 +534,29 @@ export class LineParser {
   }
 
   private emailSpans(text: string): [number, number][] {
-    const email = /(?:[^\s"(),:;<>@.[\]\\]+(?:\.[^\s"(),:;<>@.[\]\\]+)*|"(?:\\.|[^"\\])*")@[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?)+/gu;
-    return [...text.matchAll(email)].map((match) => [match.index, match.index + match[0].length]);
+    const spans: [number, number][] = [];
+    const domains = /@[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?)+/gu;
+    for (const domain of text.matchAll(domains)) {
+      let start = domain.index;
+      if (text[start - 1] === '"') {
+        let escapes = 0;
+        for (let index = start - 2; text[index] === "\\"; index--) escapes++;
+        if (escapes % 2) continue;
+        for (start -= 2; start >= 0; start--) {
+          if (text[start] !== '"') continue;
+          escapes = 0;
+          for (let index = start - 1; text[index] === "\\"; index--) escapes++;
+          if (escapes % 2 === 0) break;
+        }
+        if (start < 0) continue;
+      } else {
+        while (start > 0 && !/[\s"(),:;<>@[\]\\]/u.test(text[start - 1])) start--;
+        const local = text.slice(start, domain.index);
+        if (!local || local.startsWith(".") || local.endsWith(".") || local.includes("..")) continue;
+      }
+      spans.push([start, domain.index + domain[0].length]);
+    }
+    return spans;
   }
 
   private escapedHashSpans(text: string): [number, number][] {
