@@ -357,6 +357,23 @@ describe('TaskIndex', () => {
       expect(updateHandler).toHaveBeenCalled();
     });
 
+    it('should remove an indexed file that became archived before deletion', async () => {
+      const file = createMockFileAdapter('archived', true);
+      const index = new TaskIndex(deps, settings);
+      index.files = [{ file, tasks: [createTodo('Task', file)] }];
+      expect(index.tasks).toHaveLength(1);
+      const updateHandler = jest.fn().mockResolvedValue(undefined);
+      index.onUpdateEvent.listen(updateHandler);
+      settings.ignoreArchivedTasks = true;
+      settings.ignoredFolders = ['archive'];
+
+      await index.fileDeleted(file);
+
+      expect(index.files).toEqual([]);
+      expect(index.tasks).toEqual([]);
+      expect(updateHandler).toHaveBeenCalled();
+    });
+
     it('should ignore archived files when ignoreArchivedTasks is true', () => {
       const settings: TaskIndexSettings = {
         ignoreArchivedTasks: true,

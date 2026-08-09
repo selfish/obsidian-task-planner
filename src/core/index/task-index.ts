@@ -136,12 +136,12 @@ export class TaskIndex<T> {
     const loading = this.filesLoading !== null;
     this.markChanged(file);
     this.activeParses.delete(file.file);
-    if (this.ignoreFile(file)) return;
+    const ignored = this.ignoreFile(file);
 
     this.deps.logger.debug(`TaskIndex: File deleted: ${file.id}`);
     const index = this.findFileIndexByIdentity(file, file.id);
     if (index < 0) {
-      if (loading) return;
+      if (ignored || loading) return;
       this.deps.logger.error(`Tasks not found for file '${file.name}'`);
       throw Error(`TaskIndex: File not found in index: ${file.id}`);
     }
