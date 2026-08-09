@@ -753,6 +753,7 @@ describe('LineParser', () => {
       for (const text of [
         'Contact alice@high.example',
         'Contact "alice"@high.example',
+        'Contact "ali\\"ce"@high.example',
         'Contact 用户@high.example',
         'Contact alice@high.example/bob@low.test',
       ]) {
@@ -779,6 +780,9 @@ describe('LineParser', () => {
       expect(parser.parseAttributes('Task.@high').attributes).toEqual({ priority: 'high' });
       expect(parser.updateAttribute('Task.@high', 'priority', 'low')).toBe('Task.[priority:: low]');
       expect(parser.parseAttributes('Contact alice@high.example;@high').attributes).toEqual({ priority: 'high' });
+      for (const text of ['Contact "alice\\"@high.example', 'Contact alice"@high.example', 'Contact @high.example']) {
+        expect(parser.parseAttributes(text).attributes).toEqual({ priority: 'high' });
+      }
       const spaced = '  Contact\t alice@high.example  ';
       expect(parser.parseAttributes(spaced)).toEqual({ textWithoutAttributes: spaced, attributes: {}, tags: [] });
     });
