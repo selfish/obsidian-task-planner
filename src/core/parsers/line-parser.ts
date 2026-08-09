@@ -144,7 +144,7 @@ export class LineParser {
   }
 
   private acceptedAttributes(text: string, matches: RegExpMatchArray[] = [...text.matchAll(this.getAttributeRegex())]): { match: RegExpMatchArray; key: string; value: string | boolean }[] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text)];
     const containers = this.delimiterSpans(text, ignored);
     const accepted: { match: RegExpMatchArray; key: string; value: string | boolean }[] = [];
     for (const match of matches) {
@@ -216,7 +216,7 @@ export class LineParser {
   }
 
   private attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text)];
     const containers = this.delimiterSpans(text, ignored);
     const shortcutIgnored = [...ignored, ...containers];
     const matches: { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] = [...text.matchAll(/\[\s*([^:[\]]+?)\s*::\s*([^[\]]*)\]|\(\s*([^:()[\]]+?)\s*::\s*([^()[\]]*)\)/g)]
@@ -320,7 +320,7 @@ export class LineParser {
     const candidates: [number, number][] = [];
     const squareStack: number[] = [];
     const roundStack: number[] = [];
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)].sort(([left], [right]) => left - right);
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text)].sort(([left], [right]) => left - right);
     let ignoredIndex = 0;
     for (let index = 0; index < text.length; index++) {
       while (ignoredIndex < ignored.length && index >= ignored[ignoredIndex][1]) ignoredIndex++;
@@ -354,7 +354,7 @@ export class LineParser {
   }
 
   private topLevelMetadataSpans(text: string): [number, number][] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text)];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text)];
     return this.delimiterSpans(text, ignored).filter(([start, end]) => this.isMetadataSpan(text, start, end));
   }
 
