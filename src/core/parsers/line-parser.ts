@@ -587,7 +587,7 @@ export class LineParser {
   }
 
   private tagContextSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.escapedHashSpans(text)].sort(([left], [right]) => left - right);
+    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.escapedHashSpans(text)].sort(([left], [right]) => left - right);
     const merged: [number, number][] = [];
     for (const [start, end] of spans) {
       const previous = merged[merged.length - 1];
