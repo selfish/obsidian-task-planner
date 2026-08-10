@@ -149,9 +149,11 @@ export class LineParser {
     const containers = this.delimiterSpans(text, ignored);
     const accepted: { match: RegExpMatchArray; key: string; value: string | boolean }[] = [];
     for (const match of matches) {
-      if (this.isInside(match.index, ignored)) continue;
+      if (this.isInside(match.index, ignored) || this.isEscaped(text, match.index)) continue;
       const opener = match[0][0];
       if (opener === "[" || opener === "(") {
+        const separator = match.index + match[0].indexOf("::");
+        if (this.isEscaped(text, separator) || this.isEscaped(text, separator + 1)) continue;
         if (!containers.some(([start, end]) => start === match.index && end === match.index + match[0].length)) continue;
       } else if (this.isInside(match.index, containers)) {
         continue;
@@ -219,43 +221,21 @@ export class LineParser {
   private attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
     const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
-    const shortcutIgnored = this.mergeSpans([...ignored, ...containers]);
     const matches: { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] = [...text.matchAll(/\[\s*([^:[\]]+?)\s*::\s*([^[\]]*)\]|\(\s*([^:()[\]]+?)\s*::\s*([^()[\]]*)\)/g)]
       .filter((match) => this.parseSingleAttribute(match[0]) !== null)
       .filter((match) => (match[1] ?? match[3]).trim().toLowerCase() === key.toLowerCase())
-      .filter((match) => !this.isInside(match.index, ignored))
+      .filter((match) => !this.isInside(match.index, ignored) && !this.isEscaped(text, match.index))
+      .filter((match) => {
+        const separator = match.index + match[0].indexOf("::");
+        return !this.isEscaped(text, separator) && !this.isEscaped(text, separator + 1);
+      })
       .filter((match) => containers.some(([start, end]) => start === match.index && end === match.index + match[0].length))
       .map((match) => ({ start: match.index, end: match.index + match[0].length, parenthesized: match[0][0] === "(" }));
 
-    const shortcutSettings = this.settings?.atShortcutSettings;
-    if (!shortcutSettings || shortcutSettings.enableAtShortcuts) {
-      const shortcuts: string[] = [];
-      if (key.toLowerCase() === "priority" && (!shortcutSettings || shortcutSettings.enablePriorityShortcuts)) {
-        shortcuts.push(...LineParser.PRIORITY_SHORTCUTS);
-        if (!shortcutSettings) shortcuts.push(key);
-      } else if (!shortcutSettings) {
-        shortcuts.push(key);
-      } else if (key.toLowerCase() === "selected" && shortcutSettings.enableBuiltinShortcuts) {
-        shortcuts.push("selected");
-      } else if (shortcutSettings.enableDateShortcuts && Completion.completeDate(key) !== null) {
-        shortcuts.push(key);
-      }
-      for (const keyword of shortcuts) {
-        const pattern = new RegExp(`@${this.escapeRegex(keyword)}(?![(\\w])`, "gi");
-        for (const match of text.matchAll(pattern)) {
-          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
-        }
-      }
-      for (const shortcut of shortcutSettings?.customShortcuts ?? []) {
-        if (shortcut.targetAttribute.toLowerCase() !== key.toLowerCase()) continue;
-        if (!/^\w+$/.test(shortcut.keyword)) continue;
-        const resolved = this.parseSingleAttribute(`@${shortcut.keyword}`);
-        if (resolved === null || resolved[0].toLowerCase() !== shortcut.targetAttribute.toLowerCase() || resolved[1] !== shortcut.value) continue;
-        const pattern = new RegExp(`@${this.escapeRegex(shortcut.keyword)}(?![(\\w])`, "gi");
-        for (const match of text.matchAll(pattern)) {
-          if (!this.isInside(match.index, shortcutIgnored)) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
-        }
-      }
+    for (const { match, key: shortcutKey, value } of this.acceptedAttributes(text)) {
+      if (match[0][0] !== "@") continue;
+      const target = value === true && LineParser.PRIORITY_SHORTCUTS.includes(shortcutKey) ? "priority" : shortcutKey;
+      if (target.toLowerCase() === key.toLowerCase()) matches.push({ start: match.index, end: match.index + match[0].length, shortcut: true });
     }
 
     return Array.from(new Map(matches.map((match) => [`${match.start}:${match.end}`, match])).values()).sort((left, right) => left.start - right.start);
@@ -294,6 +274,12 @@ export class LineParser {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
+  private isEscaped(text: string, index: number): boolean {
+    let backslashes = 0;
+    while (text[--index] === "\\") backslashes++;
+    return backslashes % 2 === 1;
+  }
+
   private delimiterSpans(text: string, ignored: [number, number][]): [number, number][] {
     const spans: [number, number][] = [];
     ignored.sort(([left], [right]) => left - right);
@@ -311,6 +297,7 @@ export class LineParser {
       }
       const opener = text[start];
       if (opener !== "[" && opener !== "(") continue;
+      if (this.isEscaped(text, start)) continue;
       const closer = opener === "[" ? "]" : ")";
       let depth = 1;
       let end = start + 1;
@@ -320,8 +307,8 @@ export class LineParser {
           end = skipTo;
           continue;
         }
-        if (text[end] === opener) depth++;
-        else if (text[end] === closer) depth--;
+        if (text[end] === opener && !this.isEscaped(text, end)) depth++;
+        else if (text[end] === closer && !this.isEscaped(text, end)) depth--;
         end++;
       }
       spans.push([start, end]);
@@ -342,6 +329,7 @@ export class LineParser {
         index = ignored[ignoredIndex][1] - 1;
         continue;
       }
+      if (this.isEscaped(text, index)) continue;
       if (text[index] === "[") squareStack.push(index);
       else if (text[index] === "(") roundStack.push(index);
       else if (text[index] === "]") {
@@ -378,7 +366,7 @@ export class LineParser {
     let index = start + 1;
     while (index < limit && /\s/.test(text[index])) index++;
     for (; index < limit && !/[()[\]]/.test(text[index]); index++) {
-      if (text[index] === ":" && text[index + 1] === ":") return true;
+      if (text[index] === ":" && text[index + 1] === ":" && !this.isEscaped(text, index) && !this.isEscaped(text, index + 1)) return true;
     }
     return false;
   }
