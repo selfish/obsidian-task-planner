@@ -667,6 +667,16 @@ describe('LineParser', () => {
       expect(custom.updateAttribute(customText, 'context', 'home')).toBe(`${customText} [context:: home]`);
     });
 
+    it('preserves hashtags inside angle contexts while parsing and removing tags', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const protectedText = 'Open <a href="#work">section</a> <!-- #work -->';
+
+      expect(parser.parseAttributes(protectedText).tags).toEqual([]);
+      expect(parser.hasTag(protectedText, 'work')).toBe(false);
+      expect(parser.removeTag(protectedText, 'work')).toBe(protectedText);
+      expect(parser.removeTag(`${protectedText} #work`, 'work')).toBe(protectedText);
+    });
+
     it('preserves hashtag-looking URL fragments while parsing and removing tags', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const text = 'Read [docs](https://example.com/#work) or https://example.com/#work #work';
