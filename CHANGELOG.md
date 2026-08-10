@@ -6,6 +6,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Fixed
 
+- Preserved Markdown link destinations that resemble parenthesized Dataview fields during metadata edits.
 - Preserved hashtags inside HTML tags, comments, and other angle-bracket contexts during tag parsing and removal.
 - Preserved escaped Dataview attributes and `@` shortcuts as literal task text during metadata parsing and edits.
 - Preserved enabled `@` shortcuts inside bare email addresses with dotted domains during metadata parsing and edits.
