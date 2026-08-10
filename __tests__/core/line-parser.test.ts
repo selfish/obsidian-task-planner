@@ -631,6 +631,42 @@ describe('LineParser', () => {
       expect(parser.parseAttributes(String.raw`Literal \\#work`).tags).toEqual(['work']);
     });
 
+    it('preserves escaped attribute syntax while parsing and mutating', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      const operations = new StatusOperations(DEFAULT_SETTINGS);
+      for (const text of [
+        String.raw`Literal \@high`,
+        String.raw`Literal \[priority:: high]`,
+        String.raw`Literal \(priority:: high)`,
+        String.raw`Literal [priority\:: high]`,
+        String.raw`Literal \[@high]`,
+        String.raw`Literal \[note:: @high]`,
+      ]) {
+        expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
+        expect(parser.updateAttribute(text, 'priority', undefined)).toBe(text);
+        expect(parser.updateAttribute(text, 'priority', 'low')).toBe(`${text} [priority:: low]`);
+        expect(operations.convertAttributes(`- [ ] ${text}`)).toBe(`- [ ] ${text}`);
+      }
+
+      expect(parser.parseAttributes(String.raw`Literal \[open [priority:: high]`)).toEqual({
+        textWithoutAttributes: String.raw`Literal \[open`,
+        attributes: { priority: 'high' },
+        tags: [],
+      });
+      expect(parser.parseAttributes(String.raw`Literal \\@high`).attributes).toEqual({ priority: 'high' });
+
+      const custom = new LineParser({
+        ...DEFAULT_SETTINGS,
+        atShortcutSettings: {
+          ...DEFAULT_SETTINGS.atShortcutSettings,
+          customShortcuts: [{ keyword: 'work', targetAttribute: 'context', value: 'work' }],
+        },
+      });
+      const customText = String.raw`Literal \[@work]`;
+      expect(custom.parseAttributes(customText).attributes).toEqual({});
+      expect(custom.updateAttribute(customText, 'context', 'home')).toBe(`${customText} [context:: home]`);
+    });
+
     it('preserves hashtag-looking URL fragments while parsing and removing tags', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const text = 'Read [docs](https://example.com/#work) or https://example.com/#work #work';
