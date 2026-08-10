@@ -132,6 +132,17 @@ describe("Tasks metadata compatibility matrix", () => {
     });
   });
 
+  it("preserves a parenthesized field-shaped Markdown link destination during metadata edits", async () => {
+    const text = "Read [docs](due::old)";
+    expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
+    expect(parser.updateAttribute(text, "due", "2026-08-11")).toBe(`${text} [due:: 2026-08-11]`);
+    expect(parser.appendTag(text, "planned")).toBe(`${text} #planned`);
+
+    const state = editableTask(`- [ ] ${text}`);
+    await new FileOperations().removeAttribute(state.task, "due");
+    expect(state.content()).toBe(`- [ ] ${text}`);
+  });
+
   it.each([
     "Read <https://example.test/[due::secret]>",
     'Read <https://example.test/"[due::secret]>',

@@ -145,7 +145,7 @@ export class LineParser {
   }
 
   private acceptedAttributes(text: string, matches: RegExpMatchArray[] = [...text.matchAll(this.getAttributeRegex())]): { match: RegExpMatchArray; key: string; value: string | boolean }[] {
-    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
+    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
     const accepted: { match: RegExpMatchArray; key: string; value: string | boolean }[] = [];
     for (const match of matches) {
@@ -219,7 +219,7 @@ export class LineParser {
   }
 
   private attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
-    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
+    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
     const matches: { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] = [...text.matchAll(/\[\s*([^:[\]]+?)\s*::\s*([^[\]]*)\]|\(\s*([^:()[\]]+?)\s*::\s*([^()[\]]*)\)/g)]
       .filter((match) => this.parseSingleAttribute(match[0]) !== null)
@@ -356,7 +356,7 @@ export class LineParser {
   }
 
   private topLevelMetadataSpans(text: string): [number, number][] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text)];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text)];
     return this.delimiterSpans(text, ignored).filter(([start, end]) => this.isMetadataSpan(text, start, end));
   }
 
@@ -440,7 +440,7 @@ export class LineParser {
         if (!label || label.containsLink || text[index + 1] !== "(") continue;
         const end = this.markdownLinkDestinationEnd(text, index + 2);
         if (end === undefined) continue;
-        spans.push([index + 2, end]);
+        spans.push([index + 1, end + 1]);
         if (!label.image) {
           for (let bracket = brackets.length - 1; bracket >= 0 && !brackets[bracket].image; bracket--) brackets[bracket].containsLink = true;
         }
