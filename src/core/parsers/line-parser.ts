@@ -145,7 +145,7 @@ export class LineParser {
   }
 
   private acceptedAttributes(text: string, matches: RegExpMatchArray[] = [...text.matchAll(this.getAttributeRegex())]): { match: RegExpMatchArray; key: string; value: string | boolean }[] {
-    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
+    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkSpans(text, true), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
     const accepted: { match: RegExpMatchArray; key: string; value: string | boolean }[] = [];
     for (const match of matches) {
@@ -219,7 +219,7 @@ export class LineParser {
   }
 
   private attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
-    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)]);
+    const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkSpans(text, true), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
     const matches: { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] = [...text.matchAll(/\[\s*([^:[\]]+?)\s*::\s*([^[\]]*)\]|\(\s*([^:()[\]]+?)\s*::\s*([^()[\]]*)\)/g)]
       .filter((match) => this.parseSingleAttribute(match[0]) !== null)
@@ -356,7 +356,7 @@ export class LineParser {
   }
 
   private topLevelMetadataSpans(text: string): [number, number][] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkSpans(text, true), ...this.uriSpans(text), ...this.emailSpans(text)];
     return this.delimiterSpans(text, ignored).filter(([start, end]) => this.isMetadataSpan(text, start, end));
   }
 
@@ -418,14 +418,14 @@ export class LineParser {
     return merged;
   }
 
-  private markdownLinkDestinationSpans(text: string): [number, number][] {
+  private markdownLinkSpans(text: string, includeLabels = false): [number, number][] {
     const spans: [number, number][] = [];
     const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text)].sort(([left], [right]) => left - right);
     const escaped = new Uint8Array(text.length);
     for (let index = 0; index < text.length - 1; index++) {
       if (text[index] === "\\" && !escaped[index] && LineParser.ESCAPABLE_PUNCTUATION.test(text[index + 1])) escaped[index + 1] = 1;
     }
-    const brackets: { containsLink: boolean; image: boolean }[] = [];
+    const brackets: { start: number; containsLink: boolean; image: boolean }[] = [];
     let ignoredIndex = 0;
     for (let index = 0; index < text.length; index++) {
       while (ignoredIndex < ignored.length && index >= ignored[ignoredIndex][1]) ignoredIndex++;
@@ -434,13 +434,13 @@ export class LineParser {
         continue;
       }
       if (escaped[index]) continue;
-      if (text[index] === "[") brackets.push({ containsLink: false, image: text[index - 1] === "!" && !escaped[index - 1] });
+      if (text[index] === "[") brackets.push({ start: index, containsLink: false, image: text[index - 1] === "!" && !escaped[index - 1] });
       else if (text[index] === "]") {
         const label = brackets.pop();
         if (!label || label.containsLink || text[index + 1] !== "(") continue;
         const end = this.markdownLinkDestinationEnd(text, index + 2);
         if (end === undefined) continue;
-        spans.push([index + 1, end + 1]);
+        spans.push([includeLabels ? label.start : index + 1, end + 1]);
         if (!label.image) {
           for (let bracket = brackets.length - 1; bracket >= 0 && !brackets[bracket].image; bracket--) brackets[bracket].containsLink = true;
         }
@@ -590,7 +590,7 @@ export class LineParser {
   }
 
   private tagContextSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text), ...this.escapedHashSpans(text)].sort(
+    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkSpans(text), ...this.uriSpans(text), ...this.emailSpans(text), ...this.escapedHashSpans(text)].sort(
       ([left], [right]) => left - right
     );
     const merged: [number, number][] = [];
