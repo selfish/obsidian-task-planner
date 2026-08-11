@@ -807,15 +807,18 @@ describe('LineParser', () => {
       expect(parser.removeTag(`${taggedLocal} #work`, 'work')).toBe(taggedLocal);
       expect(parser.parseAttributes(`${taggedLocal}#next`).tags).toEqual(['next']);
       expect(parser.removeTag(`${taggedLocal}#next`, 'next')).toBe(taggedLocal);
-      expect(parser.parseAttributes(`${taggedLocal}.`).tags).toEqual([]);
-      expect(parser.removeTag(`${taggedLocal}.`, 'work')).toBe(`${taggedLocal}.`);
-      expect(parser.parseAttributes(`${taggedLocal}.#next`).tags).toEqual(['next']);
-      expect(parser.removeTag(`${taggedLocal}.#next`, 'next')).toBe(`${taggedLocal}.`);
+      for (const suffix of ['.', '..', '...']) {
+        expect(parser.parseAttributes(`${taggedLocal}${suffix}`).tags).toEqual([]);
+        expect(parser.removeTag(`${taggedLocal}${suffix}`, 'work')).toBe(`${taggedLocal}${suffix}`);
+        expect(parser.parseAttributes(`${taggedLocal}${suffix}#next`).tags).toEqual(['next']);
+        expect(parser.removeTag(`${taggedLocal}${suffix}#next`, 'next')).toBe(`${taggedLocal}${suffix}`);
+      }
 
-      const malformedDomain = 'Contact foo#work@example.com_extra';
-      expect(parser.parseAttributes(malformedDomain).tags).toEqual(['work']);
-      expect(parser.hasTag(malformedDomain, 'work')).toBe(true);
-      expect(parser.removeTag(malformedDomain, 'work')).toBe('Contact foo@example.com_extra');
+      for (const malformedDomain of ['Contact foo#work@example.com_extra', 'Contact foo#work@example.com..extra']) {
+        expect(parser.parseAttributes(malformedDomain).tags).toEqual(['work']);
+        expect(parser.hasTag(malformedDomain, 'work')).toBe(true);
+        expect(parser.removeTag(malformedDomain, 'work')).toBe(malformedDomain.replace('#work', ''));
+      }
 
       for (const text of [
         'Contact alice@high.example',
@@ -867,8 +870,9 @@ describe('LineParser', () => {
       expect(parser.parseAttributes(repeated).textWithoutAttributes).toBe(repeated);
       expect(Date.now() - repeatedStarted).toBeLessThan(1_000);
 
-      const punctuation = `Task ${'a.'.repeat(50_000)}`;
+      const punctuation = `Contact foo#work@example.com${'.'.repeat(50_000)}`;
       const punctuationStarted = Date.now();
+      expect(parser.parseAttributes(punctuation).tags).toEqual([]);
       expect(parser.appendTag(punctuation, 'next')).toBe(`${punctuation} #next`);
       expect(Date.now() - punctuationStarted).toBeLessThan(500);
     });
