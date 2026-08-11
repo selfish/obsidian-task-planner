@@ -497,11 +497,14 @@ export class LineParser {
 
   private uriSpans(text: string): [number, number][] {
     const spans: [number, number][] = [];
-    const uriStart = /(?<![a-z0-9_+.-])[a-z][a-z0-9+.-]*:(?!:)/gi;
+    const uriColon = /:(?!:)/g;
     let match: RegExpExecArray | null;
-    while ((match = uriStart.exec(text))) {
-      if (text[match.index - 1] === "#") continue;
-      let end = match.index + match[0].length;
+    while ((match = uriColon.exec(text))) {
+      let start = match.index;
+      while (start > 0 && /[a-z0-9+.-]/i.test(text[start - 1])) start--;
+      while (/[+.-]/.test(text[start])) start++;
+      if (!/[a-z]/i.test(text[start]) || (start > 0 && /[a-z0-9_#]/i.test(text[start - 1]))) continue;
+      let end = match.index + 1;
       let parentheses = 0;
       let squares = 0;
       while (end < text.length && !/(?:\s|[<>"'`{}])/.test(text[end])) {
@@ -516,8 +519,8 @@ export class LineParser {
         }
         end++;
       }
-      spans.push([match.index, end]);
-      uriStart.lastIndex = end;
+      spans.push([start, end]);
+      uriColon.lastIndex = end;
     }
     return spans;
   }
