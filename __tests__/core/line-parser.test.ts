@@ -685,6 +685,10 @@ describe('LineParser', () => {
       expect(parser.parseAttributes(text).tags).toEqual(['work']);
       expect(parser.removeTag(text, 'work')).toBe('Read [docs](https://example.com/#work) or https://example.com/#work');
 
+      for (const url of ['https://example.test/(due::x)', 'https://example.test/[due::x]']) {
+        expect(parser.appendTag(`Read ${url}`, 'next')).toBe(`Read ${url} #next`);
+      }
+
       expect(parser.parseAttributes('Read [docs](https://example.com)#work').tags).toEqual(['work']);
       expect(parser.removeTag('Read [docs](https://example.com)#work', 'work')).toBe('Read [docs](https://example.com)');
 
@@ -795,6 +799,12 @@ describe('LineParser', () => {
     it('preserves recognized shortcuts inside bare email addresses', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const operations = new StatusOperations(DEFAULT_SETTINGS);
+
+      const taggedLocal = 'Contact foo#work@example.com';
+      expect(parser.parseAttributes(taggedLocal).tags).toEqual([]);
+      expect(parser.hasTag(taggedLocal, 'work')).toBe(false);
+      expect(parser.removeTag(taggedLocal, 'work')).toBe(taggedLocal);
+      expect(parser.removeTag(`${taggedLocal} #work`, 'work')).toBe(taggedLocal);
 
       for (const text of [
         'Contact alice@high.example',

@@ -356,7 +356,7 @@ export class LineParser {
   }
 
   private topLevelMetadataSpans(text: string): [number, number][] {
-    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text)];
+    const ignored = [...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text)];
     return this.delimiterSpans(text, ignored).filter(([start, end]) => this.isMetadataSpan(text, start, end));
   }
 
@@ -587,7 +587,9 @@ export class LineParser {
   }
 
   private tagContextSpans(text: string): [number, number][] {
-    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.escapedHashSpans(text)].sort(([left], [right]) => left - right);
+    const spans: [number, number][] = [...this.metadataSpans(text), ...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkDestinationSpans(text), ...this.uriSpans(text), ...this.emailSpans(text), ...this.escapedHashSpans(text)].sort(
+      ([left], [right]) => left - right
+    );
     const merged: [number, number][] = [];
     for (const [start, end] of spans) {
       const previous = merged[merged.length - 1];
