@@ -807,6 +807,10 @@ describe('LineParser', () => {
       expect(parser.removeTag(`${taggedLocal} #work`, 'work')).toBe(taggedLocal);
       expect(parser.parseAttributes(`${taggedLocal}#next`).tags).toEqual(['next']);
       expect(parser.removeTag(`${taggedLocal}#next`, 'next')).toBe(taggedLocal);
+      expect(parser.parseAttributes(`${taggedLocal}.`).tags).toEqual([]);
+      expect(parser.removeTag(`${taggedLocal}.`, 'work')).toBe(`${taggedLocal}.`);
+      expect(parser.parseAttributes(`${taggedLocal}.#next`).tags).toEqual(['next']);
+      expect(parser.removeTag(`${taggedLocal}.#next`, 'next')).toBe(`${taggedLocal}.`);
 
       const malformedDomain = 'Contact foo#work@example.com_extra';
       expect(parser.parseAttributes(malformedDomain).tags).toEqual(['work']);

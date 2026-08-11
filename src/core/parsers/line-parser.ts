@@ -524,7 +524,7 @@ export class LineParser {
 
   private emailSpans(text: string): [number, number][] {
     const spans: [number, number][] = [];
-    const domains = /@[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?)+(?![\p{L}\p{M}\p{N}_.-])/gu;
+    const domains = /@[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?)+(?![\p{L}\p{M}\p{N}_-]|\.[\p{L}\p{M}\p{N}_.-])/gu;
     for (const domain of text.matchAll(domains)) {
       let start = domain.index;
       if (text[start - 1] === '"') {
