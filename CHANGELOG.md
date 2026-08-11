@@ -6,6 +6,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Fixed
 
+- Preserved field-shaped Markdown link and image labels during metadata and tag edits.
 - Preserved hashtags inside bare email addresses with dotted domains and metadata-shaped text inside bare URLs during tag edits.
 - Preserved Markdown link destinations that resemble parenthesized Dataview fields during metadata edits.
 - Preserved hashtags inside HTML tags, comments, and other angle-bracket contexts during tag parsing and removal.

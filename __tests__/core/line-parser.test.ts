@@ -631,6 +631,25 @@ describe('LineParser', () => {
       expect(parser.parseAttributes(String.raw`Literal \\#work`).tags).toEqual(['work']);
     });
 
+    it('preserves field-shaped Markdown link labels while parsing and mutating', () => {
+      const parser = new LineParser(DEFAULT_SETTINGS);
+      for (const text of ['[due:: screenshot](pic.png)', '![due:: screenshot](pic.png)', '[(due:: screenshot)](pic.png)']) {
+        expect(parser.parseAttributes(text)).toEqual({ textWithoutAttributes: text, attributes: {}, tags: [] });
+        expect(parser.updateAttribute(text, 'due', undefined)).toBe(text);
+        expect(parser.updateAttribute(text, 'due', 'tomorrow')).toBe(`${text} [due:: tomorrow]`);
+        expect(parser.appendTag(text, 'planned')).toBe(`${text} #planned`);
+      }
+
+      const adjacent = '[due:: screenshot](pic.png) [due:: today]';
+      expect(parser.parseAttributes(adjacent)).toEqual({
+        textWithoutAttributes: '[due:: screenshot](pic.png)',
+        attributes: { due: 'today' },
+        tags: [],
+      });
+      expect(parser.updateAttribute(adjacent, 'due', 'tomorrow')).toBe('[due:: screenshot](pic.png) [due:: tomorrow]');
+      expect(parser.appendTag(adjacent, 'planned')).toBe('[due:: screenshot](pic.png) #planned [due:: today]');
+    });
+
     it('preserves escaped attribute syntax while parsing and mutating', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const operations = new StatusOperations(DEFAULT_SETTINGS);
