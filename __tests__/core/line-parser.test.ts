@@ -805,6 +805,13 @@ describe('LineParser', () => {
       expect(parser.hasTag(taggedLocal, 'work')).toBe(false);
       expect(parser.removeTag(taggedLocal, 'work')).toBe(taggedLocal);
       expect(parser.removeTag(`${taggedLocal} #work`, 'work')).toBe(taggedLocal);
+      expect(parser.parseAttributes(`${taggedLocal}#next`).tags).toEqual(['next']);
+      expect(parser.removeTag(`${taggedLocal}#next`, 'next')).toBe(taggedLocal);
+
+      const malformedDomain = 'Contact foo#work@example.com_extra';
+      expect(parser.parseAttributes(malformedDomain).tags).toEqual(['work']);
+      expect(parser.hasTag(malformedDomain, 'work')).toBe(true);
+      expect(parser.removeTag(malformedDomain, 'work')).toBe('Contact foo@example.com_extra');
 
       for (const text of [
         'Contact alice@high.example',
@@ -843,7 +850,7 @@ describe('LineParser', () => {
       expect(parser.parseAttributes(spaced)).toEqual({ textWithoutAttributes: spaced, attributes: {}, tags: [] });
     });
 
-    it('keeps email-like input parsing bounded', () => {
+    it('keeps address-like input parsing bounded', () => {
       const parser = new LineParser(DEFAULT_SETTINGS);
       const local = 'x'.repeat(64_000);
       const started = Date.now();
@@ -855,6 +862,11 @@ describe('LineParser', () => {
       const repeatedStarted = Date.now();
       expect(parser.parseAttributes(repeated).textWithoutAttributes).toBe(repeated);
       expect(Date.now() - repeatedStarted).toBeLessThan(1_000);
+
+      const punctuation = `Task ${'a.'.repeat(50_000)}`;
+      const punctuationStarted = Date.now();
+      expect(parser.appendTag(punctuation, 'next')).toBe(`${punctuation} #next`);
+      expect(Date.now() - punctuationStarted).toBeLessThan(500);
     });
 
     it('does not mutate square syntax nested inside unknown metadata', () => {

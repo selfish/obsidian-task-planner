@@ -497,7 +497,7 @@ export class LineParser {
 
   private uriSpans(text: string): [number, number][] {
     const spans: [number, number][] = [];
-    const uriStart = /\b[a-z][a-z0-9+.-]*:(?!:)/gi;
+    const uriStart = /(?<![a-z0-9_+.-])[a-z][a-z0-9+.-]*:(?!:)/gi;
     let match: RegExpExecArray | null;
     while ((match = uriStart.exec(text))) {
       if (text[match.index - 1] === "#") continue;
@@ -524,7 +524,7 @@ export class LineParser {
 
   private emailSpans(text: string): [number, number][] {
     const spans: [number, number][] = [];
-    const domains = /@[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?)+/gu;
+    const domains = /@[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{M}\p{N}-]*[\p{L}\p{M}\p{N}])?)+(?![\p{L}\p{M}\p{N}_.-])/gu;
     for (const domain of text.matchAll(domains)) {
       let start = domain.index;
       if (text[start - 1] === '"') {
