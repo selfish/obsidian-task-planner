@@ -689,6 +689,15 @@ describe('LineParser', () => {
         expect(parser.appendTag(`Read ${url}`, 'next')).toBe(`Read ${url} #next`);
       }
 
+      for (const punctuation of ['-', '+', '.']) {
+        const fragmentUrl = `${punctuation}https://example.test/#work`;
+        expect(parser.parseAttributes(fragmentUrl).tags).toEqual([]);
+        expect(parser.removeTag(fragmentUrl, 'work')).toBe(fragmentUrl);
+
+        const metadataUrl = `${punctuation}https://example.test/(due::x)`;
+        expect(parser.appendTag(metadataUrl, 'next')).toBe(`${metadataUrl} #next`);
+      }
+
       expect(parser.parseAttributes('Read [docs](https://example.com)#work').tags).toEqual(['work']);
       expect(parser.removeTag('Read [docs](https://example.com)#work', 'work')).toBe('Read [docs](https://example.com)');
 
