@@ -252,6 +252,24 @@ describe('FileOperations', () => {
       expect(calls[0][0]).not.toContain('[completed::');
     });
 
+    it('should use a recorded completion date when restoring status', async () => {
+      const file = createMockFileAdapter('- [-] Task [completed:: 2026-08-12]');
+      const todo = createTodo('Task', 0, file, TaskStatus.Complete);
+
+      await operations.updateTaskStatus(todo, 'completed', '2025-01-10');
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe('- [x] Task [completed:: 2025-01-10]');
+    });
+
+    it('should restore a completed status without inventing a missing completion date', async () => {
+      const file = createMockFileAdapter('- [-] Task [completed:: 2026-08-12]');
+      const todo = createTodo('Task', 0, file, TaskStatus.Complete);
+
+      await operations.updateTaskStatus(todo, 'completed', null);
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe('- [x] Task');
+    });
+
     it('should handle unknown status with empty checkbox', async () => {
       const fileContent = '- [ ] Task';
       const file = createMockFileAdapter(fileContent);
