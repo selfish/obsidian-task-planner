@@ -471,7 +471,7 @@ export class UndoableFileOperations {
       if (task) {
         try {
           task.status = change.previousStatus;
-          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute);
+          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute, change.previousCompletedDate ?? null);
         } catch {
           success = false;
         }
@@ -533,7 +533,7 @@ export class UndoableFileOperations {
       if (task) {
         try {
           task.status = change.newStatus;
-          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute);
+          await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute, change.newCompletedDate ?? null);
         } catch {
           success = false;
         }

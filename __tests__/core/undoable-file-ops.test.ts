@@ -622,6 +622,32 @@ describe('UndoableFileOperations', () => {
       expect(todo.status).toBe(TaskStatus.Todo);
     });
 
+    it('should restore the original completion date when undoing a completed status change', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      const todo = createTodo('1', 'Task 1', 1, { completed: '2026-08-12' }, [], TaskStatus.Canceled);
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [{
+          taskId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          previousStatus: TaskStatus.Complete,
+          newStatus: TaskStatus.Canceled,
+          previousCompletedDate: '2025-01-10',
+          newCompletedDate: '2026-08-12',
+        }],
+        tagChanges: [],
+      };
+
+      expect(await undoableOps.applyUndo(operation, () => todo)).toBe(true);
+      expect(mockFileOps.updateTaskStatus).toHaveBeenCalledWith(todo, settings.completedDateAttribute, '2025-01-10');
+    });
+
     it('should return false when todo not found', async () => {
       const findTodo = jest.fn().mockReturnValue(undefined);
 
@@ -811,6 +837,32 @@ describe('UndoableFileOperations', () => {
   });
 
   describe('applyRedo', () => {
+    it('should restore the recorded completion date when redoing a completed status change', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      const todo = createTodo('1', 'Task 1', 1, { completed: '2025-01-10' }, [], TaskStatus.Complete);
+      const operation: UndoOperation = {
+        id: 'op-1',
+        timestamp: Date.now(),
+        type: 'single',
+        description: 'Test',
+        taskChanges: [],
+        statusChanges: [{
+          taskId: 'notes/1.md:1',
+          filePath: 'notes/1.md',
+          lineNumber: 1,
+          previousStatus: TaskStatus.Complete,
+          newStatus: TaskStatus.Canceled,
+          previousCompletedDate: '2025-01-10',
+          newCompletedDate: '2026-08-12',
+        }],
+        tagChanges: [],
+      };
+
+      expect(await undoableOps.applyRedo(operation, () => todo)).toBe(true);
+      expect(mockFileOps.updateTaskStatus).toHaveBeenCalledWith(todo, settings.completedDateAttribute, '2026-08-12');
+    });
+
     it('should reapply attribute change', async () => {
       const todo = createTodo('1', 'Task 1', 1, { due: '2025-01-10' });
       const findTodo = jest.fn().mockReturnValue(todo);
