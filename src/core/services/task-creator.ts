@@ -39,6 +39,8 @@ export class TaskCreator {
 
   private insertContent(content: string, taskLine: string): string {
     const { placement, locationRegex } = this.settings.quickAdd;
+    const lineEnding = content.match(/\r\n|\r|\n/)?.[0] ?? "\n";
+    taskLine = taskLine.replace(/\r\n|\r|\n/g, lineEnding);
 
     // Handle regex-based placement
     if ((placement === "before-regex" || placement === "after-regex") && locationRegex) {
@@ -56,10 +58,11 @@ export class TaskCreator {
     }
 
     // Append
-    return content.endsWith("\n") ? content + taskLine : content + "\n" + taskLine;
+    return /(?:\r\n|\r|\n)$/.test(content) ? content + taskLine : content + lineEnding + taskLine;
   }
 
   private insertAtRegex(content: string, taskLine: string, pattern: string, before: boolean): string | null {
+    const lineEnding = content.match(/\r\n|\r|\n/)?.[0] ?? "\n";
     // Get frontmatter end position so we can skip it
     const fmEnd = this.getFrontmatterEndPosition(content);
 
@@ -75,10 +78,10 @@ export class TaskCreator {
         const actualIndex = fmEnd + match.index;
 
         if (before) {
-          return content.slice(0, actualIndex) + taskLine + "\n" + content.slice(actualIndex);
+          return content.slice(0, actualIndex) + taskLine + lineEnding + content.slice(actualIndex);
         } else {
           const insertPos = actualIndex + match[0].length;
-          return content.slice(0, insertPos) + "\n" + taskLine + content.slice(insertPos);
+          return content.slice(0, insertPos) + lineEnding + taskLine + content.slice(insertPos);
         }
       }
     } catch {
@@ -93,41 +96,22 @@ export class TaskCreator {
       return 0;
     }
 
-    const endOfFrontmatter = content.indexOf("\n---", 3);
-    if (endOfFrontmatter === -1) {
-      return 0;
-    }
-
-    // Return position after the closing ---
-    return endOfFrontmatter + 4;
+    const closing = /(?:\r\n|\r|\n)---(?=$|\r\n|\r|\n)/.exec(content.slice(3));
+    return closing ? closing.index + closing[0].length + 3 : 0;
   }
 
   private prependAfterFrontmatter(content: string, taskLine: string): string {
-    // Check if content starts with frontmatter
-    if (!content.startsWith("---")) {
-      return taskLine + "\n" + content;
-    }
-
-    // Find the closing --- of frontmatter
-    const endOfFrontmatter = content.indexOf("\n---", 3);
-    if (endOfFrontmatter === -1) {
-      // No closing ---, treat as no frontmatter
-      return taskLine + "\n" + content;
-    }
-
-    // Find the position after the closing ---
-    const insertPosition = endOfFrontmatter + 4; // +4 for "\n---"
-
-    // Skip any newlines immediately after frontmatter
-    let actualInsertPosition = insertPosition;
-    while (actualInsertPosition < content.length && content[actualInsertPosition] === "\n") {
-      actualInsertPosition++;
+    const lineEnding = content.match(/\r\n|\r|\n/)?.[0] ?? "\n";
+    const insertPosition = this.getFrontmatterEndPosition(content);
+    if (!insertPosition) {
+      return taskLine + lineEnding + content;
     }
 
     const beforeInsert = content.slice(0, insertPosition);
-    const afterInsert = content.slice(actualInsertPosition);
+    const afterInsert = content.slice(insertPosition);
+    const separator = afterInsert && afterInsert.startsWith(lineEnding) ? "" : lineEnding;
 
-    return beforeInsert + "\n" + taskLine + "\n" + afterInsert;
+    return beforeInsert + lineEnding + taskLine + separator + afterInsert;
   }
 
   private async getTargetFile(): Promise<TFile> {

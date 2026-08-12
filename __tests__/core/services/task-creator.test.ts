@@ -119,18 +119,24 @@ describe("TaskCreator", () => {
         expect(result).toBe("- [ ] task\n# Title\n\nContent");
       });
 
+      it("should preserve CRLF endings without frontmatter", () => {
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent("# Title\r\n", "- [ ] task\ncontinuation");
+
+        expect(result).toBe("- [ ] task\r\ncontinuation\r\n# Title\r\n");
+      });
+
       it("should prepend after frontmatter", () => {
         const content = "---\ntitle: Test\n---\n\n# Title";
         const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task");
 
-        expect(result).toBe("---\ntitle: Test\n---\n- [ ] task\n# Title");
+        expect(result).toBe("---\ntitle: Test\n---\n- [ ] task\n\n# Title");
       });
 
       it("should handle frontmatter with no closing delimiter", () => {
-        const content = "---\ntitle: Test\n# Title";
-        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task");
+        const content = "---\r\ntitle: Test\r\n# Title";
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task\ncontinuation");
 
-        expect(result).toBe("- [ ] task\n---\ntitle: Test\n# Title");
+        expect(result).toBe("- [ ] task\r\ncontinuation\r\n---\r\ntitle: Test\r\n# Title");
       });
     });
 
@@ -151,6 +157,18 @@ describe("TaskCreator", () => {
 
         expect(result).toBe("Content\n- [ ] task");
       });
+
+      it("should preserve CRLF endings in multiline tasks", () => {
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent("Content\r\n", "- [ ] task\ncontinuation");
+
+        expect(result).toBe("Content\r\n- [ ] task\r\ncontinuation");
+      });
+
+      it("should not duplicate a CR-only trailing line ending", () => {
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent("Content\r", "- [ ] task\ncontinuation");
+
+        expect(result).toBe("Content\r- [ ] task\rcontinuation");
+      });
     });
 
     describe("before-regex placement", () => {
@@ -165,6 +183,13 @@ describe("TaskCreator", () => {
         const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] new task");
 
         expect(result).toBe("# Title\n\n- [ ] new task\n## Tasks\n\n- [ ] existing");
+      });
+
+      it("should preserve CRLF endings", () => {
+        const content = "# Title\r\n\r\n## Tasks\r\n";
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task\ncontinuation");
+
+        expect(result).toBe("# Title\r\n\r\n- [ ] task\r\ncontinuation\r\n## Tasks\r\n");
       });
 
       it("should skip frontmatter when matching regex", () => {
@@ -218,6 +243,13 @@ describe("TaskCreator", () => {
         const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] new task");
 
         expect(result).toBe("# Title\n\n## Tasks\n- [ ] new task\n\n- [ ] existing");
+      });
+
+      it("should preserve CRLF endings", () => {
+        const content = "# Title\r\n\r\n## Tasks\r\n\r\n- [ ] existing";
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task\ncontinuation");
+
+        expect(result).toBe("# Title\r\n\r\n## Tasks\r\n- [ ] task\r\ncontinuation\r\n\r\n- [ ] existing");
       });
 
       it("should skip frontmatter when matching regex", () => {
@@ -363,6 +395,13 @@ describe("TaskCreator", () => {
 
       expect(result).toBe(0);
     });
+
+    it("should find CR-only frontmatter", () => {
+      const content = "---\rtitle: Test\r---\r\rContent";
+      const result = (taskCreator as unknown as { getFrontmatterEndPosition: (content: string) => number }).getFrontmatterEndPosition(content);
+
+      expect(result).toBe(19);
+    });
   });
 
   describe("prependAfterFrontmatter", () => {
@@ -371,11 +410,15 @@ describe("TaskCreator", () => {
       taskCreator = new TaskCreator(mockApp, settings);
     });
 
-    it("should handle frontmatter with multiple newlines after", () => {
-      const content = "---\ntitle: Test\n---\n\n\n# Title";
-      const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, "- [ ] task");
+    it.each([
+      ["LF", "---\ntitle: Test\n---\n\n\n# Title", "---\ntitle: Test\n---\n- [ ] task\n\n\n# Title"],
+      ["CRLF", "---\r\ntitle: Test\r\n---\r\n\r\n# Title", "---\r\ntitle: Test\r\n---\r\n- [ ] task\r\ncontinuation\r\n\r\n# Title"],
+      ["CR", "---\rtitle: Test\r---\r\r# Title", "---\rtitle: Test\r---\r- [ ] task\r\r# Title"],
+    ])("should preserve blank lines after frontmatter with %s endings", (_name, content, expected) => {
+      const taskLine = _name === "CRLF" ? "- [ ] task\ncontinuation" : "- [ ] task";
+      const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent(content, taskLine);
 
-      expect(result).toBe("---\ntitle: Test\n---\n- [ ] task\n# Title");
+      expect(result).toBe(expected);
     });
 
     it("should handle frontmatter with no content after", () => {
