@@ -6,7 +6,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Fixed
 
-- Preserved blank lines and CRLF endings when Quick Add inserts a task.
+- Preserved blank lines and CRLF endings when Quick Add inserts a task, without adding a blank first line to a new inbox.
 - Preserved field-shaped Markdown link and image labels during metadata and tag edits.
 - Preserved hashtags inside bare email addresses with dotted domains and metadata-shaped text inside bare URLs during tag edits.
 - Preserved Markdown link destinations that resemble parenthesized Dataview fields during metadata edits.

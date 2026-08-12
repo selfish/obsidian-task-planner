@@ -58,7 +58,7 @@ export class TaskCreator {
     }
 
     // Append
-    return /(?:\r\n|\r|\n)$/.test(content) ? content + taskLine : content + lineEnding + taskLine;
+    return content && !/(?:\r\n|\r|\n)$/.test(content) ? content + lineEnding + taskLine : content + taskLine;
   }
 
   private insertAtRegex(content: string, taskLine: string, pattern: string, before: boolean): string | null {

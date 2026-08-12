@@ -146,6 +146,12 @@ describe("TaskCreator", () => {
         taskCreator = new TaskCreator(mockApp, settings);
       });
 
+      it("should append to empty content without a leading blank line", () => {
+        const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent("", "- [ ] task");
+
+        expect(result).toBe("- [ ] task");
+      });
+
       it("should append to content ending with newline", () => {
         const result = (taskCreator as unknown as { insertContent: (content: string, taskLine: string) => string }).insertContent("Content\n", "- [ ] task");
 
