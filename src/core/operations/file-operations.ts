@@ -208,7 +208,7 @@ export class FileOperations {
 
   async updateTaskStatus<T>(task: TaskItem<T>, completedAttribute: string, completedDateOverride?: string | null): Promise<void> {
     const completed = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
-    const completedDate = completed ? (completedDateOverride === undefined ? moment().format("YYYY-MM-DD") : (completedDateOverride ?? undefined)) : undefined;
+    const completedDate = completed ? (completedDateOverride === undefined ? moment().format("YYYY-MM-DD") : completedDateOverride === null ? undefined : completedDateOverride) : undefined;
     await this.updateContentInFile(task, (line) => {
       line.checkbox = statusToCheckbox(task.status);
       line.line = this.lineParser.updateAttribute(line.line, completedAttribute, completedDate);
