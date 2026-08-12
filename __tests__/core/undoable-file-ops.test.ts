@@ -280,6 +280,9 @@ describe('UndoableFileOperations', () => {
       expect(undoManager.getHistorySize()).toBe(1);
       const lastOp = undoManager.getLastOperation();
       expect(lastOp?.statusChanges).toHaveLength(2);
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      expect(mockFileOps.batchUpdateTaskStatus).toHaveBeenCalledWith(todos, settings.completedDateAttribute, lastOp?.statusChanges[0].newCompletedDate);
     });
 
     it('should skip when array is empty', async () => {
@@ -362,6 +365,9 @@ describe('UndoableFileOperations', () => {
       expect(lastOp?.taskChanges).toHaveLength(1);
       expect(lastOp?.tagChanges).toHaveLength(1);
       expect(lastOp?.statusChanges).toHaveLength(1);
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      expect(mockFileOps.batchMove).toHaveBeenCalledWith(todos, expect.objectContaining({ completedDate: lastOp?.statusChanges[0].newCompletedDate }));
     });
 
     it('should work with just attribute change', async () => {
@@ -1308,6 +1314,9 @@ describe('UndoableFileOperations', () => {
 
       const lastOp = undoManager.getLastOperation();
       expect(lastOp?.statusChanges[0].newCompletedDate).toBeDefined();
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      expect(mockFileOps.updateTaskStatus).toHaveBeenCalledWith(todo, settings.completedDateAttribute, lastOp?.statusChanges[0].newCompletedDate);
     });
 
     it('should track previous completed date when was previously Canceled', async () => {

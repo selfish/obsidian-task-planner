@@ -247,6 +247,7 @@ export class FileOperations {
       attributeName: string;
       attributeValue: string | boolean | undefined;
       completedAttribute: string;
+      completedDate?: string;
       tag?: string;
       tagsToRemove?: string[];
       newStatus?: TaskStatus;
@@ -261,18 +262,18 @@ export class FileOperations {
       if (options.newStatus !== undefined) {
         line.checkbox = statusToCheckbox(options.newStatus);
         const completed = options.newStatus === TaskStatus.Complete || options.newStatus === TaskStatus.Canceled;
-        line.line = this.lineParser.updateAttribute(line.line, options.completedAttribute, completed ? moment().format("YYYY-MM-DD") : undefined);
+        line.line = this.lineParser.updateAttribute(line.line, options.completedAttribute, completed ? (options.completedDate ?? moment().format("YYYY-MM-DD")) : undefined);
       }
     });
   }
 
-  async batchUpdateTaskStatus<T>(tasks: TaskItem<T>[], completedAttribute: string): Promise<void> {
+  async batchUpdateTaskStatus<T>(tasks: TaskItem<T>[], completedAttribute: string, completedDateOverride?: string): Promise<void> {
     const statuses = new Map(tasks.map((task) => [task, task.status]));
     await this.updateBatches(tasks, (line, task) => {
       const status = statuses.get(task);
       line.checkbox = statusToCheckbox(status);
       const completed = status === TaskStatus.Complete || status === TaskStatus.Canceled;
-      line.line = this.lineParser.updateAttribute(line.line, completedAttribute, completed ? moment().format("YYYY-MM-DD") : undefined);
+      line.line = this.lineParser.updateAttribute(line.line, completedAttribute, completed ? (completedDateOverride ?? moment().format("YYYY-MM-DD")) : undefined);
     });
   }
 }

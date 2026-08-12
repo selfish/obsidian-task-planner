@@ -111,7 +111,7 @@ export class UndoableFileOperations {
     const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
     const newCompletedDate = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
 
-    await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute);
+    await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute, newCompletedDate ?? null);
 
     const statusChange: StatusChange = {
       taskId,
@@ -258,13 +258,14 @@ export class UndoableFileOperations {
       return;
     }
 
+    const completedDate = tasks.some((task) => task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled) ? moment().format("YYYY-MM-DD") : undefined;
     const statusChanges: StatusChange[] = tasks.map((task) => {
       const taskId = getTaskId(task);
       const previousStatus = previousStatuses.get(taskId) ?? task.status;
       const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
       const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
       const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
-      const newCompletedDate = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
+      const newCompletedDate = isCompleted ? completedDate : undefined;
 
       return {
         taskId,
@@ -277,7 +278,7 @@ export class UndoableFileOperations {
       };
     });
 
-    await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute);
+    await this.fileOperations.batchUpdateTaskStatus(tasks, this.settings.completedDateAttribute, completedDate);
 
     const operation: UndoOperation = {
       id: UndoManager.generateOperationId(),
@@ -382,6 +383,7 @@ export class UndoableFileOperations {
       }
     }
 
+    const completedDate = newStatus === TaskStatus.Complete || newStatus === TaskStatus.Canceled ? moment().format("YYYY-MM-DD") : undefined;
     const statusChanges: StatusChange[] = [];
     if (newStatus !== undefined) {
       for (const task of tasks) {
@@ -390,7 +392,7 @@ export class UndoableFileOperations {
         const isCompleted = newStatus === TaskStatus.Complete || newStatus === TaskStatus.Canceled;
         const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
         const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
-        const newCompletedDate = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
+        const newCompletedDate = isCompleted ? completedDate : undefined;
 
         statusChanges.push({
           taskId,
@@ -405,7 +407,7 @@ export class UndoableFileOperations {
     }
 
     // Apply every move mutation in one atomic write per file.
-    await this.fileOperations.batchMove(tasks, { attributeName, attributeValue, completedAttribute: this.settings.completedDateAttribute, tag, tagsToRemove, newStatus });
+    await this.fileOperations.batchMove(tasks, { attributeName, attributeValue, completedAttribute: this.settings.completedDateAttribute, completedDate, tag, tagsToRemove, newStatus });
 
     // Record combined operation
     const operation: UndoOperation = {
