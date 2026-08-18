@@ -154,7 +154,7 @@ describe('UndoableFileOperations', () => {
       const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
       mockFileOps.lineParser = new LineParser(settings);
       const todo = createTodo('1', 'Test task', 1, { completed: '2025-03-03', Completed: '2025-02-02' }, [], TaskStatus.Todo);
-      todo.sourceLine = '- [x] Test task [completed:: 2025-01-01] [Completed:: 2025-02-02] [completed:: 2025-03-03]';
+      todo.sourceLine = '- [x] Test task [completed:: 2025-01-01] [Completed:: 2025-02-02] [completed:: 2025-03-03] [due:: 2025-04-04]';
 
       await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Complete, 'Reopened');
       const operation = undoManager.getLastOperation();
@@ -168,8 +168,11 @@ describe('UndoableFileOperations', () => {
       const todo = createTodo('1', 'Test task', 1, { Completed: '2025-01-10' }, [], TaskStatus.Todo);
 
       await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Complete, 'Reopened');
-
       expect(undoManager.getLastOperation()?.statusChanges[0].previousCompletedDate).toBe('2025-01-10');
+
+      const invalid = createTodo('2', 'Invalid date', 1, { Completed: true }, [], TaskStatus.Todo);
+      await undoableOps.updateTaskStatusWithUndo(invalid, TaskStatus.Complete, 'Reopened');
+      expect(undoManager.getLastOperation()?.statusChanges[0].previousCompletedDate).toBeUndefined();
     });
 
     it('should skip recording when undo disabled', async () => {
