@@ -24,6 +24,11 @@ export class UndoableFileOperations {
     this.fileOperations = new FileOperations(deps.settings);
   }
 
+  private completedDate<T>(task: TaskItem<T>): string | undefined {
+    const value = Object.entries(task.attributes ?? {}).find(([key]) => key.toLowerCase() === this.settings.completedDateAttribute.toLowerCase())?.[1];
+    return typeof value === "string" ? value : undefined;
+  }
+
   /**
    * Update attribute with undo tracking
    */
@@ -108,7 +113,7 @@ export class UndoableFileOperations {
     const taskId = getTaskId(task);
     const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
     const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
-    const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
+    const previousCompletedDate = wasCompleted ? this.completedDate(task) : undefined;
     const newCompletedDate = isCompleted ? moment().format("YYYY-MM-DD") : undefined;
 
     await this.fileOperations.updateTaskStatus(task, this.settings.completedDateAttribute, newCompletedDate ?? null);
@@ -264,7 +269,7 @@ export class UndoableFileOperations {
       const previousStatus = previousStatuses.get(taskId) ?? task.status;
       const isCompleted = task.status === TaskStatus.Complete || task.status === TaskStatus.Canceled;
       const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
-      const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
+      const previousCompletedDate = wasCompleted ? this.completedDate(task) : undefined;
       const newCompletedDate = isCompleted ? completedDate : undefined;
 
       return {
@@ -391,7 +396,7 @@ export class UndoableFileOperations {
         const previousStatus = task.status;
         const isCompleted = newStatus === TaskStatus.Complete || newStatus === TaskStatus.Canceled;
         const wasCompleted = previousStatus === TaskStatus.Complete || previousStatus === TaskStatus.Canceled;
-        const previousCompletedDate = wasCompleted ? (task.attributes?.[this.settings.completedDateAttribute] as string | undefined) : undefined;
+        const previousCompletedDate = wasCompleted ? this.completedDate(task) : undefined;
         const newCompletedDate = isCompleted ? completedDate : undefined;
 
         statusChanges.push({
