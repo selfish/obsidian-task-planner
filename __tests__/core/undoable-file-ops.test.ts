@@ -148,6 +148,19 @@ describe('UndoableFileOperations', () => {
       expect(lastOp?.statusChanges[0].newCompletedDate).toBeDefined();
     });
 
+    it('should capture completion dates case-insensitively for undo', async () => {
+      const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
+      const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
+      const todo = createTodo('1', 'Test task', 1, { Completed: '2025-01-10' }, [], TaskStatus.Todo);
+
+      await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Complete, 'Reopened');
+      const operation = undoManager.getLastOperation();
+
+      expect(operation?.statusChanges[0].previousCompletedDate).toBe('2025-01-10');
+      expect(await undoableOps.applyUndo(operation!, () => todo)).toBe(true);
+      expect(mockFileOps.updateTaskStatus).toHaveBeenLastCalledWith(todo, settings.completedDateAttribute, '2025-01-10');
+    });
+
     it('should skip recording when undo disabled', async () => {
       undoManager.updateConfig({ enabled: false });
       const todo = createTodo('1', 'Test task', 1, {}, [], TaskStatus.Complete);
