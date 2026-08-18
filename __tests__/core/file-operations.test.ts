@@ -557,7 +557,22 @@ describe('FileOperations', () => {
       expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe('- [x] Task one [completed:: 2025-01-10]\n- [x] Task two [completed:: 2025-01-10]');
     });
 
-    it('should create one completion date for a combined move by default', async () => {
+    it('should use a recorded completion date for a combined move', async () => {
+      const file = createMockFileAdapter('- [ ] Task');
+      const todo = createTodo('Task', 0, file, TaskStatus.Todo);
+
+      await operations.batchMove([todo], {
+        attributeName: 'due',
+        attributeValue: '2025-01-15',
+        completedAttribute: 'completed',
+        completedDate: '2025-01-10',
+        newStatus: TaskStatus.Complete,
+      });
+
+      expect((file.setContent as jest.Mock).mock.calls[0][0]).toBe('- [x] Task [due:: 2025-01-15] [completed:: 2025-01-10]');
+    });
+
+    it('should create a completion date for a combined move by default', async () => {
       const file = createMockFileAdapter('- [ ] Task');
       const todo = createTodo('Task', 0, file, TaskStatus.Todo);
 
