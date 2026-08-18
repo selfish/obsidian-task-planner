@@ -25,7 +25,9 @@ export class UndoableFileOperations {
   }
 
   private completedDate<T>(task: TaskItem<T>): string | undefined {
-    const value = Object.entries(task.attributes ?? {}).find(([key]) => key.toLowerCase() === this.settings.completedDateAttribute.toLowerCase())?.[1];
+    const value = Object.entries(task.attributes ?? {})
+      .reverse()
+      .find(([key]) => key.toLowerCase() === this.settings.completedDateAttribute.toLowerCase())?.[1];
     return typeof value === "string" ? value : undefined;
   }
 
