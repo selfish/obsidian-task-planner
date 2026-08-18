@@ -25,10 +25,15 @@ export class UndoableFileOperations {
   }
 
   private completedDate<T>(task: TaskItem<T>): string | undefined {
-    const value = Object.entries(task.attributes ?? {})
-      .reverse()
-      .find(([key]) => key.toLowerCase() === this.settings.completedDateAttribute.toLowerCase())?.[1];
-    return typeof value === "string" ? value : undefined;
+    const exact = task.attributes?.[this.settings.completedDateAttribute];
+    if (task.sourceLine === undefined && typeof exact === "string") return exact;
+
+    const entries = task.sourceLine === undefined ? Object.entries(task.attributes ?? {}) : this.fileOperations.lineParser.parseAttributeEntries(task.sourceLine);
+    for (let index = entries.length - 1; index >= 0; index--) {
+      const [key, value] = entries[index];
+      if (key.toLowerCase() === this.settings.completedDateAttribute.toLowerCase()) return typeof value === "string" ? value : undefined;
+    }
+    return undefined;
   }
 
   /**

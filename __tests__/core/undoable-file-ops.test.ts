@@ -3,6 +3,7 @@ import { UndoManager, UndoOperation } from '../../src/core/operations/undo-manag
 import { TaskItem, TaskStatus } from '../../src/types/task';
 import { FileAdapter } from '../../src/types/file-adapter';
 import { TaskPlannerSettings, DEFAULT_SETTINGS } from '../../src/settings/types';
+import { LineParser } from '../../src/core/parsers/line-parser';
 
 // Mock FileOperations
 jest.mock('../../src/core/operations/file-operations', () => {
@@ -151,14 +152,24 @@ describe('UndoableFileOperations', () => {
     it('should capture completion dates case-insensitively for undo', async () => {
       const { FileOperations } = jest.requireMock('../../src/core/operations/file-operations');
       const mockFileOps = FileOperations.mock.results[FileOperations.mock.results.length - 1].value;
-      const todo = createTodo('1', 'Test task', 1, { Completed: '2025-01-10', completed: '2025-02-20' }, [], TaskStatus.Todo);
+      mockFileOps.lineParser = new LineParser(settings);
+      const todo = createTodo('1', 'Test task', 1, { completed: '2025-03-03', Completed: '2025-02-02' }, [], TaskStatus.Todo);
+      todo.sourceLine = '- [x] Test task [completed:: 2025-01-01] [Completed:: 2025-02-02] [completed:: 2025-03-03]';
 
       await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Complete, 'Reopened');
       const operation = undoManager.getLastOperation();
 
-      expect(operation?.statusChanges[0].previousCompletedDate).toBe('2025-02-20');
+      expect(operation?.statusChanges[0].previousCompletedDate).toBe('2025-03-03');
       expect(await undoableOps.applyUndo(operation!, () => todo)).toBe(true);
-      expect(mockFileOps.updateTaskStatus).toHaveBeenLastCalledWith(todo, settings.completedDateAttribute, '2025-02-20');
+      expect(mockFileOps.updateTaskStatus).toHaveBeenLastCalledWith(todo, settings.completedDateAttribute, '2025-03-03');
+    });
+
+    it('should fall back to cased attributes without source identity', async () => {
+      const todo = createTodo('1', 'Test task', 1, { Completed: '2025-01-10' }, [], TaskStatus.Todo);
+
+      await undoableOps.updateTaskStatusWithUndo(todo, TaskStatus.Complete, 'Reopened');
+
+      expect(undoManager.getLastOperation()?.statusChanges[0].previousCompletedDate).toBe('2025-01-10');
     });
 
     it('should skip recording when undo disabled', async () => {
