@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import assert from "node:assert/strict";
 
-import { browser, expect } from "@wdio/globals";
-import { obsidianPage } from "wdio-obsidian-service";
+import { browser, captureFailure, obsidianPage, startObsidian, stopObsidian } from "./cdp-harness.mjs";
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../..");
 const MANIFEST = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "manifest.json"), "utf8"));
@@ -28,7 +28,7 @@ async function loadPlugin() {
       enabled: app.plugins.enabledPlugins.has("task-planner"),
       manifestVersion: plugin?.manifest?.version,
       hasVaultProcess: typeof app.vault.process === "function",
-      loadError,
+      loadError: loadError ?? null,
     };
   });
 }
@@ -38,20 +38,27 @@ async function waitForTaskCount(count) {
 }
 
 describe("real Obsidian vault smoke", function () {
+  before(startObsidian);
+  afterEach(async function () {
+    if (this.currentTest?.state === "failed") await captureFailure();
+  });
+  after(async () => {
+    await stopObsidian();
+    await stopObsidian();
+  });
+
   it("loads the exact built plugin in a copied synthetic vault", async function () {
     const installedMain = path.join(obsidianPage.getVaultPath(), ".obsidian", "plugins", "task-planner", "main.js");
-    expect(sha256(installedMain)).toEqual(sha256(path.join(PROJECT_ROOT, "main.js")));
+    assert.equal(sha256(installedMain), sha256(path.join(PROJECT_ROOT, "main.js")));
 
     const loaded = await loadPlugin();
-    expect(loaded).toEqual(
-      expect.objectContaining({
-        pluginPresent: true,
-        enabled: true,
-        manifestVersion: MANIFEST.version,
-        hasVaultProcess: true,
-        loadError: null,
-      })
-    );
+    assert.deepEqual(loaded, {
+      pluginPresent: true,
+      enabled: true,
+      manifestVersion: MANIFEST.version,
+      hasVaultProcess: true,
+      loadError: null,
+    });
     await waitForTaskCount(1);
   });
 
@@ -84,7 +91,7 @@ describe("real Obsidian vault smoke", function () {
       app.setting.openTabById("task-planner");
       return app.setting.activeTab?.id;
     });
-    expect(openedTabId).toEqual("task-planner");
+    assert.equal(openedTabId, "task-planner");
 
     const getSettingNames = () =>
       browser.executeObsidian(({ app }) => {
@@ -93,10 +100,13 @@ describe("real Obsidian vault smoke", function () {
       });
 
     if (isDeclarativeHost) {
-      await browser.waitUntil(async () => {
-        const names = await getSettingNames();
-        return ["Essential", "Horizons", "Advanced"].every((name) => names.includes(name));
-      }, { timeout: 15000, timeoutMsg: "Declarative settings pages were not rendered" });
+      await browser.waitUntil(
+        async () => {
+          const names = await getSettingNames();
+          return ["Essential", "Horizons", "Advanced"].every((name) => names.includes(name));
+        },
+        { timeout: 15000, timeoutMsg: "Declarative settings pages were not rendered" }
+      );
     } else {
       await browser.waitUntil(async () => (await getSettingNames()).includes("Destination"), {
         timeout: 15000,
@@ -137,15 +147,15 @@ describe("real Obsidian vault smoke", function () {
     };
 
     const wideToolbar = await measureToolbar(1600);
-    expect(wideToolbar.controls.right).toBeGreaterThanOrEqual(wideToolbar.header.right - 2.5);
-    expect(Math.min(wideToolbar.title.bottom, wideToolbar.controls.bottom) - Math.max(wideToolbar.title.top, wideToolbar.controls.top)).toBeGreaterThan(0);
-    expect(wideToolbar.search.width).toBeGreaterThanOrEqual(200);
-    expect(wideToolbar.search.width).toBeLessThan(250);
+    assert.ok(wideToolbar.controls.right >= wideToolbar.header.right - 2.5);
+    assert.ok(Math.min(wideToolbar.title.bottom, wideToolbar.controls.bottom) - Math.max(wideToolbar.title.top, wideToolbar.controls.top) > 0);
+    assert.ok(wideToolbar.search.width >= 200);
+    assert.ok(wideToolbar.search.width < 250);
 
     const narrowToolbar = await measureToolbar(1024);
-    expect(narrowToolbar.controls.right).toBeGreaterThanOrEqual(narrowToolbar.header.right - 2.5);
-    expect(narrowToolbar.controls.width).toBeGreaterThanOrEqual(narrowToolbar.header.width - 4);
-    expect(narrowToolbar.search.width).toBeGreaterThan(wideToolbar.search.width);
+    assert.ok(narrowToolbar.controls.right >= narrowToolbar.header.right - 2.5);
+    assert.ok(narrowToolbar.controls.width >= narrowToolbar.header.width - 4);
+    assert.ok(narrowToolbar.search.width > wideToolbar.search.width);
 
     const result = await browser.executeObsidian(async ({ app }) => {
       const staleCheckbox = document.querySelector('[aria-label^="Task: Target"] .checkbox');
@@ -162,14 +172,14 @@ describe("real Obsidian vault smoke", function () {
       staleCheckbox.click();
       return { staleNodeWasConnected: staleCheckbox.isConnected };
     });
-    expect(result.staleNodeWasConnected).toEqual(true);
+    assert.equal(result.staleNodeWasConnected, true);
 
     const completedPattern = /^Inserted\r\n-   \[x\]\tTarget \(due:: 2026-08-02\) \[owner:: Alice\] ⏳ 2026-08-02 \[completed:: \d{4}-\d{2}-\d{2}\]\r\n  continuation \[note:: keep\]\r\n\r\n    loose continuation \(owner:: Bob\)\r\nUnrelated\r\n$/;
     await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => completedPattern.test(text)), {
       timeout: 15000,
       timeoutMsg: "stale status mutation did not preserve the synthetic file",
     });
-    expect(await browser.executeObsidian(({ app }) => app.vault.__e2eProcessCalls)).toEqual(1);
+    assert.equal(await browser.executeObsidian(({ app }) => app.vault.__e2eProcessCalls), 1);
   });
 
   it("moves through a dated/tagged horizon and supports UI undo", async function () {
@@ -189,8 +199,8 @@ describe("real Obsidian vault smoke", function () {
         targetTitle: column?.querySelector(".title")?.textContent,
       };
     });
-    expect(drag.targetTitle).toEqual("E2E");
-    expect(drag.taskId).not.toEqual("");
+    assert.equal(drag.targetTitle, "E2E");
+    assert.notEqual(drag.taskId, "");
 
     const movedPattern = /-   \[ \]\tTarget #e2e \(due:: 2026-08-09\) \[owner:: Alice\] ⏳ 2026-08-02/;
     await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => movedPattern.test(text)), {
@@ -200,11 +210,11 @@ describe("real Obsidian vault smoke", function () {
 
     await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector(".th-undo-toast-button"))), { timeout: 5000, timeoutMsg: "undo toast was not rendered after date/tag move" });
     await browser.execute(() => document.querySelector(".th-undo-toast-button").click());
-    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => !text.includes("#e2e") && !text.includes("(due:: 2026-08-09)")), {
+    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => /-   \[x\]\tTarget \(due:: 2026-08-02\)/.test(text) && !text.includes("#e2e") && !text.includes("(due:: 2026-08-09)")), {
       timeout: 15000,
       timeoutMsg: "UI undo did not restore the date/tag mutation",
     });
-    expect(await obsidianPage.read("Tasks.md")).toMatch(/-   \[x\]\tTarget \(due:: 2026-08-02\)/);
+    assert.match(await obsidianPage.read("Tasks.md"), /-   \[x\]\tTarget \(due:: 2026-08-02\)/);
   });
 
   it("fails closed when duplicate source lines are ambiguous", async function () {
@@ -232,6 +242,6 @@ describe("real Obsidian vault smoke", function () {
       timeoutMsg: "ambiguous mutation did not finish its atomic process attempt",
     });
 
-    expect(await obsidianPage.read("Duplicates.md")).toEqual(duplicateText);
+    assert.equal(await obsidianPage.read("Duplicates.md"), duplicateText);
   });
 });

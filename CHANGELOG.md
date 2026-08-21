@@ -4,6 +4,10 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+### Security
+
+- Replaced the WebdriverIO test runner with a direct Obsidian Launcher and Chrome DevTools Protocol harness, removing the vulnerable `deepmerge-ts` and `extract-zip` development paths and the unused Chromedriver download.
+
 ### Fixed
 
 - Preserved blank lines and CRLF endings when Quick Add inserts a task, without adding a blank first line to a new inbox.
