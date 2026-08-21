@@ -1,0 +1,9 @@
+{
+  "id": "task-planner-e2e-helper",
+  "name": "Task Planner E2E Helper",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Test-only bridge for Task Planner's real Obsidian checks.",
+  "author": "selfish",
+  "isDesktopOnly": false
+}

@@ -95,7 +95,7 @@ async function run(command, args, options = {}) {
   });
 }
 
-async function materializeRuntime(runtime, appArchive, installerArchive, chromedriverArchive) {
+async function materializeRuntime(runtime, appArchive, installerArchive) {
   const appPath = path.join(runtimeCacheDir, "obsidian-app", `obsidian-${runtime.app.version}.asar`);
   const installerDir = path.join(runtimeCacheDir, "obsidian-installer/linux-x64", `Obsidian-${runtime.installer.version}`);
   await fs.mkdir(path.dirname(appPath), { recursive: true });
@@ -106,14 +106,9 @@ async function materializeRuntime(runtime, appArchive, installerArchive, chromed
   const sevenZipScript = path.join(root, "node_modules/obsidian-launcher/dist/7z.js");
   await run(process.execPath, [sevenZipScript, "x", "-o.", path.relative(installerDir, installerArchive)], { cwd: installerDir });
 
-  const chromedriverDir = path.join(runtimeCacheDir, "electron-chromedriver/linux-x64", runtime.chromedriver.electron);
-  await fs.mkdir(chromedriverDir, { recursive: true });
-  await run(process.execPath, [sevenZipScript, "e", "-o.", path.relative(chromedriverDir, chromedriverArchive), "chromedriver"], { cwd: chromedriverDir });
-
   const installerExecutable = path.join(installerDir, "obsidian");
-  const chromedriverExecutable = path.join(chromedriverDir, "chromedriver");
-  await Promise.all([fs.access(installerExecutable), fs.access(appPath), fs.access(chromedriverExecutable)]);
-  await Promise.all([fs.chmod(installerExecutable, 0o755), fs.chmod(chromedriverExecutable, 0o755)]);
+  await Promise.all([fs.access(installerExecutable), fs.access(appPath)]);
+  await fs.chmod(installerExecutable, 0o755);
 }
 
 async function writeReport(report) {
@@ -133,13 +128,13 @@ async function main() {
   const runtime = lock.runtimes[runtimeKey];
   if (!runtime) throw new Error(`Runtime ${runtimeKey} is not pinned in ${path.relative(root, lockPath)}`);
 
-  const [appArchive, installerArchive, chromedriverArchive] = await Promise.all([verifiedDownload(runtime.app), verifiedDownload(runtime.installer), verifiedDownload(runtime.chromedriver)]);
+  const [appArchive, installerArchive] = await Promise.all([verifiedDownload(runtime.app), verifiedDownload(runtime.installer)]);
 
   // Never execute restored cache contents. Rebuild executable runtime paths from
   // the independently verified archives on every invocation.
   await fs.rm(runtimeCacheDir, { recursive: true, force: true });
   await fs.mkdir(runtimeCacheDir, { recursive: true });
-  await materializeRuntime(runtime, appArchive, installerArchive, chromedriverArchive);
+  await materializeRuntime(runtime, appArchive, installerArchive);
   await fs.writeFile(
     metadataPath,
     `${JSON.stringify(
@@ -147,7 +142,7 @@ async function main() {
         metadata: {
           schemaVersion: "2.2.0",
           commitDate: "1970-01-01T00:00:00Z",
-          commitSha: lock.provenance.wdioObsidianServiceCommit,
+          commitSha: lock.provenance.sourceCommit,
           timestamp: "1970-01-01T00:00:00.000Z",
         },
         versions: versionMetadata(runtime),
@@ -163,7 +158,6 @@ async function main() {
     platform: lock.platform,
     app: { version: runtime.app.version, sha256: runtime.app.sha256 },
     installer: { version: runtime.installer.version, sha256: runtime.installer.sha256 },
-    chromedriver: { electron: runtime.chromedriver.electron, sha256: runtime.chromedriver.sha256 },
   });
 }
 
