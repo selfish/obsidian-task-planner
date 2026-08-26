@@ -8,7 +8,7 @@ import ObsidianLauncher from "obsidian-launcher";
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const CACHE = path.join(ROOT, ".obsidian-cache");
 const ARTIFACTS = path.join(ROOT, "artifacts/e2e");
-const appVersion = process.env.OBSIDIAN_VERSION ?? "1.13.6";
+const appVersion = process.env.OBSIDIAN_VERSION ?? "1.13.7";
 const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.5.8";
 
 let client;
