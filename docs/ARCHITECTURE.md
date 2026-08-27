@@ -64,7 +64,7 @@ When changing index behavior, test at least:
 
 ## Safe Markdown writes
 
-Vault-backed edits to existing indexed tasks should go through `FileOperations`. It uses `FileAdapter.processContent`, backed by Obsidian's atomic `Vault.process`, instead of read-then-write. The update callback works on the latest file contents. Editor commands are the exception: they edit Obsidian's live `Editor` buffer so unsaved text is preserved.
+Vault-backed edits to existing indexed tasks should go through `FileOperations`. It uses `FileAdapter.processContent`, backed by Obsidian's atomic `Vault.process`, instead of read-then-write. The update callback works on the latest file contents. Editor integrations are the exception: commands use Obsidian's `Editor`, and the auto-convert extension dispatches a CodeMirror transaction; both edit the live buffer so unsaved text is preserved.
 
 A parsed task carries its exact `sourceLine` and the number of identical occurrences. Before writing, `FileOperations` relocates that source line in the current content. It fails closed when the line disappeared, appears more than once, is now inside a fenced block, or multiple requested updates resolve to the same line. Legacy callers without `sourceLine` receive a stricter line-number and parsed-text check.
 
