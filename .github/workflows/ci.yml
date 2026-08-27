@@ -150,6 +150,7 @@ jobs:
         continue-on-error: true
         with:
           use_oidc: true
+          override_pr: ${{ github.event.pull_request.number }}
           files: ./coverage/lcov.info
           flags: unittests
           fail_ci_if_error: false
@@ -159,6 +160,7 @@ jobs:
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           use_oidc: true
+          override_pr: ${{ github.event.pull_request.number }}
           files: ./junit.xml
           disable_search: true
           report_type: test_results
