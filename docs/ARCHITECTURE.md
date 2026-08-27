@@ -64,7 +64,7 @@ When changing index behavior, test at least:
 
 ## Safe Markdown writes
 
-All existing-task edits should go through `FileOperations`. It uses `FileAdapter.processContent`, backed by Obsidian's atomic `Vault.process`, instead of read-then-write. The update callback works on the latest file contents.
+Vault-backed edits to existing indexed tasks should go through `FileOperations`. It uses `FileAdapter.processContent`, backed by Obsidian's atomic `Vault.process`, instead of read-then-write. The update callback works on the latest file contents. Editor commands are the exception: they edit Obsidian's live `Editor` buffer so unsaved text is preserved.
 
 A parsed task carries its exact `sourceLine` and the number of identical occurrences. Before writing, `FileOperations` relocates that source line in the current content. It fails closed when the line disappeared, appears more than once, is now inside a fenced block, or multiple requested updates resolve to the same line. Legacy callers without `sourceLine` receive a stricter line-number and parsed-text check.
 
@@ -79,7 +79,7 @@ Use the narrowest operation that fits:
 - `processTask` for a structural edit such as inserting a follow-up;
 - `UndoableFileOperations` for board actions that users expect to undo.
 
-Do not mutate an existing task line directly from a component or service; route it through `FileOperations`. New-task insertion lives in `TaskCreator`, and note-level frontmatter changes use Obsidian's `processFrontMatter`. A new existing-task write path needs stale-task, duplicate-line, fenced-block, and line-ending tests.
+Do not mutate an existing indexed task line directly from a component or service; route it through `FileOperations`. Quick Add and onboarding own their task-creation paths, while follow-up insertion uses `FileOperations.processTask`. Note-level frontmatter changes use Obsidian's `processFrontMatter`. A new existing-task write path needs stale-task, duplicate-line, fenced-block, and line-ending tests.
 
 ## Planning and undo
 
@@ -87,7 +87,7 @@ Do not mutate an existing task line directly from a component or service; route 
 
 Dropping a card writes the relevant due date, status, and optional custom-horizon tag back to its source. Plain built-in date-horizon drops remove custom-horizon tags; backlog and status-specific drop handlers preserve them. Group drag operations are resolved and written in batches.
 
-Planning drag-and-drop moves use `UndoableFileOperations`, which records prior attribute, status, tag, and completion-date state in `UndoManager` only after the forward write succeeds. Undo is intentionally scoped to those moves and has size/age limits from settings. Checkbox and card-menu controls use `FileOperations` directly and are not undoable.
+Planning actions explicitly routed through `UndoableFileOperations`—including drag-and-drop moves, workload spreading, and bulk horizon-header actions—record prior attribute, status, tag, and completion-date state in `UndoManager` only after the forward write succeeds. Undo is scoped to those actions and has size/age limits from settings. Checkbox and card-menu controls use `FileOperations` directly and are not undoable.
 
 ## Settings and persistence
 
