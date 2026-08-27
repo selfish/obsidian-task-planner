@@ -79,15 +79,15 @@ Use the narrowest operation that fits:
 - `processTask` for a structural edit such as inserting a follow-up;
 - `UndoableFileOperations` for board actions that users expect to undo.
 
-Do not mutate vault text directly from a component or service. A new write path needs stale-task, duplicate-line, fenced-block, and line-ending tests.
+Do not mutate an existing task line directly from a component or service; route it through `FileOperations`. New-task insertion lives in `TaskCreator`, and note-level frontmatter changes use Obsidian's `processFrontMatter`. A new existing-task write path needs stale-task, duplicate-line, fenced-block, and line-ending tests.
 
 ## Planning and undo
 
 `PlanningComponent` derives columns rather than storing board membership. A task's due/completed attributes, status, selected flag, tags, current date, configured horizons, and view filters determine where it appears.
 
-Dropping a card writes the relevant due date, status, and optional custom-horizon tag back to its source. Moving into a built-in horizon removes tags belonging to custom horizons. Group drag operations are resolved and written in batches.
+Dropping a card writes the relevant due date, status, and optional custom-horizon tag back to its source. Plain built-in date-horizon drops remove custom-horizon tags; backlog and status-specific drop handlers preserve them. Group drag operations are resolved and written in batches.
 
-Board mutations use `UndoableFileOperations`, which records prior attribute, status, tag, and completion-date state in `UndoManager` only after the forward write succeeds. Undo is intentionally scoped to the planning view and has size/age limits from settings. Direct checkbox/status controls use `FileOperations` and are not automatically undoable unless explicitly routed through the wrapper.
+Planning drag-and-drop moves use `UndoableFileOperations`, which records prior attribute, status, tag, and completion-date state in `UndoManager` only after the forward write succeeds. Undo is intentionally scoped to those moves and has size/age limits from settings. Checkbox and card-menu controls use `FileOperations` directly and are not undoable.
 
 ## Settings and persistence
 
