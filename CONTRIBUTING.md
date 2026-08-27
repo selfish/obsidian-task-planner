@@ -131,6 +131,8 @@ chore(deps): update typescript to 5.3.0
 
 ## Coding Standards
 
+For the runtime data flow, module boundaries, Markdown write-safety invariants, and change recipes, read [Architecture and maintainer guide](docs/ARCHITECTURE.md).
+
 ### TypeScript
 
 - Use TypeScript for all new code
