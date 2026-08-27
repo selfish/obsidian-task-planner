@@ -137,14 +137,14 @@ For the runtime data flow, module boundaries, Markdown write-safety invariants, 
 
 - Use TypeScript for all new code
 - Follow the gradual strictness settings in `tsconfig.json`
-- Avoid `any` types when possible (configured as warning)
+- Avoid explicit `any` types (configured as an error)
 - Use interfaces for object shapes
 
 ### Code Style
 
 - Code is automatically formatted with Prettier
 - ESLint enforces code quality rules
-- Pre-commit hooks run formatting and linting checks
+- The commit-message hook enforces Conventional Commits
 - Use meaningful variable and function names
 - Keep functions focused and single-purpose
 - Add comments for complex logic, not obvious code
