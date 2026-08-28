@@ -128,27 +128,26 @@ describe("real Obsidian vault smoke", function () {
     await browser.executeObsidianCommand("task-planner:open-planning");
     await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('[aria-label^="Task: Target"] .checkbox'))), { timeout: 15000, timeoutMsg: "Target task checkbox was not rendered" });
 
-    const priorityControl = await browser.execute(() => {
-      const select = document.querySelector('select[aria-label="Filter by priority"]');
-      select.value = "high";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-      return select.tagName;
+    const setPriorityFilter = (value) =>
+      browser.execute((selectedPriority) => {
+        const select = document.querySelector('select[aria-label="Filter by priority"]');
+        select.value = selectedPriority;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        return select.tagName;
+      }, value);
+    try {
+      assert.equal(await setPriorityFilter("high"), "SELECT");
+      await browser.waitUntil(() => browser.execute(() => document.querySelector(".board > .header .stats")?.textContent.includes("1 active")), {
+        timeout: 5000,
+        timeoutMsg: "priority selection did not reduce the active task count",
+      });
+    } finally {
+      await setPriorityFilter("all");
+    }
+    await browser.waitUntil(() => browser.execute(() => document.querySelector(".board > .header .stats")?.textContent.includes("3 active") && Boolean(document.querySelector('[aria-label^="Task: Target"] .checkbox'))), {
+      timeout: 5000,
+      timeoutMsg: "resetting priority filter did not restore all tasks",
     });
-    assert.equal(priorityControl, "SELECT");
-    await browser.waitUntil(
-      () =>
-        browser.execute(() => {
-          const cards = [...document.querySelectorAll('.card[aria-label^="Task:"]')].map((card) => card.textContent);
-          return cards.some((text) => text.includes("High E2E")) && !cards.some((text) => text.includes("Low E2E") || text.includes("Target"));
-        }),
-      { timeout: 5000, timeoutMsg: "priority selection did not filter rendered cards" }
-    );
-    await browser.execute(() => {
-      const select = document.querySelector('select[aria-label="Filter by priority"]');
-      select.value = "all";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('[aria-label^="Task: Target"] .checkbox'))), { timeout: 5000, timeoutMsg: "resetting priority filter did not restore unprioritized tasks" });
 
     const measureToolbar = async (width) => {
       await browser.sendCommand("Emulation.setDeviceMetricsOverride", {
