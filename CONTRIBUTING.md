@@ -10,7 +10,7 @@ Be respectful, professional, and constructive in all interactions. We're here to
 
 ### Prerequisites
 
-- Node.js 22 or newer
+- Node.js 22.12.0 or newer
 - npm
 - Obsidian (for testing)
 
