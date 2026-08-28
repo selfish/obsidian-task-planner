@@ -116,15 +116,39 @@ describe("real Obsidian vault smoke", function () {
   });
 
   it("atomically relocates a stale UI task and preserves unrelated CRLF bytes", async function () {
-    await browser.executeObsidian(({ app, plugins }) => {
+    await browser.executeObsidian(async ({ app, plugins }) => {
       plugins.taskPlanner.settings.customHorizons = [
         { label: "Initial", date: "2026-08-02", position: "end" },
         { label: "E2E", date: "2026-08-09", tag: "e2e", color: "accent", position: "end" },
       ];
+      await app.vault.create("Priorities.md", "- [ ] High E2E [priority:: high] (due:: 2026-08-02)\n- [ ] Low E2E [priority:: low] (due:: 2026-08-02)\n");
       app.saveLocalStorage("TaskPlanner.PlanningSettings", JSON.stringify({ hideEmpty: false }));
     });
+    await waitForTaskCount(3);
     await browser.executeObsidianCommand("task-planner:open-planning");
     await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('[aria-label^="Task: Target"] .checkbox'))), { timeout: 15000, timeoutMsg: "Target task checkbox was not rendered" });
+
+    const priorityControl = await browser.execute(() => {
+      const select = document.querySelector('select[aria-label="Filter by priority"]');
+      select.value = "high";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      return select.tagName;
+    });
+    assert.equal(priorityControl, "SELECT");
+    await browser.waitUntil(
+      () =>
+        browser.execute(() => {
+          const cards = [...document.querySelectorAll('.card[aria-label^="Task:"]')].map((card) => card.textContent);
+          return cards.some((text) => text.includes("High E2E")) && !cards.some((text) => text.includes("Low E2E") || text.includes("Target"));
+        }),
+      { timeout: 5000, timeoutMsg: "priority selection did not filter rendered cards" }
+    );
+    await browser.execute(() => {
+      const select = document.querySelector('select[aria-label="Filter by priority"]');
+      select.value = "all";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('[aria-label^="Task: Target"] .checkbox'))), { timeout: 5000, timeoutMsg: "resetting priority filter did not restore unprioritized tasks" });
 
     const measureToolbar = async (width) => {
       await browser.sendCommand("Emulation.setDeviceMetricsOverride", {
@@ -222,7 +246,7 @@ describe("real Obsidian vault smoke", function () {
     await browser.executeObsidian(async ({ app }, text) => {
       await app.vault.create("Duplicates.md", text);
     }, duplicateText);
-    await waitForTaskCount(3);
+    await waitForTaskCount(5);
 
     await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('[aria-label^="Task: Duplicate"] .checkbox'))), { timeout: 15000, timeoutMsg: "duplicate task was not rendered" });
     await browser.executeObsidian(({ app }) => {
