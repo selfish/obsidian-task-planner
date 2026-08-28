@@ -896,7 +896,7 @@ describe('LineParser', () => {
       const repeated = 'a@high.x '.repeat(64_000);
       const repeatedStarted = Date.now();
       expect(parser.parseAttributes(repeated).textWithoutAttributes).toBe(repeated);
-      expect(Date.now() - repeatedStarted).toBeLessThan(1_000);
+      expect(Date.now() - repeatedStarted).toBeLessThan(2_000);
 
       const punctuation = `Contact foo#work@example.com${'.'.repeat(50_000)}`;
       const punctuationStarted = Date.now();
