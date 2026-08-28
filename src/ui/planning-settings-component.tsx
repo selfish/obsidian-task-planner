@@ -2,7 +2,7 @@ import { App, setIcon } from "obsidian";
 
 import * as React from "react";
 
-import { PlanningSettings } from "./planning-settings";
+import { PlanningSettings, PriorityFilter } from "./planning-settings";
 
 export interface PlanningSettingsComponentProps {
   setPlanningSettings: (settings: PlanningSettings) => void;
@@ -18,7 +18,7 @@ export interface PlanningSettingsComponentProps {
 }
 
 export function PlanningSettingsComponent({ setPlanningSettings, planningSettings, showIgnored, setShowIgnored, totalTasks, completedToday, app, onRefresh, onOpenReport, onQuickAdd }: PlanningSettingsComponentProps) {
-  const { hideEmpty, hideDone, searchParameters, viewMode, showLoadColors } = planningSettings;
+  const { hideEmpty, hideDone, searchParameters, viewMode, showLoadColors, priorityFilter } = planningSettings;
   const { searchPhrase } = searchParameters;
 
   function toggleHideEmpty() {
@@ -67,6 +67,13 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
         ...searchParameters,
         searchPhrase: ev.target.value,
       },
+    });
+  }
+
+  function onPriorityChange(ev: React.ChangeEvent<HTMLSelectElement>) {
+    setPlanningSettings({
+      ...planningSettings,
+      priorityFilter: ev.target.value as PriorityFilter,
     });
   }
 
@@ -152,6 +159,14 @@ export function PlanningSettingsComponent({ setPlanningSettings, planningSetting
       </div>
       <div className="controls">
         <input type="text" className="search" placeholder="Filter tasks..." onChange={onSearchChange} value={searchPhrase} />
+        <select className="priority-filter" aria-label="Filter by priority" title="Filter by priority" value={priorityFilter} onChange={onPriorityChange}>
+          <option value="all">All priorities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+          <option value="lowest">Lowest</option>
+        </select>
         <span className={"spacer"}></span>
         {onQuickAdd && <button ref={quickAddIconRef} className="settings-btn" onClick={onQuickAdd} aria-label="Quick add task" title="Quick add task" />}
         <button className={`toggle-btn ${hideEmpty ? "active" : ""}`} onClick={toggleHideEmpty} aria-label="Hide empty horizons" title="Hide empty horizons">

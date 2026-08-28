@@ -23,6 +23,7 @@ export class PlanningSettingsStore {
     const saved = parsed as Record<string, unknown>;
     const searchParameters = saved.searchParameters !== null && typeof saved.searchParameters === "object" && !Array.isArray(saved.searchParameters) ? (saved.searchParameters as Record<string, unknown>) : {};
     const viewModes: readonly PlanningSettings["viewMode"][] = ["default", "today", "future"];
+    const priorityFilters: readonly PlanningSettings["priorityFilter"][] = ["all", "critical", "high", "medium", "low", "lowest"];
     return {
       ...saved,
       searchParameters: {
@@ -33,6 +34,7 @@ export class PlanningSettingsStore {
       hideDone: typeof saved.hideDone === "boolean" ? saved.hideDone : defaults.hideDone,
       viewMode: typeof saved.viewMode === "string" && viewModes.includes(saved.viewMode as PlanningSettings["viewMode"]) ? (saved.viewMode as PlanningSettings["viewMode"]) : defaults.viewMode,
       showLoadColors: typeof saved.showLoadColors === "boolean" ? saved.showLoadColors : defaults.showLoadColors,
+      priorityFilter: typeof saved.priorityFilter === "string" && priorityFilters.includes(saved.priorityFilter as PlanningSettings["priorityFilter"]) ? (saved.priorityFilter as PlanningSettings["priorityFilter"]) : defaults.priorityFilter,
     };
   }
 
