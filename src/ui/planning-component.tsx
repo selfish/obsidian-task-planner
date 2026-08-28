@@ -4,6 +4,7 @@ import { App, TFile, setIcon } from "obsidian";
 
 import * as React from "react";
 
+import { PlanningSettings } from "./planning-settings";
 import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
 import { PlanningTaskColumn, ColumnType, ColumnHeaderAction, WipLimitConfig } from "./planning-task-column";
@@ -38,6 +39,10 @@ export interface PlanningComponentProps {
 interface AutoScrollTimer {
   id: number;
   ownerWindow: Window;
+}
+
+export function matchesPriority<T>(todo: TaskItem<T>, priorityFilter: PlanningSettings["priorityFilter"]): boolean {
+  return priorityFilter === "all" || todo.attributes?.["priority"]?.toString().toLowerCase() === priorityFilter;
 }
 
 function startAutoScroll(container: HTMLDivElement, delta: number): AutoScrollTimer | null {
@@ -78,7 +83,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   );
 
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
-  const { searchParameters, hideEmpty, hideDone, viewMode, showLoadColors } = planningSettings;
+  const { searchParameters, hideEmpty, hideDone, viewMode, showLoadColors, priorityFilter } = planningSettings;
 
   // Derive WIP limit from main settings (single source of truth)
   const dailyWipLimit = settings.dailyWipLimit;
@@ -210,13 +215,13 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
       // Show ignored mode: show ONLY ignored tasks
       if (showIgnored) {
-        return isIgnored && filter.matches(todo);
+        return isIgnored && filter.matches(todo) && matchesPriority(todo, priorityFilter);
       }
       // Normal mode: hide ignored tasks
       if (isIgnored) return false;
-      return filter.matches(todo);
+      return filter.matches(todo) && matchesPriority(todo, priorityFilter);
     });
-  }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored]);
+  }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored, priorityFilter]);
 
   // Set of subtask IDs that have their own dates (to hide from parent's subtask list)
   const promotedSubtaskIds = React.useMemo(() => {

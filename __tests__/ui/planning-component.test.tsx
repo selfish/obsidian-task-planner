@@ -6,6 +6,32 @@ import { TaskIndex } from "../../src/core";
 import { UndoManager } from "../../src/core/operations/undo-manager";
 import { DEFAULT_SETTINGS } from "../../src/settings/types";
 import { PlanningComponent } from "../../src/ui/planning-component";
+import { matchesPriority } from "../../src/ui/planning-component";
+import { TaskItem, TaskStatus } from "../../src/types/task";
+
+const task = (priority?: string) =>
+  ({
+    status: TaskStatus.Todo,
+    text: "Task",
+    file: { id: "tasks" },
+    attributes: priority ? { priority } : {},
+  }) as TaskItem<TFile>;
+
+describe("priority filtering", () => {
+  it("shows every task when the filter is reset", () => {
+    expect(matchesPriority(task("high"), "all")).toBe(true);
+    expect(matchesPriority(task(), "all")).toBe(true);
+  });
+
+  it("matches the selected priority case-insensitively", () => {
+    expect(matchesPriority(task("HIGH"), "high")).toBe(true);
+    expect(matchesPriority(task("medium"), "high")).toBe(false);
+  });
+
+  it("hides unprioritized tasks when a priority is selected", () => {
+    expect(matchesPriority(task(), "low")).toBe(false);
+  });
+});
 
 function renderPlanner() {
   const frame = document.createElement("iframe");
@@ -42,8 +68,22 @@ function renderPlanner() {
     { container: ownerDocument.body }
   );
 
-  return { ...result, frame, ownerDocument, ownerWindow, undoManager };
+  return { ...result, frame, ownerDocument, ownerWindow, undoManager, app };
 }
+
+describe("PlanningComponent priority control", () => {
+  it("persists the selected priority and can reset to all", () => {
+    const { container, app } = renderPlanner();
+    const select = container.querySelector('select[aria-label="Filter by priority"]')!;
+
+    fireEvent.change(select, { target: { value: "high" } });
+    expect(select).toHaveValue("high");
+    expect(app.saveLocalStorage).toHaveBeenLastCalledWith("TaskPlanner.PlanningSettings", expect.stringContaining('"priorityFilter":"high"'));
+
+    fireEvent.change(select, { target: { value: "all" } });
+    expect(select).toHaveValue("all");
+  });
+});
 
 describe("PlanningComponent window ownership", () => {
   afterEach(() => {

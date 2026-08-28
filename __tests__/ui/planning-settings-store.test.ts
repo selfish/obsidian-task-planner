@@ -126,6 +126,7 @@ describe("PlanningSettingsStore", () => {
           hideDone: true,
           viewMode: "today",
           showLoadColors: false,
+          priorityFilter: "high",
         })
       );
 
@@ -135,6 +136,7 @@ describe("PlanningSettingsStore", () => {
         hideDone: true,
         viewMode: "today",
         showLoadColors: false,
+        priorityFilter: "high",
       });
     });
   });

@@ -19,7 +19,7 @@ This document tracks planned features, improvements, and open questions for the 
 
 ## Medium Priority
 
-### [ ] Priority Filter
+### [x] Priority Filter
 **Effort:** Small | **Type:** UI
 
 Add ability to filter tasks by priority level in the header.
@@ -208,6 +208,7 @@ Worth investigating what other task plugins do.
 
 ## Completed
 
+- **Priority Filter** — filter every planning horizon by critical, high, medium, low, or lowest priority from the header
 - **Render Tasks Like Notes** — task text now uses Obsidian's native MarkdownRenderer for proper rendering of links, wikilinks, tags, and inline formatting
 - **Custom Horizon Colors** — color picker in settings with 12 theme-aware options, applies tint to custom horizon columns
 - **Parse #hashtags from Task Text** — hashtags like `#shopping` are now parsed directly from task text and used for custom horizon filtering

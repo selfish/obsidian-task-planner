@@ -89,7 +89,8 @@
     }
   }
 
-  .search {
+  .search,
+  .priority-filter {
     padding: var(--space-xs) var(--space-md);
     font-size: var(--font-sm);
     background: var(--background-primary);
@@ -112,6 +113,10 @@
     &::placeholder {
       color: var(--text-faint);
     }
+  }
+
+  .priority-filter {
+    min-width: 130px;
   }
 
   .toggle-btn {

@@ -1,4 +1,5 @@
 export type ViewMode = "default" | "today" | "future";
+export type PriorityFilter = "all" | "critical" | "high" | "medium" | "low" | "lowest";
 
 export interface SearchParameters {
   searchPhrase: string;
@@ -10,6 +11,7 @@ export interface PlanningSettings {
   hideDone: boolean;
   viewMode: ViewMode;
   showLoadColors: boolean;
+  priorityFilter: PriorityFilter;
 }
 
 export function getDefaultSettings(): PlanningSettings {
@@ -21,5 +23,6 @@ export function getDefaultSettings(): PlanningSettings {
     hideDone: false,
     viewMode: "default",
     showLoadColors: false,
+    priorityFilter: "all",
   };
 }
