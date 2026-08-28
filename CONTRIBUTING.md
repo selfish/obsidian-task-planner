@@ -10,7 +10,7 @@ Be respectful, professional, and constructive in all interactions. We're here to
 
 ### Prerequisites
 
-- Node.js 22 or newer
+- Node.js 22.12.0 or newer
 - npm
 - Obsidian (for testing)
 
@@ -131,18 +131,20 @@ chore(deps): update typescript to 5.3.0
 
 ## Coding Standards
 
+For the runtime data flow, module boundaries, Markdown write-safety invariants, and change recipes, read [Architecture and maintainer guide](docs/ARCHITECTURE.md).
+
 ### TypeScript
 
 - Use TypeScript for all new code
 - Follow the gradual strictness settings in `tsconfig.json`
-- Avoid `any` types when possible (configured as warning)
+- Avoid explicit `any` types (configured as an error)
 - Use interfaces for object shapes
 
 ### Code Style
 
 - Code is automatically formatted with Prettier
 - ESLint enforces code quality rules
-- Pre-commit hooks run formatting and linting checks
+- The commit-message hook enforces Conventional Commits
 - Use meaningful variable and function names
 - Keep functions focused and single-purpose
 - Add comments for complex logic, not obvious code
