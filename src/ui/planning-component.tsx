@@ -47,6 +47,10 @@ export function matchesPriority<T>(todo: TaskItem<T>, priorityFilter: PlanningSe
   return priority === priorityFilter || (priorityFilter === "critical" && priority === "highest");
 }
 
+export function matchesPriorityTree<T>(todo: TaskItem<T>, priorityFilter: PlanningSettings["priorityFilter"]): boolean {
+  return matchesPriority(todo, priorityFilter) || todo.subtasks?.some((subtask) => matchesPriorityTree(subtask, priorityFilter)) === true;
+}
+
 function startAutoScroll(container: HTMLDivElement, delta: number): AutoScrollTimer | null {
   const ownerWindow = container.ownerDocument.defaultView;
   if (!ownerWindow) return null;
@@ -217,11 +221,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
       // Show ignored mode: show ONLY ignored tasks
       if (showIgnored) {
-        return isIgnored && filter.matches(todo) && matchesPriority(todo, priorityFilter);
+        return isIgnored && filter.matches(todo) && matchesPriorityTree(todo, priorityFilter);
       }
       // Normal mode: hide ignored tasks
       if (isIgnored) return false;
-      return filter.matches(todo) && matchesPriority(todo, priorityFilter);
+      return filter.matches(todo) && matchesPriorityTree(todo, priorityFilter);
     });
   }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored, priorityFilter]);
 
@@ -605,6 +609,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           settings,
           logger: deps.logger,
           promotedSubtaskIds,
+          taskFilter: (todo) => matchesPriorityTree(todo, priorityFilter),
         }}
         substyle={substyle}
         customColor={customColor as Parameters<typeof PlanningTaskColumn>[0]["customColor"]}
