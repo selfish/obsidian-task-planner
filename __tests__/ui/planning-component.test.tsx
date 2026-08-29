@@ -5,8 +5,8 @@ import { App, TFile } from "obsidian";
 import { TaskIndex } from "../../src/core";
 import { UndoManager } from "../../src/core/operations/undo-manager";
 import { DEFAULT_SETTINGS } from "../../src/settings/types";
-import { PlanningComponent } from "../../src/ui/planning-component";
-import { matchesPriority } from "../../src/ui/planning-component";
+import { PlanningComponent, matchesPriority, matchesPriorityTree } from "../../src/ui/planning-component";
+import { TodoSubtasksContainer } from "../../src/ui/task-subtasks-container";
 import { TaskItem, TaskStatus } from "../../src/types/task";
 
 const task = (priority?: string) =>
@@ -36,6 +36,30 @@ describe("priority filtering", () => {
 
   it("hides unprioritized tasks when a priority is selected", () => {
     expect(matchesPriority(task(), "low")).toBe(false);
+  });
+
+  it("keeps the ancestor path to a matching nested task", () => {
+    const parent = { ...task("low"), subtasks: [{ ...task("medium"), subtasks: [task("high")] }] };
+
+    expect(matchesPriorityTree(parent, "high")).toBe(true);
+    expect(matchesPriorityTree(parent, "critical")).toBe(false);
+  });
+
+  it("removes nonmatching nested tasks while retaining a matching descendant path", () => {
+    const nested = { ...task("low"), subtasks: [task("high")] };
+    const { container } = render(
+      <TodoSubtasksContainer
+        subtasks={[task("low"), nested]}
+        deps={{
+          app: {} as App,
+          settings: DEFAULT_SETTINGS,
+          logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+          taskFilter: (item) => matchesPriorityTree(item, "high"),
+        }}
+      />
+    );
+
+    expect(container.querySelector(".count")).toHaveTextContent("0/1");
   });
 });
 

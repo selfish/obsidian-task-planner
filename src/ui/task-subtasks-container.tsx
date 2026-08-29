@@ -23,9 +23,9 @@ export function TodoSubtasksContainer({ subtasks, deps, dontCrossCompleted }: To
   const visibleSubtasks = React.useMemo(() => {
     if (!subtasks) return [];
     const promoted = deps.promotedSubtaskIds;
-    if (!promoted || promoted.size === 0) return subtasks;
-    return subtasks.filter((t) => !promoted.has(getTaskId(t)));
-  }, [subtasks, deps.promotedSubtaskIds]);
+    const nested = !promoted || promoted.size === 0 ? subtasks : subtasks.filter((task) => !promoted.has(getTaskId(task)));
+    return deps.taskFilter ? nested.filter(deps.taskFilter) : nested;
+  }, [subtasks, deps.promotedSubtaskIds, deps.taskFilter]);
 
   // Use callback ref for chevron icon
   const setChevronRef = React.useCallback(
