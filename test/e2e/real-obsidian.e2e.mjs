@@ -210,6 +210,74 @@ describe("real Obsidian vault smoke", function () {
     assert.equal(await browser.executeObsidian(({ app }) => app.vault.__e2eProcessCalls), 1);
   });
 
+  it("keeps overflowing horizons reachable with a visible native scrollbar", async function () {
+    const setViewport = (width) =>
+      browser.sendCommand("Emulation.setDeviceMetricsOverride", {
+        width,
+        height: 700,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+
+    await setViewport(1024);
+    const desktop = await browser.execute(async () => {
+      const section = document.querySelector(".future-section");
+      const style = getComputedStyle(section);
+      const scrollbar = getComputedStyle(section, "::-webkit-scrollbar");
+      section.scrollLeft = section.scrollWidth;
+      await new Promise(requestAnimationFrame);
+      const programmaticScrollLeft = section.scrollLeft;
+      section.scrollLeft = 0;
+      section.focus();
+      return {
+        ariaLabel: section.getAttribute("aria-label"),
+        tabIndex: section.tabIndex,
+        overflowX: style.overflowX,
+        scrollbarWidth: style.scrollbarWidth,
+        webkitDisplay: scrollbar.display,
+        clientWidth: section.clientWidth,
+        scrollWidth: section.scrollWidth,
+        programmaticScrollLeft,
+        focused: document.activeElement === section,
+        pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+
+    assert.equal(desktop.overflowX, "auto");
+    assert.ok(desktop.scrollWidth > desktop.clientWidth);
+    assert.notEqual(desktop.scrollbarWidth, "none");
+    assert.notEqual(desktop.webkitDisplay, "none");
+    assert.equal(desktop.ariaLabel, "Future planning horizons");
+    assert.equal(desktop.tabIndex, 0);
+    assert.ok(desktop.programmaticScrollLeft > 0);
+    assert.equal(desktop.focused, true);
+    assert.ok(desktop.pageOverflow <= 1);
+
+    await browser.executeObsidian(({ app }) => {
+      app.workspace.leftSplit.collapse();
+      app.workspace.rightSplit.collapse();
+    });
+    await setViewport(320);
+    const mobile = await browser.execute(() => {
+      const viewportWidth = document.documentElement.clientWidth;
+      const futureSection = document.querySelector(".future-section").getBoundingClientRect();
+      const controls = [...document.querySelectorAll(".board > .header button, .board > .header input, .board > .header select")].map((element) => element.getBoundingClientRect());
+      return {
+        viewportWidth,
+        futureSection: { left: futureSection.left, right: futureSection.right, width: futureSection.width },
+        controlCount: controls.length,
+        pageOverflow: document.documentElement.scrollWidth - viewportWidth,
+        sectionInsideViewport: futureSection.width > 0 && futureSection.left >= -1 && futureSection.right <= viewportWidth + 1,
+        controlsInsideViewport: controls.every(({ left, right, width, height }) => left >= -1 && right <= viewportWidth + 1 && width > 0 && height > 0),
+      };
+    });
+    assert.ok(mobile.pageOverflow <= 1);
+    assert.ok(mobile.controlCount > 0, JSON.stringify(mobile));
+    assert.equal(mobile.sectionInsideViewport, true, JSON.stringify(mobile));
+    assert.equal(mobile.controlsInsideViewport, true, JSON.stringify(mobile));
+    await setViewport(1024);
+  });
+
   it("moves through a dated/tagged horizon and supports UI undo", async function () {
     await browser.waitUntil(() => browser.execute(() => [...document.querySelectorAll(".column")].some((column) => column.querySelector(".title")?.textContent === "E2E")), { timeout: 15000, timeoutMsg: "custom E2E horizon was not rendered" });
 
