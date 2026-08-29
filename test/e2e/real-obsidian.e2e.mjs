@@ -161,11 +161,12 @@ describe("real Obsidian vault smoke", function () {
         const title = header?.querySelector(".title");
         const controls = header?.querySelector(".controls");
         const search = controls?.querySelector(".search");
+        const priority = controls?.querySelector(".priority-filter");
         const rect = (element) => {
           const bounds = element?.getBoundingClientRect();
           return bounds ? { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom, width: bounds.width } : null;
         };
-        return { header: rect(header), title: rect(title), controls: rect(controls), search: rect(search) };
+        return { header: rect(header), title: rect(title), controls: rect(controls), search: rect(search), priority: rect(priority), controlItems: [...(controls?.children ?? [])].map(rect) };
       });
     };
 
@@ -179,6 +180,10 @@ describe("real Obsidian vault smoke", function () {
     assert.ok(narrowToolbar.controls.right >= narrowToolbar.header.right - 2.5);
     assert.ok(narrowToolbar.controls.width >= narrowToolbar.header.width - 4);
     assert.ok(narrowToolbar.search.width > wideToolbar.search.width);
+
+    const mobileToolbar = await measureToolbar(640);
+    assert.ok(mobileToolbar.controlItems.every((item) => item.left >= mobileToolbar.header.left - 2.5 && item.right <= mobileToolbar.header.right + 2.5));
+    assert.ok(mobileToolbar.priority.width >= 130);
 
     const result = await browser.executeObsidian(async ({ app }) => {
       const staleCheckbox = document.querySelector('[aria-label^="Task: Target"] .checkbox');
