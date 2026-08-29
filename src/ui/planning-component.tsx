@@ -1220,7 +1220,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         </div>
       )}
       {viewMode !== "today" && (
-        <div className="future-section" ref={futureSectionRef}>
+        <div className="future-section" ref={futureSectionRef} tabIndex={0} aria-label="Future planning horizons">
           {Array.from(getColumns())}
         </div>
       )}
