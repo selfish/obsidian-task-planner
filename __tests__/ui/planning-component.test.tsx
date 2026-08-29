@@ -23,9 +23,15 @@ describe("priority filtering", () => {
     expect(matchesPriority(task(), "all")).toBe(true);
   });
 
-  it("matches the selected priority case-insensitively", () => {
+  it("matches priority and legacy importance fields case-insensitively", () => {
     expect(matchesPriority(task("HIGH"), "high")).toBe(true);
+    expect(matchesPriority({ ...task(), attributes: { importance: "HIGH" } }, "high")).toBe(true);
     expect(matchesPriority(task("medium"), "high")).toBe(false);
+  });
+
+  it("includes the canonical Tasks highest value in the critical filter", () => {
+    expect(matchesPriority(task("highest"), "critical")).toBe(true);
+    expect(matchesPriority(task("critical"), "critical")).toBe(true);
   });
 
   it("hides unprioritized tasks when a priority is selected", () => {

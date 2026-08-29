@@ -14,7 +14,7 @@ import { TaskMatcher } from "../core/matchers/task-matcher";
 import { FileOperations } from "../core/operations/file-operations";
 import { UndoManager } from "../core/operations/undo-manager";
 import { UndoableFileOperations } from "../core/operations/undoable-file-ops";
-import { TaskSpreader } from "../core/services/task-spreader";
+import { TaskSpreader, getTaskPriority } from "../core/services/task-spreader";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
 import { TaskItem, TaskStatus, getTaskId } from "../types/task";
@@ -42,7 +42,9 @@ interface AutoScrollTimer {
 }
 
 export function matchesPriority<T>(todo: TaskItem<T>, priorityFilter: PlanningSettings["priorityFilter"]): boolean {
-  return priorityFilter === "all" || todo.attributes?.["priority"]?.toString().toLowerCase() === priorityFilter;
+  if (priorityFilter === "all") return true;
+  const priority = getTaskPriority(todo);
+  return priority === priorityFilter || (priorityFilter === "critical" && priority === "highest");
 }
 
 function startAutoScroll(container: HTMLDivElement, delta: number): AutoScrollTimer | null {
