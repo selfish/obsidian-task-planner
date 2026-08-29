@@ -47,8 +47,8 @@ export function matchesPriority<T>(todo: TaskItem<T>, priorityFilter: PlanningSe
   return priority === priorityFilter || (priorityFilter === "critical" && priority === "highest");
 }
 
-export function matchesPriorityTree<T>(todo: TaskItem<T>, priorityFilter: PlanningSettings["priorityFilter"]): boolean {
-  return matchesPriority(todo, priorityFilter) || todo.subtasks?.some((subtask) => matchesPriorityTree(subtask, priorityFilter)) === true;
+export function matchesPriorityTree<T>(todo: TaskItem<T>, priorityFilter: PlanningSettings["priorityFilter"], promotedSubtaskIds?: Set<string>): boolean {
+  return matchesPriority(todo, priorityFilter) || todo.subtasks?.some((subtask) => !promotedSubtaskIds?.has(getTaskId(subtask)) && matchesPriorityTree(subtask, priorityFilter, promotedSubtaskIds)) === true;
 }
 
 function startAutoScroll(container: HTMLDivElement, delta: number): AutoScrollTimer | null {
@@ -211,6 +211,11 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     return { todos: result, subtasksWithDates };
   }, [todos, settings.dueDateAttribute]);
 
+  // Dated subtasks render as independent cards and must not keep an unrelated parent visible.
+  const promotedSubtaskIds = React.useMemo(() => {
+    return new Set(Array.from(flattenedTodos.subtasksWithDates).map((task) => getTaskId(task)));
+  }, [flattenedTodos.subtasksWithDates]);
+
   const filteredTodos = React.useMemo(() => {
     const filter = new TaskMatcher(searchParameters.searchPhrase, settings.fuzzySearch);
     return flattenedTodos.todos.filter((todo) => {
@@ -221,18 +226,13 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
       // Show ignored mode: show ONLY ignored tasks
       if (showIgnored) {
-        return isIgnored && filter.matches(todo) && matchesPriorityTree(todo, priorityFilter);
+        return isIgnored && filter.matches(todo) && matchesPriorityTree(todo, priorityFilter, promotedSubtaskIds);
       }
       // Normal mode: hide ignored tasks
       if (isIgnored) return false;
-      return filter.matches(todo) && matchesPriorityTree(todo, priorityFilter);
+      return filter.matches(todo) && matchesPriorityTree(todo, priorityFilter, promotedSubtaskIds);
     });
-  }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored, priorityFilter]);
-
-  // Set of subtask IDs that have their own dates (to hide from parent's subtask list)
-  const promotedSubtaskIds = React.useMemo(() => {
-    return new Set(Array.from(flattenedTodos.subtasksWithDates).map((t) => getTaskId(t)));
-  }, [flattenedTodos.subtasksWithDates]);
+  }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored, priorityFilter, promotedSubtaskIds]);
 
   React.useEffect(() => {
     const unsubscribe = deps.taskIndex.onUpdateEvent.listen((todos) => {
@@ -609,7 +609,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           settings,
           logger: deps.logger,
           promotedSubtaskIds,
-          taskFilter: (todo) => matchesPriorityTree(todo, priorityFilter),
+          taskFilter: (todo) => matchesPriorityTree(todo, priorityFilter, promotedSubtaskIds),
         }}
         substyle={substyle}
         customColor={customColor as Parameters<typeof PlanningTaskColumn>[0]["customColor"]}

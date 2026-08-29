@@ -7,7 +7,7 @@ import { UndoManager } from "../../src/core/operations/undo-manager";
 import { DEFAULT_SETTINGS } from "../../src/settings/types";
 import { PlanningComponent, matchesPriority, matchesPriorityTree } from "../../src/ui/planning-component";
 import { TodoSubtasksContainer } from "../../src/ui/task-subtasks-container";
-import { TaskItem, TaskStatus } from "../../src/types/task";
+import { TaskItem, TaskStatus, getTaskId } from "../../src/types/task";
 
 const task = (priority?: string) =>
   ({
@@ -43,6 +43,14 @@ describe("priority filtering", () => {
 
     expect(matchesPriorityTree(parent, "high")).toBe(true);
     expect(matchesPriorityTree(parent, "critical")).toBe(false);
+  });
+
+  it("does not retain a parent for a matching child promoted to its own horizon", () => {
+    const child = { ...task("high"), text: "Dated child", line: 1 };
+    const parent = { ...task("low"), text: "Parent", line: 0, subtasks: [child] };
+
+    expect(matchesPriorityTree(parent, "high", new Set([getTaskId(child)]))).toBe(false);
+    expect(matchesPriorityTree(child, "high", new Set([getTaskId(child)]))).toBe(true);
   });
 
   it("removes nonmatching nested tasks while retaining a matching descendant path", () => {
