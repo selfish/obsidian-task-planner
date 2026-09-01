@@ -1,6 +1,6 @@
 {
   "name": "obsidian-task-planner",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "Turn Markdown tasks across your Obsidian vault into a drag-and-drop planning board for Today, backlog, overdue, and future horizons.",
   "main": "main.js",
   "scripts": {
