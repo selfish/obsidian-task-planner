@@ -60,6 +60,22 @@ describe("real Obsidian vault smoke", function () {
       loadError: null,
     });
     await waitForTaskCount(1);
+
+    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector(".onboarding-modal .onboarding-secondary-btn"))), {
+      timeout: 5000,
+      timeoutMsg: "First-run onboarding was not rendered",
+    });
+    const onboardingAction = await browser.execute(() => {
+      const button = document.querySelector(".onboarding-modal .onboarding-secondary-btn");
+      const label = button?.textContent?.trim();
+      button?.click();
+      return label;
+    });
+    assert.equal(onboardingAction, "Skip");
+    await browser.waitUntil(() => browser.executeObsidian(({ plugins }) => plugins.taskPlanner.settings.hasSeenOnboarding && !document.querySelector(".onboarding-modal")), {
+      timeout: 5000,
+      timeoutMsg: "First-run onboarding did not close",
+    });
   });
 
   it("keeps the index current across ignored-folder renames", async function () {
@@ -258,6 +274,15 @@ describe("real Obsidian vault smoke", function () {
       app.workspace.rightSplit.collapse();
     });
     await setViewport(320);
+    await browser.waitUntil(
+      () =>
+        browser.execute(() => {
+          const viewportWidth = document.documentElement.clientWidth;
+          const { left, right, width } = document.querySelector(".future-section").getBoundingClientRect();
+          return width > 0 && left >= -1 && right <= viewportWidth + 1;
+        }),
+      { timeout: 5000, timeoutMsg: "Narrow planning layout did not settle after collapsing sidebars" }
+    );
     const mobile = await browser.execute(() => {
       const viewportWidth = document.documentElement.clientWidth;
       const futureSection = document.querySelector(".future-section").getBoundingClientRect();
