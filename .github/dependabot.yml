@@ -15,6 +15,10 @@ updates:
     labels:
       - "dependencies"
       - "npm"
+    # Obsidian owns these exact peer versions; update them with the SDK.
+    ignore:
+      - dependency-name: "@codemirror/state"
+      - dependency-name: "@codemirror/view"
     groups:
       runtime:
         patterns:
