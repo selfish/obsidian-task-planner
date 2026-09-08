@@ -274,6 +274,15 @@ describe("real Obsidian vault smoke", function () {
       app.workspace.rightSplit.collapse();
     });
     await setViewport(320);
+    await browser.waitUntil(
+      () =>
+        browser.execute(() => {
+          const viewportWidth = document.documentElement.clientWidth;
+          const { left, right, width } = document.querySelector(".future-section").getBoundingClientRect();
+          return width > 0 && left >= -1 && right <= viewportWidth + 1;
+        }),
+      { timeout: 5000, timeoutMsg: "Narrow planning layout did not settle after collapsing sidebars" }
+    );
     const mobile = await browser.execute(() => {
       const viewportWidth = document.documentElement.clientWidth;
       const futureSection = document.querySelector(".future-section").getBoundingClientRect();
