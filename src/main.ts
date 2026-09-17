@@ -15,7 +15,7 @@
 
 import { App, Platform, Plugin, PluginManifest, TFile } from "obsidian";
 
-import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, ToggleOngoingTaskCommand, ToggleTaskCommand } from "./commands";
+import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, SetDueDateCommand, ToggleOngoingTaskCommand, ToggleTaskCommand } from "./commands";
 import { FileTaskParser, FolderTaskParser, StatusOperations, TaskIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice, showInfoNotice } from "./lib";
@@ -63,6 +63,7 @@ export default class TaskPlannerPlugin extends Plugin {
 
     this.addCommand(new ToggleTaskCommand(statusOperations));
     this.addCommand(new CompleteLineCommand(statusOperations));
+    this.addCommand(new SetDueDateCommand(this.app, () => this.settings));
     this.addCommand(new ToggleOngoingTaskCommand(statusOperations));
     this.addCommand(openPlanningCommand);
     this.addCommand(openReportCommand);

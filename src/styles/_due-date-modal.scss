@@ -1,0 +1,12 @@
+.task-planner-date-modal {
+  input[type='date'] {
+    width: 100%;
+  }
+
+  .task-planner-date-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--size-4-2);
+    margin-top: var(--size-4-4);
+  }
+}

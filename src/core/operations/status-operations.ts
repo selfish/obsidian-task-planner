@@ -26,6 +26,13 @@ export class StatusOperations {
     return this.lineParser.lineToString(parsedLine);
   }
 
+  setDueDate(line: string, date: string): string {
+    const parsedLine = this.lineParser.parseLine(line);
+    if (!parsedLine.checkbox) return line;
+    parsedLine.line = this.lineParser.updateAttribute(parsedLine.line, this.settings?.dueDateAttribute || "due", date);
+    return this.lineParser.lineToString(parsedLine);
+  }
+
   private convertAttributeEntries(attributes: AttributesStructure, entries: [string, string | boolean][]): AttributesStructure {
     const converted: Record<string, string | boolean> = {};
     for (const [sourceKey, sourceValue] of entries) {
