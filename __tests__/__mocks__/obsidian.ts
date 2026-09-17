@@ -432,6 +432,13 @@ export function getLinkpath(linkText: string): string {
   return linkText.replace(/[#^|].*$/, '');
 }
 
+export class EditorSuggest<T> {
+  context: any = null;
+  constructor(public app: App) {}
+  setInstructions = jest.fn();
+  close = jest.fn();
+}
+
 export const request = jest.fn().mockResolvedValue('');
 export const requestUrl = jest.fn().mockResolvedValue({ text: '', json: {} });
 
