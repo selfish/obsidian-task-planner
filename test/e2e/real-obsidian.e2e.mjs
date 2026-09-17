@@ -80,7 +80,7 @@ describe("real Obsidian vault smoke", function () {
 
   it("sets and edits the current task due date with the native picker", async function () {
     await browser.executeObsidian(async ({ app }) => {
-      const file = app.vault.getAbstractFileByPath("Tasks.md");
+      const file = await app.vault.create("DatePicker.md", "- [ ] Picker [due:: 2026-08-02]\n");
       const leaf = app.workspace.getLeaf("tab");
       await leaf.openFile(file);
       app.workspace.setActiveLeaf(leaf, { focus: true });
@@ -106,20 +106,16 @@ describe("real Obsidian vault smoke", function () {
       input.dispatchEvent(new Event("input", { bubbles: true }));
       [...document.querySelectorAll(".task-planner-date-modal button")].find((button) => button.textContent?.trim() === "Set date")?.click();
     });
-    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => text.includes("(due:: 2026-09-21)")), {
+    await browser.waitUntil(() => obsidianPage.read("DatePicker.md").then((text) => text.includes("[due:: 2026-09-21]")), {
       timeout: 5000,
       timeoutMsg: "selected due date was not written to the task",
     });
     assert.equal(await browser.execute(() => Boolean(document.querySelector(".task-planner-date-modal"))), false);
 
-    await browser.executeObsidian(({ app }) => {
-      const editor = app.workspace.activeEditor?.editor;
-      editor.setLine(0, editor.getLine(0).replace("(due:: 2026-09-21)", "(due:: 2026-08-02)"));
+    await browser.executeObsidian(async ({ app }) => {
+      await app.vault.delete(app.vault.getAbstractFileByPath("DatePicker.md"));
     });
-    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => text.includes("(due:: 2026-08-02)")), {
-      timeout: 5000,
-      timeoutMsg: "due date test did not restore its fixture",
-    });
+    await waitForTaskCount(1);
   });
 
   it("keeps the index current across ignored-folder renames", async function () {
