@@ -98,7 +98,7 @@ While editing that line, run **Task Planner: Complete line attributes** from Obs
 
 With **Settings → Task Planner → @ shortcuts → Auto-convert** enabled, leaving the task line also expands its shortcuts. Enter retains its normal Markdown editing behavior; use the command when you want to keep editing the same task.
 
-For an exact due date, enter or edit the inline field directly, for example `[due:: 2026-10-20]`. If you have customized the due attribute name, use that name instead of `due`. An `@date` calendar picker is not currently available; it is tracked in [#230](https://github.com/selfish/obsidian-task-planner/issues/230).
+For an exact due date, run **Task Planner: Set due date on current task**. The native date picker replaces an existing due value or adds your configured due attribute without moving the cursor to another line.
 
 ## Commands
 
@@ -108,6 +108,7 @@ For an exact due date, enter or edit the inline field directly, for example `[du
 - **Mark task as checked / unchecked** — toggle completion
 - **Mark task as ongoing / unchecked** — toggle in-progress status
 - **Complete line attributes** — expand enabled date, priority, and custom shortcuts
+- **Set due date on current task** — choose or replace the current task's due date
 
 ## Configuration
 
