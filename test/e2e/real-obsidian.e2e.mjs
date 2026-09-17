@@ -106,15 +106,20 @@ describe("real Obsidian vault smoke", function () {
       input.dispatchEvent(new Event("input", { bubbles: true }));
       [...document.querySelectorAll(".task-planner-date-modal button")].find((button) => button.textContent?.trim() === "Set date")?.click();
     });
-    await browser.waitUntil(
-      () =>
-        browser.executeObsidian(({ app, obsidian }) => {
-          const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-          return view?.editor.getLine(0).includes("[due:: 2026-09-21]");
-        }),
-      { timeout: 5000, timeoutMsg: "selected due date was not written to the task" }
-    );
+    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => text.includes("(due:: 2026-09-21)")), {
+      timeout: 5000,
+      timeoutMsg: "selected due date was not written to the task",
+    });
     assert.equal(await browser.execute(() => Boolean(document.querySelector(".task-planner-date-modal"))), false);
+
+    await browser.executeObsidian(({ app }) => {
+      const editor = app.workspace.activeEditor?.editor;
+      editor.setLine(0, editor.getLine(0).replace("(due:: 2026-09-21)", "(due:: 2026-08-02)"));
+    });
+    await browser.waitUntil(() => obsidianPage.read("Tasks.md").then((text) => text.includes("(due:: 2026-08-02)")), {
+      timeout: 5000,
+      timeoutMsg: "due date test did not restore its fixture",
+    });
   });
 
   it("keeps the index current across ignored-folder renames", async function () {

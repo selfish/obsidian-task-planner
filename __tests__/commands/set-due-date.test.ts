@@ -1,5 +1,6 @@
 import { SetDueDateCommand } from "../../src/commands/set-due-date";
 import { DEFAULT_SETTINGS } from "../../src/settings";
+import { DueDateModal } from "../../src/ui/due-date-modal";
 
 const createEditor = (line: string) => ({
   getCursor: jest.fn(() => ({ line: 0, ch: 0 })),
@@ -39,5 +40,15 @@ describe("SetDueDateCommand", () => {
 
     expect(command.editorCheckCallback(false, editor as never, {} as never)).toBe(false);
     expect(openDatePicker).not.toHaveBeenCalled();
+  });
+
+  it("opens the native picker by default", () => {
+    const editor = createEditor("- [ ] Review");
+    const open = jest.spyOn(DueDateModal.prototype, "open").mockImplementation();
+    const command = new SetDueDateCommand({} as never, () => DEFAULT_SETTINGS);
+
+    command.editorCheckCallback(false, editor as never, {} as never);
+
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });
