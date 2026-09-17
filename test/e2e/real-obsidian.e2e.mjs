@@ -78,6 +78,45 @@ describe("real Obsidian vault smoke", function () {
     });
   });
 
+  it("sets and edits the current task due date with the native picker", async function () {
+    await browser.executeObsidian(async ({ app }) => {
+      const file = app.vault.getAbstractFileByPath("Tasks.md");
+      const leaf = app.workspace.getLeaf("tab");
+      await leaf.openFile(file);
+      app.workspace.setActiveLeaf(leaf, { focus: true });
+      leaf.view.editor.setCursor({ line: 0, ch: 0 });
+    });
+
+    await browser.executeObsidianCommand("task-planner:set-due-date");
+    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('.task-planner-date-modal input[type="date"]'))), {
+      timeout: 5000,
+      timeoutMsg: "due date picker did not open",
+    });
+    const initialDate = await browser.execute(() => {
+      const input = document.querySelector('.task-planner-date-modal input[type="date"]');
+      return { value: input.value, label: input.getAttribute("aria-label"), focused: document.activeElement === input };
+    });
+    assert.deepEqual(initialDate, { value: "2026-08-02", label: "Due date", focused: true });
+
+    fs.mkdirSync(path.join(PROJECT_ROOT, "docs/review/issue-230"), { recursive: true });
+    await browser.saveScreenshot(path.join(PROJECT_ROOT, "docs/review/issue-230/date-picker.png"));
+    await browser.execute(() => {
+      const input = document.querySelector('.task-planner-date-modal input[type="date"]');
+      input.value = "2026-09-21";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      [...document.querySelectorAll(".task-planner-date-modal button")].find((button) => button.textContent?.trim() === "Set date")?.click();
+    });
+    await browser.waitUntil(
+      () =>
+        browser.executeObsidian(({ app, obsidian }) => {
+          const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+          return view?.editor.getLine(0).includes("[due:: 2026-09-21]");
+        }),
+      { timeout: 5000, timeoutMsg: "selected due date was not written to the task" }
+    );
+    assert.equal(await browser.execute(() => Boolean(document.querySelector(".task-planner-date-modal"))), false);
+  });
+
   it("keeps the index current across ignored-folder renames", async function () {
     await browser.executeObsidian(async ({ app, plugins }) => {
       plugins.taskPlanner.settings.ignoreArchivedTasks = true;
