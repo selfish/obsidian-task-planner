@@ -86,6 +86,20 @@ Optional shorthand expansion can convert attributes when you complete a line:
 - `@tomorrow` → `[due:: YYYY-MM-DD]` for the next day
 - `@high` → `[priority:: high]`
 
+### Enter several shortcuts without leaving the task
+
+Write the shortcuts on the same task line, for example:
+
+```markdown
+- [ ] Schedule the review @tomorrow @high
+```
+
+While editing that line, run **Task Planner: Complete line attributes** from Obsidian's command palette. It expands the enabled shortcuts in place without creating another line. For repeated use, assign the command a hotkey under **Settings → Hotkeys**.
+
+With **Settings → Task Planner → @ shortcuts → Auto-convert** enabled, leaving the task line also expands its shortcuts. Enter retains its normal Markdown editing behavior; use the command when you want to keep editing the same task.
+
+For an exact due date, enter or edit the inline field directly, for example `[due:: 2026-10-20]`. If you have customized the due attribute name, use that name instead of `due`. An `@date` calendar picker is not currently available; it is tracked in [#230](https://github.com/selfish/obsidian-task-planner/issues/230).
+
 ## Commands
 
 - **Open planning** — open the planning board

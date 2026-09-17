@@ -64,6 +64,33 @@ describe('CompleteLineCommand', () => {
       expect(setLineCall[1]).toMatch(/- \[ \] Task \[due:: \d{4}-\d{2}-\d{2}\]/);
     });
 
+    it('should expand multiple shortcuts on the current task without adding a line', () => {
+      const editor = createMockEditor([
+        '- [ ] Schedule the review @tomorrow @high',
+        '- [ ] Leave this task alone',
+      ]);
+
+      command.editorCallback(editor, {} as MarkdownView);
+
+      expect(editor.setLine).toHaveBeenCalledTimes(1);
+      expect(editor.setLine).toHaveBeenCalledWith(
+        0,
+        expect.stringMatching(/^- \[ \] Schedule the review \[priority:: high\] \[due:: \d{4}-\d{2}-\d{2}\]$/),
+      );
+      expect(editor.getLine(1)).toBe('- [ ] Leave this task alone');
+    });
+
+    it('should preserve an explicit due date while expanding a priority shortcut', () => {
+      const editor = createMockEditor(['- [ ] Schedule the review [due:: 2026-10-20] @high']);
+
+      command.editorCallback(editor, {} as MarkdownView);
+
+      expect(editor.setLine).toHaveBeenCalledWith(
+        0,
+        '- [ ] Schedule the review [due:: 2026-10-20] [priority:: high]',
+      );
+    });
+
     it('should preserve lines without attributes', () => {
       const editor = createMockEditor(['- [ ] Plain task']);
 
