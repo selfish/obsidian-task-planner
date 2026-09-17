@@ -67,6 +67,7 @@ export default class TaskPlannerPlugin extends Plugin {
     this.addCommand(new ToggleTaskCommand(statusOperations));
     this.addCommand(new CompleteLineCommand(statusOperations));
     const dueDateEditor = new DueDateEditor(this.app, () => this.settings);
+    this.registerEditorExtension(dueDateEditor.historyExtension);
     this.register(() => dueDateEditor.close());
     this.registerEditorSuggest(new DueDateSuggest(this.app, () => this.settings, dueDateEditor));
     this.addCommand({
