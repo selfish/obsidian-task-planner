@@ -98,7 +98,13 @@ While editing that line, run **Task Planner: Complete line attributes** from Obs
 
 With **Settings → Task Planner → @ shortcuts → Auto-convert** enabled, leaving the task line also expands its shortcuts. Enter retains its normal Markdown editing behavior; use the command when you want to keep editing the same task.
 
-For an exact due date, enter or edit the inline field directly, for example `[due:: 2026-10-20]`. If you have customized the due attribute name, use that name instead of `due`. An `@date` calendar picker is not currently available; it is tracked in [#230](https://github.com/selfish/obsidian-task-planner/issues/230).
+### Choose a due date from a note
+
+On a task line, type `@date` and select **Choose due date…**, or run **Task Planner: Set task due date** from the command palette. Choose a date in the native calendar control and save; the task stays on the same line. The command also works when `@` shortcuts are disabled and can be assigned a hotkey.
+
+The picker uses your configured due-date field and lets you change or remove an existing date. Cancel leaves the note unchanged, and normal editor undo restores a saved change. If the note changes while the picker is open, it asks you to reopen rather than overwriting that edit. A custom `date` shortcut takes precedence over the calendar suggestion.
+
+You can still edit inline metadata directly, for example `[due:: 2026-10-20]` (or your configured field name).
 
 ## Commands
 
@@ -108,6 +114,7 @@ For an exact due date, enter or edit the inline field directly, for example `[du
 - **Mark task as checked / unchecked** — toggle completion
 - **Mark task as ongoing / unchecked** — toggle in-progress status
 - **Complete line attributes** — expand enabled date, priority, and custom shortcuts
+- **Set task due date** — choose, change, or remove the current task's due date
 
 ## Configuration
 

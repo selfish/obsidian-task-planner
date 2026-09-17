@@ -365,4 +365,102 @@ describe("real Obsidian vault smoke", function () {
 
     assert.equal(await obsidianPage.read("Duplicates.md"), duplicateText);
   });
+
+  it("edits a task due date through the native command with cancel, undo and custom fields", async function () {
+    const original = "Before\n\t-   [ ]  Note task [[Link]] (deadline:: 2026-08-01) [owner:: me] #tag  \nAfter\n";
+    await browser.executeObsidian(async ({ app, plugins }, text) => {
+      app.setting.close();
+      plugins.taskPlanner.settings.dueDateAttribute = "deadline";
+      const file = await app.vault.create("Date editor.md", text);
+      const leaf = app.workspace.getLeaf("tab");
+      await leaf.openFile(file, { state: { mode: "source" } });
+      leaf.view.editor.setCursor({ line: 1, ch: 18 });
+      leaf.view.editor.focus();
+    }, original);
+    await browser.executeObsidianCommand("task-planner:set-task-due-date");
+    const initial = await browser.execute(() => document.querySelector('.task-planner-due-date input[type="date"]').value);
+    assert.equal(initial, "2026-08-01");
+    await browser.saveScreenshot("artifacts/e2e/due-date-desktop.png");
+    await browser.sendCommand("Emulation.setDeviceMetricsOverride", { width: 360, height: 780, deviceScaleFactor: 1, mobile: false });
+    await browser.saveScreenshot("artifacts/e2e/due-date-narrow.png");
+    assert.equal(await browser.execute(() => {
+      const modal = document.querySelector('.task-planner-due-date').closest('.modal').getBoundingClientRect();
+      return modal.left >= 0 && modal.right <= window.innerWidth;
+    }), true);
+    await browser.sendCommand("Emulation.clearDeviceMetricsOverride");
+    await browser.execute(() => [...document.querySelectorAll('.task-planner-due-date button')].find((button) => button.textContent === "Cancel").click());
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), original);
+
+    await browser.executeObsidianCommand("task-planner:set-task-due-date");
+    await browser.execute(() => {
+      document.querySelector('.task-planner-due-date input[type="date"]').value = "2026-10-20";
+      document.querySelector('.task-planner-due-date button[type="submit"]').click();
+    });
+    const updated = original.replace("2026-08-01", "2026-10-20");
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), updated);
+    await browser.waitUntil(() => obsidianPage.read("Date editor.md").then((text) => text === updated));
+    assert.deepEqual(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getCursor()), { line: 1, ch: 18 });
+    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "z", code: "KeyZ", modifiers: 2, windowsVirtualKeyCode: 90 });
+    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "z", code: "KeyZ", modifiers: 2, windowsVirtualKeyCode: 90 });
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), original);
+    await browser.waitUntil(() => obsidianPage.read("Date editor.md").then((text) => text === original));
+
+    await browser.executeObsidianCommand("task-planner:set-task-due-date");
+    await browser.execute(() => [...document.querySelectorAll('.task-planner-due-date button')].find((button) => button.textContent === "Remove date").click());
+    const removed = original.replace(" (deadline:: 2026-08-01)", "");
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), removed);
+    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "z", code: "KeyZ", modifiers: 2, windowsVirtualKeyCode: 90 });
+    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "z", code: "KeyZ", modifiers: 2, windowsVirtualKeyCode: 90 });
+    await browser.executeObsidian(({ plugins }) => {
+      plugins.taskPlanner.settings.dueDateAttribute = "due";
+    });
+  });
+
+  it("opens @date through editor suggestions without adding a new task line", async function () {
+    await browser.executeObsidian(async ({ app }) => {
+      const file = await app.vault.create("Date suggestion.md", "- [ ] Review @high ");
+      const leaf = app.workspace.getLeaf("tab");
+      await leaf.openFile(file, { state: { mode: "source" } });
+      leaf.view.editor.setCursor({ line: 0, ch: leaf.view.editor.getLine(0).length });
+      leaf.view.editor.focus();
+    });
+    await browser.sendCommand("Input.insertText", { text: "@date" });
+    await browser.waitUntil(() => browser.execute(() => [...document.querySelectorAll('.suggestion-item')].some((item) => item.textContent.includes("Choose due date"))), { timeout: 5000, timeoutMsg: "@date suggestion did not open" });
+    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('.task-planner-due-date'))));
+    fs.mkdirSync(path.join(PROJECT_ROOT, "artifacts/e2e"), { recursive: true });
+    await browser.saveScreenshot(path.join(PROJECT_ROOT, "artifacts/e2e/date-picker.png"));
+    await browser.execute(() => {
+      document.querySelector('.task-planner-due-date input').value = "2026-10-20";
+      document.querySelector('.task-planner-due-date button[type="submit"]').click();
+    });
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review @high [due:: 2026-10-20]");
+    await browser.executeObsidianCommand("task-planner:complete-line");
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review [priority:: high] [due:: 2026-10-20]");
+  });
+
+  it("refuses a stale picker write and leaves fenced examples unchanged", async function () {
+    await browser.executeObsidianCommand("task-planner:set-task-due-date");
+    const concurrent = await browser.executeObsidian(({ app }) => {
+      const editor = app.workspace.activeEditor.editor;
+      editor.replaceRange("Concurrent edit\n", { line: 0, ch: 0 });
+      return editor.getValue();
+    });
+    await browser.execute(() => {
+      document.querySelector('.task-planner-due-date input').value = "2026-12-25";
+      document.querySelector('.task-planner-due-date button[type="submit"]').click();
+    });
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), concurrent);
+    assert.equal(await browser.execute(() => [...document.querySelectorAll('.notice')].some((notice) => notice.textContent.includes("note changed"))), true);
+    await browser.executeObsidian(async ({ app }) => {
+      const file = await app.vault.create("Date example.md", "```md\n- [ ] Example @date\n```\n");
+      const leaf = app.workspace.getLeaf("tab");
+      await leaf.openFile(file, { state: { mode: "source" } });
+      leaf.view.editor.setCursor({ line: 1, ch: 18 });
+    });
+    await browser.executeObsidianCommand("task-planner:set-task-due-date");
+    assert.equal(await browser.execute(() => Boolean(document.querySelector('.task-planner-due-date'))), false);
+    assert.equal(await obsidianPage.read("Date example.md"), "```md\n- [ ] Example @date\n```\n");
+  });
 });

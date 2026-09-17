@@ -18,9 +18,12 @@ import { App, Platform, Plugin, PluginManifest, TFile } from "obsidian";
 import { CompleteLineCommand, OpenPlanningCommand, OpenReportCommand, QuickAddCommand, ToggleOngoingTaskCommand, ToggleTaskCommand } from "./commands";
 import { FileTaskParser, FolderTaskParser, StatusOperations, TaskIndex } from "./core";
 import { createAutoConvertExtension } from "./editor";
+import { isTaskLine } from "./editor/due-date-edit";
+import { DueDateSuggest } from "./editor/due-date-suggest";
 import { ConsoleLogger, LogLevel, ObsidianFile, saveSettingsWithRetry, showErrorNotice, showInfoNotice } from "./lib";
 import { DEFAULT_SETTINGS, parseTaskPlannerSettings, TaskPlannerSettings, TaskPlannerSettingsTab } from "./settings";
 import { Logger } from "./types";
+import { DueDateEditor } from "./ui/due-date-modal";
 import { OnboardingModal } from "./ui/onboarding-modal";
 import { QuickAddModal } from "./ui/quick-add-modal";
 import { PlanningView, TodoListView, TodoReportView } from "./views";
@@ -63,6 +66,18 @@ export default class TaskPlannerPlugin extends Plugin {
 
     this.addCommand(new ToggleTaskCommand(statusOperations));
     this.addCommand(new CompleteLineCommand(statusOperations));
+    const dueDateEditor = new DueDateEditor(this.app, () => this.settings);
+    this.register(() => dueDateEditor.close());
+    this.registerEditorSuggest(new DueDateSuggest(this.app, () => this.settings, dueDateEditor));
+    this.addCommand({
+      id: "set-task-due-date",
+      name: "Set task due date",
+      editorCheckCallback: (checking, editor, context) => {
+        if (!context.file || !isTaskLine(editor.getValue(), editor.getCursor().line)) return false;
+        if (!checking) dueDateEditor.open(editor, context.file);
+        return true;
+      },
+    });
     this.addCommand(new ToggleOngoingTaskCommand(statusOperations));
     this.addCommand(openPlanningCommand);
     this.addCommand(openReportCommand);

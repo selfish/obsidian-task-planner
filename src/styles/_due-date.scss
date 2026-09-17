@@ -1,0 +1,11 @@
+.task-planner-due-date label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-4);
+}
+
+.task-planner-due-date input[type='date'] {
+  min-width: 0;
+  max-width: 100%;
+}

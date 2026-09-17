@@ -218,7 +218,8 @@ export class LineParser {
     return result;
   }
 
-  private attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
+  /** Source spans shared with in-note editors; respects code, links and escapes. */
+  attributeMatches(text: string, key: string): { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] {
     const ignored = this.mergeSpans([...this.codeSpans(text), ...this.wikiLinkSpans(text), ...this.angleContextSpans(text), ...this.markdownLinkSpans(text, true), ...this.uriSpans(text), ...this.emailSpans(text)]);
     const containers = this.delimiterSpans(text, ignored);
     const matches: { start: number; end: number; parenthesized?: boolean; shortcut?: boolean }[] = [...text.matchAll(/\[\s*([^:[\]]+?)\s*::\s*([^[\]]*)\]|\(\s*([^:()[\]]+?)\s*::\s*([^()[\]]*)\)/g)]
