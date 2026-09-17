@@ -1,5 +1,8 @@
 import { App, Editor, Modal, Notice, TFile } from "obsidian";
 
+import { isolateHistory } from "@codemirror/commands";
+import { EditorState } from "@codemirror/state";
+
 import { Completion } from "../core/operations/completion";
 import { currentDueDate, editDueDate, isTaskLine } from "../editor/due-date-edit";
 import { TaskPlannerSettings } from "../settings/types";
@@ -45,6 +48,9 @@ export class DueDateModal extends Modal {
 
 export class DueDateEditor {
   private modal?: DueDateModal;
+  private saving = false;
+  // A modal save is one undo step, never grouped with the typed @date trigger.
+  readonly historyExtension = EditorState.transactionExtender.of(() => (this.saving ? { annotations: isolateHistory.of("full") } : null));
 
   constructor(
     private app: App,
@@ -82,10 +88,15 @@ export class DueDateEditor {
           updatedEnd--;
         }
         const ch = cursor.ch < start ? cursor.ch : cursor.ch >= end ? cursor.ch + updatedEnd - end : updatedEnd;
-        editor.transaction({
-          changes: [{ from: { line: cursor.line, ch: start }, to: { line: cursor.line, ch: end }, text: updated.slice(start, updatedEnd) }],
-          selection: { from: { line: cursor.line, ch } },
-        });
+        this.saving = true;
+        try {
+          editor.transaction({
+            changes: [{ from: { line: cursor.line, ch: start }, to: { line: cursor.line, ch: end }, text: updated.slice(start, updatedEnd) }],
+            selection: { from: { line: cursor.line, ch } },
+          });
+        } finally {
+          this.saving = false;
+        }
       }
       editor.focus();
     });
