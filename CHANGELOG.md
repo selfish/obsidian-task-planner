@@ -4,6 +4,13 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-17
+
+### Added
+
+- Choose or edit task due dates directly in notes using the native `@date` suggestion or **Set task due date** command. Supports configured field names, remove/cancel, ordinary editor undo, and protection against stale picker writes.
+- Documented how to expand multiple shortcuts on the current task without pressing Enter.
+
 ### Security
 
 - Replaced the WebdriverIO test runner with a direct Obsidian Launcher and Chrome DevTools Protocol harness, removing the vulnerable `deepmerge-ts` and `extract-zip` development paths and the unused Chromedriver download.
