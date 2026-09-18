@@ -529,15 +529,12 @@ describe("real Obsidian vault smoke", function () {
       leaf.view.editor.focus();
     });
     await browser.sendCommand("Input.insertText", { text: "@date" });
-    await browser.waitUntil(() => browser.execute(() => [...document.querySelectorAll('.suggestion-item')].some((item) => item.textContent.includes("Choose due date"))), { timeout: 5000, timeoutMsg: "@date suggestion did not open" });
-    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
-    await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
-    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('.task-planner-due-date'))));
+    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('.task-planner-due-date-suggest input[type="date"]'))), { timeout: 5000, timeoutMsg: "inline @date picker did not open" });
     fs.mkdirSync(path.join(PROJECT_ROOT, "artifacts/e2e"), { recursive: true });
     await browser.saveScreenshot(path.join(PROJECT_ROOT, "artifacts/e2e/date-picker.png"));
     await browser.execute(() => {
-      document.querySelector('.task-planner-due-date input').value = "2026-10-20";
-      document.querySelector('.task-planner-due-date button[type="submit"]').click();
+      document.querySelector('.task-planner-due-date-suggest input').value = "2026-10-20";
+      document.querySelector('.task-planner-due-date-suggest button[type="submit"]').click();
     });
     assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review @high [due:: 2026-10-20]");
     await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "z", code: "KeyZ", modifiers: 2, windowsVirtualKeyCode: 90 });

@@ -49,7 +49,7 @@ export class DueDateModal extends Modal {
 export class DueDateEditor {
   private modal?: DueDateModal;
   private saving = false;
-  // A modal save is one undo step, never grouped with the typed @date trigger.
+  // A picker save is one undo step, never grouped with the typed @date trigger.
   readonly historyExtension = EditorState.transactionExtender.of(() => (this.saving ? { annotations: isolateHistory.of("full") } : null));
 
   constructor(
@@ -62,44 +62,53 @@ export class DueDateEditor {
     this.modal = undefined;
   }
 
-  open(editor: Editor, file: TFile, triggerStart?: number): void {
+  start(editor: Editor, file: TFile, triggerStart?: number): { initialDate: string | undefined; apply: (date: string | null) => void } | null {
     const snapshot = editor.getValue();
     const cursor = editor.getCursor();
-    if (!isTaskLine(snapshot, cursor.line)) return;
+    if (!isTaskLine(snapshot, cursor.line)) return null;
     const original = editor.getLine(cursor.line);
     const settings = structuredClone(this.getSettings());
+    return {
+      initialDate: currentDueDate(original, settings),
+      apply: (date) => {
+        // A picker must never overwrite a sync edit or a different note opened
+        // in the same leaf while it was displayed. Ask the user to retry.
+        const active = this.app.workspace.activeEditor;
+        if (active?.editor !== editor || active.file !== file || editor.getValue() !== snapshot || this.getSettings().dueDateAttribute !== settings.dueDateAttribute) {
+          new Notice("The note changed while choosing a date. Reopen the date picker and try again.");
+          return;
+        }
+        const updated = editDueDate(original, date, settings, triggerStart);
+        if (updated !== original) {
+          let start = 0;
+          while (start < original.length && start < updated.length && original[start] === updated[start]) start++;
+          let end = original.length;
+          let updatedEnd = updated.length;
+          while (end > start && updatedEnd > start && original[end - 1] === updated[updatedEnd - 1]) {
+            end--;
+            updatedEnd--;
+          }
+          const ch = cursor.ch < start ? cursor.ch : cursor.ch >= end ? cursor.ch + updatedEnd - end : updatedEnd;
+          this.saving = true;
+          try {
+            editor.transaction({
+              changes: [{ from: { line: cursor.line, ch: start }, to: { line: cursor.line, ch: end }, text: updated.slice(start, updatedEnd) }],
+              selection: { from: { line: cursor.line, ch } },
+            });
+          } finally {
+            this.saving = false;
+          }
+        }
+        editor.focus();
+      },
+    };
+  }
+
+  open(editor: Editor, file: TFile, triggerStart?: number): void {
+    const session = this.start(editor, file, triggerStart);
+    if (!session) return;
     this.close();
-    this.modal = new DueDateModal(this.app, currentDueDate(original, settings), (date) => {
-      // A modal must never overwrite a sync edit or a different note opened in
-      // the same leaf while the picker was displayed. Ask the user to retry.
-      const active = this.app.workspace.activeEditor;
-      if (active?.editor !== editor || active.file !== file || editor.getValue() !== snapshot || this.getSettings().dueDateAttribute !== settings.dueDateAttribute) {
-        new Notice("The note changed while choosing a date. Reopen the date picker and try again.");
-        return;
-      }
-      const updated = editDueDate(original, date, settings, triggerStart);
-      if (updated !== original) {
-        let start = 0;
-        while (start < original.length && start < updated.length && original[start] === updated[start]) start++;
-        let end = original.length;
-        let updatedEnd = updated.length;
-        while (end > start && updatedEnd > start && original[end - 1] === updated[updatedEnd - 1]) {
-          end--;
-          updatedEnd--;
-        }
-        const ch = cursor.ch < start ? cursor.ch : cursor.ch >= end ? cursor.ch + updatedEnd - end : updatedEnd;
-        this.saving = true;
-        try {
-          editor.transaction({
-            changes: [{ from: { line: cursor.line, ch: start }, to: { line: cursor.line, ch: end }, text: updated.slice(start, updatedEnd) }],
-            selection: { from: { line: cursor.line, ch } },
-          });
-        } finally {
-          this.saving = false;
-        }
-      }
-      editor.focus();
-    });
+    this.modal = new DueDateModal(this.app, session.initialDate, session.apply);
     this.modal.open();
   }
 }
