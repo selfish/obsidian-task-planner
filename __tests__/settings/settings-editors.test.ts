@@ -44,6 +44,7 @@ async function click(label: string) {
 const error = () => document.querySelector('[role="alert"]')?.textContent;
 
 beforeAll(() => {
+  HTMLElement.prototype.empty = function () { this.replaceChildren(); };
   HTMLElement.prototype.addClass = function (...names: string[]) { this.classList.add(...names); };
   HTMLElement.prototype.setText = function (text: string) { this.textContent = text; };
   HTMLElement.prototype.createDiv = function (this: HTMLElement, options?: { attr?: Record<string, string> }) {
@@ -59,6 +60,9 @@ beforeEach(() => {
   jest.spyOn(Modal.prototype, "open").mockImplementation(function (this: Modal) {
     document.body.append(this.contentEl);
     this.onOpen();
+  });
+  jest.spyOn(Modal.prototype, "close").mockImplementation(function (this: Modal) {
+    this.onClose(); this.contentEl.remove();
   });
 });
 afterEach(() => jest.restoreAllMocks());

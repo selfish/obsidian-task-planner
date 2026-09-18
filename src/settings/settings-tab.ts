@@ -95,8 +95,8 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
     return this.control(name, desc, { type: "toggle", key, defaultValue: valueAt(DEFAULT_SETTINGS, key) as boolean, disabled });
   }
 
-  private text(key: string, name: string, desc: string, validate?: (value: string) => string | void): SettingDefinition {
-    return this.control(name, desc, { type: "text", key, defaultValue: valueAt(DEFAULT_SETTINGS, key) as string, validate });
+  private text(key: string, name: string, desc: string, validate?: (value: string) => string | void, disabled?: () => boolean): SettingDefinition {
+    return this.control(name, desc, { type: "text", key, defaultValue: valueAt(DEFAULT_SETTINGS, key) as string, validate, disabled });
   }
 
   private number(key: string, name: string, desc: string, min: number, max?: number, disabled?: () => boolean): SettingDefinition {
@@ -134,11 +134,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         this.dropdown("quickAdd.destination", "Destination", "Save tasks created with Quick add to an inbox file or today's daily note.", { inbox: "Inbox file", daily: "Daily note" }),
         {
           name: "Inbox file",
-          desc: "A vault-relative Markdown path. A missing file is created when you add a task.",
-          visible: () => s.quickAdd.destination === "inbox",
+          desc: "Used for the Inbox file destination. A missing Markdown file is created when you add a task.",
           control: {
             type: "file",
             key: "quickAdd.inboxFilePath",
+            disabled: () => s.quickAdd.destination !== "inbox",
             defaultValue: "Inbox.md",
             placeholder: "Inbox.md",
             filter: (file) => file.extension === "md",
@@ -146,8 +146,11 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
           },
         },
         this.dropdown("quickAdd.placement", "Placement", "Where new tasks are inserted in the destination note.", { prepend: "Beginning of note", append: "End of note", "before-regex": "Before matching text", "after-regex": "After matching text" }),
-        {
-          ...this.text("quickAdd.locationRegex", "Location regex", "Find the insertion point using a regular expression. If no match is found, append at the end.", (value) => {
+        this.text(
+          "quickAdd.locationRegex",
+          "Location regex",
+          "Used with Before/After matching text placement. If no match is found, append at the end.",
+          (value) => {
             if (!value) return "Enter a regular expression.";
             try {
               new RegExp(value);
@@ -155,9 +158,9 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
               return "Enter a valid regular expression.";
             }
             return undefined;
-          }),
-          visible: () => ["before-regex", "after-regex"].includes(s.quickAdd.placement),
-        },
+          },
+          () => !["before-regex", "after-regex"].includes(s.quickAdd.placement)
+        ),
         this.control("Task pattern", "Template for new tasks. Include {task}; {time} and {date} are optional.", {
           type: "textarea",
           key: "quickAdd.taskPattern",
