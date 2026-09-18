@@ -5,7 +5,36 @@
   gap: var(--size-4-4);
 }
 
-.task-planner-due-date input[type='date'] {
+.task-planner-due-date input[type="date"] {
   min-width: 0;
   max-width: 100%;
+}
+
+.task-planner-due-date-suggest {
+  cursor: default;
+
+  form,
+  label {
+    display: flex;
+    gap: var(--size-4-2);
+  }
+
+  form {
+    flex-direction: column;
+  }
+
+  label {
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  input[type="date"] {
+    min-width: 0;
+  }
+}
+
+.task-planner-due-date-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
 }
