@@ -7,6 +7,7 @@ Every persisted preference in `TaskPlannerSettings` was compared with the old UI
 - Replace Essential/Horizons/Advanced subpages and their parallel legacy renderer with one native settings page.
 - Use public `PluginSettingTab.getSettingDefinitions`, `SettingControl`, `getControlValue`, `setControlValue`, `SettingDefinitionList`, and `update`. No patched host prototypes, internal search integration, custom navigation, or fallback renderers.
 - Require Obsidian **1.13.4**, the first officially public 1.13 desktop release. The declarative API was introduced in 1.13.0, but 1.13.0–1.13.3 were Catalyst releases and have no public test assets. The real-host harness exercises both the 1.13.4 floor and current public 1.13.7; `versions.json` keeps 2.1.0's 1.8.7 compatibility intact.
+- Restore the compact weekday button row through the public `SettingDefinition.render` hook, rather than seven full-height toggles. It retains week-start ordering, keyboard-operable buttons, accessible pressed states, save rollback, and search aliases for every weekday.
 - Native groups keep all controls exposed to host search. Conditional controls remain visible but disabled, with explanations, instead of disappearing.
 - Native collection rows own add/edit/reorder/delete affordances. Collection editors use public `Modal`/`Setting` APIs with draft values, explicit Save/Cancel, validation, and save-failure feedback. There is no legacy settings screen hidden behind these dialogs.
 
@@ -35,7 +36,7 @@ Internal state (`version`, onboarding/warning acknowledgments) and the obsolete 
 
 ## Verification contract
 
-- Unit tests enumerate schema coverage, native-only definitions, dependent controls, validation, failed-save rollback, list operations and old-data preservation.
+- Unit tests enumerate schema coverage, native definitions and the compact weekday renderer, dependent controls, validation, failed-save rollback, list operations and old-data preservation.
 - Real Obsidian tests operate controls in the native settings window, check persisted data and layout, and exercise collection editing. The harness attaches to the separate settings window for screenshots; a screenshot of the main vault window is not settings evidence.
 - Existing task mutations, date picker, stale-edit, drag/undo and Markdown preservation scenarios remain release gates.
 - Desktop support only. Narrow desktop viewport checks are not mobile-host certification.

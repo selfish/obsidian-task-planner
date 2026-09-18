@@ -1,5 +1,68 @@
-// Settings are rendered by Obsidian's declarative framework.
-// Only the draft collection editor's error message needs plugin styling.
+// The host renders the settings page; only the compact weekday row and draft errors need styling.
 .task-planner-settings-editor [role='alert'] {
   color: var(--text-error);
+}
+
+.th-weekday-setting {
+  flex-wrap: wrap;
+
+  .setting-item-control {
+    flex: 0 1 auto;
+  }
+}
+
+.th-weekday-grid {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--size-4-2);
+  flex-wrap: wrap;
+}
+
+.th-weekday-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+
+  &-label {
+    font-size: var(--font-ui-smaller);
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  &-led {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--background-modifier-border);
+    transition: all 0.15s ease;
+  }
+
+  &--active {
+    color: var(--text-normal);
+
+    .th-weekday-btn-led {
+      background: var(--interactive-accent);
+      box-shadow: 0 0 4px var(--interactive-accent);
+    }
+  }
 }
