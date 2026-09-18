@@ -1,4 +1,4 @@
-import { App, type SettingControl, type SettingDefinitionList } from "obsidian";
+import { App, Setting, type SettingControl, type SettingDefinitionList, type SettingDefinitionRender } from "obsidian";
 
 import type TaskPlannerPlugin from "../../src/main";
 import { TaskPlannerSettingsTab } from '../../src/settings/settings-tab';
@@ -30,17 +30,55 @@ function leaves(value: object, prefix = ""): string[] {
 }
 
 describe("canonical settings", () => {
-  it("exposes every active preference as native controls or lists, with no pages or custom row rendering", () => {
+  it("exposes every active preference as native controls, lists, or the compact weekday selector, with no pages", () => {
     const { items, controls } = setup();
     expect(items.every((item) => "type" in item && ["group", "list"].includes(item.type))).toBe(true);
-    for (const item of items) {
-      if ("items" in item) for (const child of item.items ?? []) expect(child).not.toHaveProperty("render");
-    }
+    const renders = items.flatMap((item) => ("items" in item ? (item.items ?? []) : [])).filter((item) => "render" in item);
+    expect(renders).toHaveLength(1);
+    expect(renders[0]).toMatchObject({ name: "Visible days" });
     const collectionKeys = ["customHorizons", "ignoredFolders", "atShortcutSettings.customShortcuts"];
-    const stateOnly = ["version", "hasSeenOnboarding", "hasDismissedNativeMenusWarning", "horizonVisibility.showPast"];
+    const stateOnly = ["version", "hasSeenOnboarding", "hasDismissedNativeMenusWarning", "horizonVisibility.showPast", ...(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const).map((day) => `horizonVisibility.show${day}`)];
     expect(controls.map((control) => control.key).sort()).toEqual(leaves(DEFAULT_SETTINGS).filter((key) => ![...collectionKeys, ...stateOnly].includes(key)).sort());
     expect(items.filter((item) => "type" in item && item.type === "list")).toHaveLength(3);
     expect(Object.prototype.hasOwnProperty.call(TaskPlannerSettingsTab.prototype, "display")).toBe(false);
+  });
+
+  it("renders weekdays compactly in configured order and persists a toggle", async () => {
+    const { tab, plugin, items } = setup();
+    plugin.settings.firstWeekday = 7;
+    const definition = items.flatMap((item) => ("items" in item ? (item.items ?? []) : [])).find((item) => "render" in item) as SettingDefinitionRender;
+    const setting = new Setting(document.createElement("div"));
+    const enhance = (element: HTMLElement): HTMLElement => {
+      Object.assign(element, {
+        createEl(tag: keyof HTMLElementTagNameMap, options: { cls?: string; text?: string; attr?: Record<string, string> } = {}) {
+          const child = enhance(document.createElement(tag));
+          if (options.cls) child.className = options.cls;
+          if (options.text) child.textContent = options.text;
+          for (const [key, value] of Object.entries(options.attr ?? {})) child.setAttribute(key, value);
+          element.append(child);
+          return child;
+        },
+        createDiv(options = {}) {
+          return (element as HTMLElement & { createEl: (tag: keyof HTMLElementTagNameMap, options?: unknown) => HTMLElement }).createEl("div", options);
+        },
+        createSpan(options = {}) {
+          return (element as HTMLElement & { createEl: (tag: keyof HTMLElementTagNameMap, options?: unknown) => HTMLElement }).createEl("span", options);
+        },
+      });
+      return element;
+    };
+    enhance(setting.controlEl);
+    definition.render(setting, {} as never);
+    const buttons = [...setting.controlEl.querySelectorAll("button")];
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
+    const previous = plugin.settings.horizonVisibility.showSunday;
+    buttons[0].click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(plugin.settings.horizonVisibility.showSunday).toBe(!previous);
+    expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
+    expect(plugin.refreshPlanningViews).toHaveBeenCalledTimes(1);
+    expect(tab.update).toHaveBeenCalledTimes(1);
   });
 
   it("validates the cap, saves it, refreshes the board, and round-trips persisted settings", async () => {

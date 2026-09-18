@@ -174,7 +174,43 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         this.toggle("horizonVisibility.showOverdue", "Overdue", "Show unfinished tasks whose due date has passed."),
         this.toggle("horizonVisibility.showLater", "Later", "Show tasks beyond the last visible time horizon."),
         this.dropdown("firstWeekday", "Week starts on", "The first day of your planning week.", { "1": "Monday", "2": "Tuesday", "3": "Wednesday", "4": "Thursday", "5": "Friday", "6": "Saturday", "7": "Sunday" }),
-        ...(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const).map((day) => this.toggle(`horizonVisibility.show${day}`, day, `Show ${day} in this week and in next week's selected-days mode.`)),
+        {
+          name: "Visible days",
+          desc: "Days shown in this week and in next week's selected-days mode.",
+          aliases: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "weekday"],
+          render: (setting) => {
+            const grid = setting.controlEl.createDiv({ cls: "th-weekday-grid" });
+            const allWeekdays = [
+              { key: "showMonday", label: "Mon", full: "Monday", day: 1 },
+              { key: "showTuesday", label: "Tue", full: "Tuesday", day: 2 },
+              { key: "showWednesday", label: "Wed", full: "Wednesday", day: 3 },
+              { key: "showThursday", label: "Thu", full: "Thursday", day: 4 },
+              { key: "showFriday", label: "Fri", full: "Friday", day: 5 },
+              { key: "showSaturday", label: "Sat", full: "Saturday", day: 6 },
+              { key: "showSunday", label: "Sun", full: "Sunday", day: 7 },
+            ] as const;
+            const weekdays = [...allWeekdays.filter((day) => day.day >= s.firstWeekday), ...allWeekdays.filter((day) => day.day < s.firstWeekday)];
+            for (const day of weekdays) {
+              const active = s.horizonVisibility[day.key];
+              const button = grid.createEl("button", {
+                cls: `th-weekday-btn ${active ? "th-weekday-btn--active" : ""}`,
+                attr: { type: "button", "aria-label": day.full, "aria-pressed": String(active) },
+              });
+              button.createSpan({ cls: "th-weekday-btn-label", text: day.label });
+              button.createSpan({ cls: "th-weekday-btn-led" });
+              button.addEventListener("click", () => {
+                s.horizonVisibility[day.key] = !active;
+                void this.persist()
+                  .then(() => this.update())
+                  .catch(() => {
+                    s.horizonVisibility[day.key] = active;
+                    this.update();
+                    new Notice("Could not save settings. Your previous values have been restored.");
+                  });
+              });
+            }
+          },
+        },
         this.dropdown("horizonVisibility.nextWeekMode", "Next week", "Choose how the next week's days are grouped.", { "same-as-this-week": "Selected weekdays", "rolling-week": "Rolling 7 days", collapsed: "Single horizon" }),
         this.number("horizonVisibility.weeksToShow", "Weeks after next", "Additional weekly horizons beyond next week. 0 hides them.", 0, 4),
         this.number("horizonVisibility.monthsToShow", "Months ahead", "Upcoming monthly horizons after the visible weeks. 0 hides them.", 0, 3),
