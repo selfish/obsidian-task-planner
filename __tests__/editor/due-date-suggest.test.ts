@@ -116,6 +116,11 @@ describe("native due date suggestion", () => {
     suggest.renderSuggestion("date", el);
     const input = el.querySelector<HTMLInputElement>("input")!;
 
+    el.querySelector("form")!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    suggest.close();
+    expect(baseClose).not.toHaveBeenCalled();
+    await Promise.resolve();
+
     suggest.selectSuggestion();
     suggest.close();
     expect(document.activeElement).toBe(input);
