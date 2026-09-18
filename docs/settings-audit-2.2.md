@@ -24,10 +24,10 @@ Every persisted preference in `TaskPlannerSettings` was compared with the old UI
 
 - **Planning board:** stacking cap, daily work-in-progress limit, fuzzy search.
 - **Quick add:** destination, inbox file, placement, location regex, task pattern and Templater delay.
-- **Horizons:** backlog, overdue, seven weekdays, week start, next-week representation, future-week visibility/count, month visibility/count, quarters, next year; native custom-horizon collection with name/date/tag/position/color.
+- **Horizons:** backlog, overdue, later, seven weekdays, week start, next-week representation, future-week/month counts, quarters, next year; native custom-horizon collection with name/date/tag/position/color.
 - **Task attributes:** due date, completion date, selected-task field.
-- **Shortcuts:** automatic conversion, master enable, natural-language dates, built-ins, native custom-shortcut collection with keyword/attribute/value.
-- **Indexing:** archived-task filtering and native excluded-folder collection.
+- **Shortcuts:** automatic conversion, master enable, natural-language dates, priorities, pinned shortcut, native custom-shortcut collection with keyword/attribute/value.
+- **Indexing:** ignored-folder exclusion toggle and native excluded-folder collection.
 - **Undo:** enabled, history size/age and toast enabled/duration.
 - **Follow-up tasks:** prefix, tag copying, priority copying.
 

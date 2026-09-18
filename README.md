@@ -100,7 +100,7 @@ With **Settings → Task Planner → @ shortcuts → Auto-convert** enabled, lea
 
 ### Choose a due date from a note
 
-On a task line, type `@date` and select **Choose due date…**, or run **Task Planner: Set task due date** from the command palette. Choose a date in the native calendar control and save; the task stays on the same line. The command also works when `@` shortcuts are disabled and can be assigned a hotkey.
+On a task line, type `@date` to choose a due date directly in the suggestion popup—no second dialog. You can also run **Task Planner: Set task due date** from the command palette. Save keeps the task on the same line. The command works when `@` shortcuts are disabled and can be assigned a hotkey.
 
 The picker uses your configured due-date field and lets you change or remove an existing date. Cancel leaves the note unchanged, and normal editor undo restores a saved change. If the note changes while the picker is open, it asks you to reopen rather than overwriting that edit. A custom `date` shortcut takes precedence over the calendar suggestion.
 
