@@ -1,8 +1,11 @@
 import { App, type SettingControl, type SettingDefinitionList } from "obsidian";
 
 import type TaskPlannerPlugin from "../../src/main";
-import { TaskPlannerSettingsTab } from "../../src/settings/settings-tab";
-import { DEFAULT_SETTINGS, parseTaskPlannerSettings } from "../../src/settings/types";
+import { TaskPlannerSettingsTab } from '../../src/settings/settings-tab';
+import { editHorizon, editShortcut, addIgnoredFolder } from '../../src/settings/settings-editors';
+import { DEFAULT_SETTINGS, parseTaskPlannerSettings } from '../../src/settings/types';
+
+jest.mock('../../src/settings/settings-editors');
 
 function setup() {
   const app = new App();
@@ -112,6 +115,44 @@ describe("canonical settings", () => {
     list.onDelete!(1);
     await Promise.resolve();
     expect(plugin.settings.customHorizons.map((horizon) => horizon.label)).toEqual(["B"]);
+  });
+
+  it("wires native add/edit/save callbacks to the right lists and reindexes shortcuts and folders", async () => {
+    const { tab, plugin } = setup();
+    const list = (heading: string) => tab.getSettingDefinitions().find((item) => "heading" in item && item.heading === heading) as SettingDefinitionList;
+    const action = (item: unknown) => ((item as { action: () => void }).action)();
+    action(list("Custom horizons").addItem);
+    await jest.mocked(editHorizon).mock.calls.at(-1)![2]({ label: "New", date: "2026-10-20", position: "end" });
+    action(list("Custom horizons").items![0]);
+    await jest.mocked(editHorizon).mock.calls.at(-1)![2]({ label: "Edited", date: "2026-10-20", position: "inline" });
+    expect(plugin.settings.customHorizons[0].label).toBe("Edited");
+    action(list("Custom shortcuts").addItem);
+    await jest.mocked(editShortcut).mock.calls.at(-1)![3]({ keyword: "office", targetAttribute: "context", value: "work" });
+    action(list("Custom shortcuts").items![0]);
+    await jest.mocked(editShortcut).mock.calls.at(-1)![3]({ keyword: "office", targetAttribute: "context", value: "desk" });
+    expect(plugin.settings.atShortcutSettings.customShortcuts[0].value).toBe("desk");
+    list("Custom shortcuts").onReorder!(0, 0);
+    list("Custom shortcuts").onDelete!(0);
+    action(list("Ignored folders").addItem);
+    await jest.mocked(addIgnoredFolder).mock.calls.at(-1)![2]("Archive");
+    expect(plugin.settings.ignoredFolders).toContain("Archive");
+    list("Ignored folders").onDelete!(plugin.settings.ignoredFolders.indexOf("Archive"));
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    expect(plugin.settings.ignoredFolders).not.toContain("Archive");
+    expect(plugin.taskIndex.filesLoaded).toHaveBeenCalledTimes(6);
+  });
+
+  it("does not rewrite unchanged preferences and keeps a saved value on reindex failure", async () => {
+    const { tab, plugin } = setup();
+    await tab.setControlValue("maxHorizonsPerColumn", 0);
+    expect(plugin.saveSettings).not.toHaveBeenCalled();
+    (plugin.taskIndex.filesLoaded as jest.Mock).mockRejectedValueOnce(new Error("read failure"));
+    await tab.setControlValue("dueDateAttribute", "deadline");
+    expect(plugin.settings.dueDateAttribute).toBe("deadline");
+    expect(plugin.refreshPlanningViews).toHaveBeenCalled();
+    await tab.setControlValue("quickAdd.locationRegex", "^## Tasks$");
+    await tab.setControlValue("quickAdd.taskPattern", "- [ ] {{task}}");
+    await tab.setControlValue("quickAdd.inboxFilePath", "Inbox/tasks.md");
   });
 
   it("defaults old data to automatic layout, preserves unknown keys and rejects invalid persisted caps", () => {

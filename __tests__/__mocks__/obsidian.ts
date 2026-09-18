@@ -323,6 +323,7 @@ export class Modal {
     this.titleEl = document.createElement('div');
   }
 
+  setTitle(title: string): this { this.titleEl.textContent = title; return this; }
   open(): void {}
   close(): void {}
   onOpen(): void {}
