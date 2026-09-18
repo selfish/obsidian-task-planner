@@ -437,7 +437,7 @@ export class EditorSuggest<T> {
   context: any = null;
   constructor(public app: App) {}
   setInstructions = jest.fn();
-  close = jest.fn();
+  close(): void {}
 }
 
 export const request = jest.fn().mockResolvedValue('');

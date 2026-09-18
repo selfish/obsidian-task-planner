@@ -1,9 +1,23 @@
-import { App, Editor, TFile } from "obsidian";
+import { App, Editor, EditorSuggest, TFile } from "obsidian";
 import { DueDateSuggest } from "../../src/editor/due-date-suggest";
 import { DEFAULT_SETTINGS } from "../../src/settings";
 import { DueDateEditor } from "../../src/ui/due-date-modal";
 
 describe("native due date suggestion", () => {
+  let baseClose: jest.SpyInstance;
+
+  beforeEach(() => {
+    document.body.replaceChildren();
+    baseClose = jest.spyOn(EditorSuggest.prototype, "close");
+  });
+
+  afterEach(async () => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    await Promise.resolve();
+    document.body.replaceChildren();
+    baseClose.mockRestore();
+  });
+
   function hostElement<T extends HTMLElement>(element: T): T {
     Object.assign(element, {
       addClass: (name: string) => element.classList.add(name),
@@ -56,7 +70,7 @@ describe("native due date suggestion", () => {
     suggest.selectSuggestion();
     expect(document.activeElement).toBe(input);
     el.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
-    expect(suggest.close).toHaveBeenCalled();
+    expect(baseClose).toHaveBeenCalled();
     expect(apply).toHaveBeenCalledWith("2026-12-25");
   });
 
@@ -81,11 +95,55 @@ describe("native due date suggestion", () => {
     expect(hostClick).not.toHaveBeenCalled();
     await Promise.resolve();
     expect(el.querySelector(".task-planner-due-date-calendar-title")!.textContent).toContain("October");
+    el.querySelector<HTMLButtonElement>('[aria-label="Previous month"]')!.click();
+    await Promise.resolve();
+    expect(el.querySelector(".task-planner-due-date-calendar-title")!.textContent).toContain("September");
+    el.querySelector<HTMLButtonElement>('[aria-label="Next month"]')!.click();
+    await Promise.resolve();
     el.querySelector<HTMLButtonElement>('[data-date="2026-10-01"]')!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     expect(el.querySelector<HTMLInputElement>("input")!.value).toBe("2026-10-02");
     [...el.querySelectorAll("button")].find((button) => button.textContent === "Save")!.click();
     expect(hostClick).not.toHaveBeenCalled();
     expect(apply).toHaveBeenCalledWith("2026-10-02");
+  });
+
+  it("keeps the picker open during internal focus and closes after focus leaves", async () => {
+    const { suggest, editor } = setup();
+    suggest.context = { editor, file: new TFile(), start: { line: 0, ch: 11 }, end: { line: 0, ch: 16 }, query: "date" };
+    const el = hostElement(document.createElement("div"));
+    const outside = document.createElement("button");
+    document.body.append(el, outside);
+    suggest.renderSuggestion("date", el);
+    const input = el.querySelector<HTMLInputElement>("input")!;
+
+    suggest.selectSuggestion();
+    suggest.close();
+    expect(document.activeElement).toBe(input);
+    expect(baseClose).not.toHaveBeenCalled();
+
+    outside.focus();
+    await Promise.resolve();
+    expect(baseClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("redraws for typed dates and dismisses the focused picker with Escape", () => {
+    const { suggest, editor, start, apply } = setup();
+    start.mockReturnValue({ initialDate: "2026-09-17", apply });
+    suggest.context = { editor, file: new TFile(), start: { line: 0, ch: 11 }, end: { line: 0, ch: 16 }, query: "date" };
+    const el = hostElement(document.createElement("div"));
+    document.body.appendChild(el);
+    suggest.renderSuggestion("date", el);
+    const input = el.querySelector<HTMLInputElement>("input")!;
+    input.value = "2027-02-14";
+    input.dispatchEvent(new Event("change"));
+    expect(el.querySelector(".task-planner-due-date-calendar-title")!.textContent).toContain("February");
+
+    const formClick = new MouseEvent("click", { bubbles: true });
+    Object.defineProperty(formClick, "target", { value: input });
+    suggest.selectSuggestion(undefined, formClick);
+    el.querySelector("form")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    expect(baseClose).toHaveBeenCalledTimes(1);
+    expect(apply).not.toHaveBeenCalled();
   });
 
   it("cancels without applying and removes only an existing date", () => {
