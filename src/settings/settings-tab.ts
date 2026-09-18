@@ -10,6 +10,8 @@ function valueAt(root: object, key: string): unknown {
   return key.split(".").reduce<unknown>((value, part) => (value && typeof value === "object" ? (value as Record<string, unknown>)[part] : undefined), root);
 }
 
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+
 const attributeError = (value: string): string | void => {
   if (!value || /[\s[\]():]/u.test(value)) return "Use an attribute name without spaces, brackets, parentheses, or colons.";
 };
@@ -29,7 +31,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
   }
 
   async setControlValue(key: string, value: unknown): Promise<void> {
-    const controls = this.getSettingDefinitions().flatMap((item) => ("items" in item ? (item.items ?? []) : [item]));
+    const controls = [...this.getSettingDefinitions().flatMap((item) => ("items" in item ? (item.items ?? []) : [item])), ...WEEKDAYS.map((day) => this.toggle(`horizonVisibility.show${day}`, day, ""))];
     const definition = controls.find((item) => "control" in item && item.control?.key === key);
     if (!definition || !("control" in definition) || !definition.control) throw new Error(`Unknown setting: ${key}`);
     const control = definition.control;
@@ -55,7 +57,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
       target[property] = previous;
       throw error;
     }
-    if (["quickAdd.destination", "quickAdd.placement", "atShortcutSettings.enableAtShortcuts", "undo.enableUndo", "undo.showUndoToast"].includes(key)) this.update();
+    if (["firstWeekday", "quickAdd.destination", "quickAdd.placement", "atShortcutSettings.enableAtShortcuts", "undo.enableUndo", "undo.showUndoToast"].includes(key)) this.update();
   }
 
   private async persist(reindex = false): Promise<void> {
@@ -174,7 +176,7 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         this.toggle("horizonVisibility.showOverdue", "Overdue", "Show unfinished tasks whose due date has passed."),
         this.toggle("horizonVisibility.showLater", "Later", "Show tasks beyond the last visible time horizon."),
         this.dropdown("firstWeekday", "Week starts on", "The first day of your planning week.", { "1": "Monday", "2": "Tuesday", "3": "Wednesday", "4": "Thursday", "5": "Friday", "6": "Saturday", "7": "Sunday" }),
-        ...(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const).map((day) => this.toggle(`horizonVisibility.show${day}`, day, `Show ${day} in this week and in next week's selected-days mode.`)),
+        this.weekdaySelector(),
         this.dropdown("horizonVisibility.nextWeekMode", "Next week", "Choose how the next week's days are grouped.", { "same-as-this-week": "Selected weekdays", "rolling-week": "Rolling 7 days", collapsed: "Single horizon" }),
         this.number("horizonVisibility.weeksToShow", "Weeks after next", "Additional weekly horizons beyond next week. 0 hides them.", 0, 4),
         this.number("horizonVisibility.monthsToShow", "Months ahead", "Upcoming monthly horizons after the visible weeks. 0 hides them.", 0, 3),
@@ -210,6 +212,45 @@ export class TaskPlannerSettingsTab extends PluginSettingTab {
         this.toggle("followUp.copyPriority", "Copy priority", "Include the original task's priority in a follow-up."),
       ]),
     ];
+  }
+
+  private weekdaySelector(): SettingDefinition {
+    return {
+      name: "Visible days",
+      desc: "Days shown this week and in next week's selected-days mode.",
+      aliases: ["weekdays", ...WEEKDAYS],
+      render: (setting) => {
+        setting.setClass("th-weekday-setting");
+        const grid = setting.controlEl.createDiv({ cls: "th-weekday-grid", attr: { role: "group", "aria-label": "Visible weekdays" } });
+        const first = this.plugin.settings.firstWeekday - 1;
+        const days = [...WEEKDAYS.slice(first), ...WEEKDAYS.slice(0, first)];
+        let saving = false;
+        for (const day of days) {
+          const key = `horizonVisibility.show${day}`;
+          const button = grid.createEl("button", { cls: "th-weekday-btn", attr: { type: "button", "aria-label": day } });
+          button.createSpan({ cls: "th-weekday-btn-label", text: day.slice(0, 3) });
+          button.createSpan({ cls: "th-weekday-btn-led", attr: { "aria-hidden": "true" } });
+          const sync = () => {
+            const selected = Boolean(this.getControlValue(key));
+            button.classList.toggle("th-weekday-btn--active", selected);
+            button.setAttribute("aria-pressed", String(selected));
+          };
+          sync();
+          button.addEventListener("click", () => {
+            if (saving) return;
+            saving = true;
+            grid.setAttribute("aria-busy", "true");
+            void this.setControlValue(key, !this.getControlValue(key))
+              .catch(() => new Notice("Could not save settings. Your previous values have been restored."))
+              .finally(() => {
+                saving = false;
+                grid.removeAttribute("aria-busy");
+                sync();
+              });
+          });
+        }
+      },
+    };
   }
 
   private horizonList(): SettingDefinitionList {

@@ -131,6 +131,50 @@ describe("real Obsidian vault smoke", function () {
     await browser.executeObsidian(({ app }) => app.setting.close());
   });
 
+  it("keeps weekdays in one compact row, persists selections, and follows week-start order", async function () {
+    const original = await browser.executeObsidian(({ app, plugins }) => {
+      app.setting.open(); app.setting.openTabById("task-planner");
+      return { first: plugins.taskPlanner.settings.firstWeekday, monday: plugins.taskPlanner.settings.horizonVisibility.showMonday };
+    });
+    try {
+      await browser.waitUntil(() => browser.executeSettings(() => document.querySelectorAll('.th-weekday-grid button').length === 7));
+      await browser.executeSettings(() => new Promise(resolve => {
+        document.querySelector('.th-weekday-grid').closest('.setting-item').scrollIntoView({ block: 'center' });
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      }));
+      const geometry = await browser.executeSettings(() => {
+        const grid = document.querySelector('.th-weekday-grid');
+        const buttons = [...grid.querySelectorAll('button')];
+        return { height: grid.getBoundingClientRect().height, tops: buttons.map(b => b.getBoundingClientRect().top), names: buttons.map(b => b.getAttribute('aria-label')), states: buttons.map(b => b.getAttribute('aria-pressed')) };
+      });
+      assert.equal(geometry.names.length, 7);
+      assert.ok(geometry.height <= 44, JSON.stringify(geometry));
+      assert.ok(Math.max(...geometry.tops) - Math.min(...geometry.tops) < 1, JSON.stringify(geometry));
+      assert.ok(geometry.states.every(value => value === 'true' || value === 'false'));
+      await browser.executeSettings(() => document.querySelector('.th-weekday-grid [aria-label="Monday"]').click());
+      await browser.waitUntil(() => browser.executeObsidian(async ({ plugins }, original) => (await plugins.taskPlanner.loadData()).horizonVisibility.showMonday === !original, original.monday));
+      await browser.waitUntil(() => browser.executeSettings(original => document.querySelector('.th-weekday-grid [aria-label="Monday"]').getAttribute('aria-pressed') === String(!original), original.monday));
+      await browser.executeSettings(() => {
+        const row = [...document.querySelectorAll('.setting-item')].find(el => el.querySelector('.setting-item-name')?.textContent === 'Week starts on');
+        const select = row.querySelector('select'); select.value = '7'; select.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await browser.waitUntil(() => browser.executeSettings(() => document.querySelector('.th-weekday-grid button')?.getAttribute('aria-label') === 'Sunday'));
+      await browser.waitUntil(() => browser.executeObsidian(async ({ plugins }) => (await plugins.taskPlanner.loadData()).firstWeekday === 7));
+      await browser.waitUntil(() => browser.executeSettings(original => document.querySelector('.th-weekday-grid [aria-label="Monday"]')?.getAttribute('aria-pressed') === String(!original), original.monday));
+      await browser.executeSettings(() => new Promise(resolve => {
+        document.querySelector('.th-weekday-grid').closest('.setting-item').scrollIntoView({ block: 'center' });
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      }));
+      await browser.saveSettingsScreenshot(path.resolve('artifacts/e2e/settings-compact-weekdays.png'));
+    } finally {
+      await browser.executeObsidian(async ({ app }, original) => {
+        await app.setting.activeTab.setControlValue('firstWeekday', String(original.first));
+        await app.setting.activeTab.setControlValue('horizonVisibility.showMonday', original.monday);
+        app.setting.close();
+      }, original);
+    }
+  });
+
   it("edits native collections as drafts, validates shortcuts, and reindexes exclusions immediately", async function () {
     const original = await browser.executeObsidian(({ app }) => {
       const s = app.plugins.plugins["task-planner"].settings;

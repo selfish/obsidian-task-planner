@@ -1,4 +1,4 @@
-import { App, type SettingControl, type SettingDefinitionList } from "obsidian";
+import { App, Setting, type SettingControl, type SettingDefinitionList } from "obsidian";
 
 import type TaskPlannerPlugin from "../../src/main";
 import { TaskPlannerSettingsTab } from '../../src/settings/settings-tab';
@@ -29,16 +29,82 @@ function leaves(value: object, prefix = ""): string[] {
   });
 }
 
+beforeAll(() => {
+  const create = function (this: HTMLElement, tag: string, options: { cls?: string; text?: string; attr?: Record<string, string> } = {}) {
+    const el = document.createElement(tag);
+    if (options.cls) el.className = options.cls;
+    if (options.text) el.textContent = options.text;
+    for (const [key, value] of Object.entries(options.attr ?? {})) el.setAttribute(key, value);
+    this.append(el);
+    return el;
+  };
+  HTMLElement.prototype.createEl = create as typeof HTMLElement.prototype.createEl;
+  HTMLElement.prototype.createDiv = function (options) { return create.call(this, "div", options as never) as HTMLDivElement; };
+  HTMLElement.prototype.createSpan = function (options) { return create.call(this, "span", options as never); };
+});
+
+function renderWeekdays(tab: TaskPlannerSettingsTab) {
+  const row = tab.getSettingDefinitions().flatMap(item => "items" in item ? item.items ?? [] : []).find(item => "name" in item && item.name === "Visible days");
+  if (!row || !("render" in row) || !row.render) throw new Error("Missing weekday renderer");
+  const setting = new Setting(document.createElement("div"));
+  row.render(setting, undefined as never);
+  return { row, root: setting.controlEl, buttons: [...setting.controlEl.querySelectorAll("button")] };
+}
+
+async function settle() { for (let i = 0; i < 12; i++) await Promise.resolve(); }
+
 describe("canonical settings", () => {
-  it("exposes every active preference as native controls or lists, with no pages or custom row rendering", () => {
+  it("renders seven accessible compact buttons in week-start order and persists repeated toggles", async () => {
+    const { tab, plugin } = setup();
+    await tab.setControlValue("firstWeekday", "7");
+    expect(tab.update).toHaveBeenCalledTimes(1);
+    const { row, buttons } = renderWeekdays(tab);
+    expect(buttons.map(button => button.textContent)).toEqual(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+    for (const button of buttons) {
+      const day = button.getAttribute("aria-label")!;
+      expect(row.aliases).toContain(day);
+      const key = `horizonVisibility.show${day}`;
+      const before = tab.getControlValue(key);
+      expect(button.getAttribute("aria-pressed")).toBe(String(before));
+      button.click(); await settle();
+      expect(tab.getControlValue(key)).toBe(!before);
+      expect(button.getAttribute("aria-pressed")).toBe(String(!before));
+      button.click(); await settle();
+      expect(tab.getControlValue(key)).toBe(before);
+      expect(button.getAttribute("aria-pressed")).toBe(String(before));
+    }
+    expect(plugin.saveSettings).toHaveBeenCalledTimes(15);
+    expect(plugin.refreshPlanningViews).toHaveBeenCalledTimes(15);
+    expect(tab.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores weekday selection after a failed save and guards rapid clicks", async () => {
+    const { tab, plugin } = setup();
+    const { buttons, root } = renderWeekdays(tab);
+    const button = buttons[0];
+    const before = button.getAttribute("aria-pressed");
+    (plugin.saveSettings as jest.Mock).mockRejectedValueOnce(new Error("disk full"));
+    button.click(); button.click();
+    expect(root.querySelector('[aria-busy="true"]')).not.toBeNull();
+    await settle();
+    expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
+    expect(button.getAttribute("aria-pressed")).toBe(before);
+    expect(String(plugin.settings.horizonVisibility.showMonday)).toBe(before);
+    expect(root.querySelector('[aria-busy]')).toBeNull();
+    await expect(tab.setControlValue("horizonVisibility.showMonday", "true")).rejects.toThrow();
+    button.click(); await settle();
+    expect(button.getAttribute("aria-pressed")).not.toBe(before);
+  });
+  it("exposes every active preference, with one compact weekday row and no nested pages", () => {
     const { items, controls } = setup();
     expect(items.every((item) => "type" in item && ["group", "list"].includes(item.type))).toBe(true);
     for (const item of items) {
-      if ("items" in item) for (const child of item.items ?? []) expect(child).not.toHaveProperty("render");
+      if ("items" in item) for (const child of item.items ?? []) if ("render" in child) expect(child.name).toBe("Visible days");
     }
     const collectionKeys = ["customHorizons", "ignoredFolders", "atShortcutSettings.customShortcuts"];
+    const weekdayKeys = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => `horizonVisibility.show${day}`);
     const stateOnly = ["version", "hasSeenOnboarding", "hasDismissedNativeMenusWarning", "horizonVisibility.showPast"];
-    expect(controls.map((control) => control.key).sort()).toEqual(leaves(DEFAULT_SETTINGS).filter((key) => ![...collectionKeys, ...stateOnly].includes(key)).sort());
+    expect([...controls.map((control) => control.key), ...weekdayKeys].sort()).toEqual(leaves(DEFAULT_SETTINGS).filter((key) => ![...collectionKeys, ...stateOnly].includes(key)).sort());
     expect(items.filter((item) => "type" in item && item.type === "list")).toHaveLength(3);
     expect(Object.prototype.hasOwnProperty.call(TaskPlannerSettingsTab.prototype, "display")).toBe(false);
   });

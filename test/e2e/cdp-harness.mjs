@@ -58,6 +58,20 @@ export const browser = {
     const { data } = await client.Page.captureScreenshot({ format: "png" });
     fs.writeFileSync(file, Buffer.from(data, "base64"));
   },
+  async executeSettings(fn, ...args) {
+    const { targetInfos } = await client.Target.getTargets();
+    for (const target of targetInfos.filter((info) => info.type === "page")) {
+      const page = await CDP({ port, target: target.targetId });
+      try {
+        const { result } = await page.Runtime.evaluate({ expression: 'Boolean(document.querySelector(".setting-item"))', returnByValue: true });
+        if (!result.value) continue;
+        const value = await page.Runtime.evaluate({ expression: `(${fn.toString()})(...${JSON.stringify(args)})`, awaitPromise: true, returnByValue: true, userGesture: true });
+        if (value.exceptionDetails) throw new Error(errorText(value.exceptionDetails));
+        return value.result.value;
+      } finally { await page.close(); }
+    }
+    throw new Error("Native settings window not found");
+  },
   async saveSettingsScreenshot(file) {
     const { targetInfos } = await client.Target.getTargets();
     for (const target of targetInfos.filter((info) => info.type === "page")) {
