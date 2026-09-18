@@ -95,6 +95,40 @@ describe("canonical settings", () => {
     expect(tab.update).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps dependent controls visible and describes enabled states and supported values", async () => {
+    const { tab, plugin } = setup();
+    const controls = () => tab.getSettingDefinitions().flatMap((item) => "items" in item ? item.items ?? [] : []).flatMap((item) => "control" in item && item.control ? [item.control] : []);
+    const disabled = (key: string) => {
+      const predicate = controls().find((control) => control.key === key)!.disabled;
+      return typeof predicate === "function" ? predicate() : predicate;
+    };
+    expect(disabled("quickAdd.inboxFilePath")).toBe(false);
+    await tab.setControlValue("quickAdd.destination", "daily");
+    expect(disabled("quickAdd.inboxFilePath")).toBe(true);
+    expect(disabled("quickAdd.locationRegex")).toBe(true);
+    await tab.setControlValue("quickAdd.placement", "after-regex");
+    expect(disabled("quickAdd.locationRegex")).toBe(false);
+    expect(disabled("undo.undoToastDurationMs")).toBe(false);
+    await tab.setControlValue("undo.showUndoToast", false);
+    expect(disabled("undo.undoToastDurationMs")).toBe(true);
+    await tab.setControlValue("undo.enableUndo", false);
+    expect(disabled("undo.undoToastDurationMs")).toBe(true);
+    const file = controls().find((control) => control.type === "file");
+    if (file?.type !== "file") throw new Error("Expected native file picker");
+    expect(file.filter!({ extension: "md" } as never)).toBe(true);
+    expect(file.filter!({ extension: "png" } as never)).toBe(false);
+    for (const control of controls()) if (control.type === "number") {
+      expect(await control.validate!(control.min! - 1)).toBeTruthy();
+      if (control.max !== undefined) expect(await control.validate!(control.max + 1)).toBeTruthy();
+    }
+    for (const value of ["", "/outside.md", "a.txt"]) await expect(tab.setControlValue("quickAdd.inboxFilePath", value)).rejects.toThrow();
+    await expect(tab.setControlValue("quickAdd.locationRegex", "")).rejects.toThrow();
+    await expect(tab.setControlValue("dueDateAttribute", "")).rejects.toThrow();
+    plugin.settings.customHorizons = (["before", "after", "inline", "end"] as const).map((position) => ({ label: position, date: "2026-10-20", position, tag: "work" }));
+    const horizons = tab.getSettingDefinitions().find((item) => "heading" in item && item.heading === "Custom horizons") as SettingDefinitionList;
+    expect(horizons.items!.map((item) => item.desc)).toEqual(["2026-10-20 · #work · Before backlog", "2026-10-20 · #work · After backlog", "2026-10-20 · #work · On its date", "2026-10-20 · #work · At the end"]);
+  });
+
   it("restores collection data when persistence fails", async () => {
     const { tab, plugin } = setup();
     plugin.settings.customHorizons.push({ label: "Keep me", date: "2026-10-01", position: "end" });
