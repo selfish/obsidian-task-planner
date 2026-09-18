@@ -30,8 +30,7 @@ module.exports = {
     '!src/**/index.ts',
     // Exclude Obsidian view wrappers (thin wrappers around React components)
     '!src/views/**/*.ts',
-    // Exclude Obsidian settings UI (uses Obsidian Setting API extensively)
-    '!src/settings/settings-tab.ts',
+    // Settings definitions and collection editors are covered by focused UI/logic tests.
     '!src/settings/settings-store.ts',
     // Exclude Obsidian file adapter (Obsidian Vault API)
     '!src/lib/file-adapter.ts',
