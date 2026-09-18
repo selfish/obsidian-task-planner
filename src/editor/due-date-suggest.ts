@@ -68,22 +68,21 @@ export class DueDateSuggest extends EditorSuggest<string> {
       const previous = header.createEl("button", { text: "‹", attr: { type: "button", "aria-label": "Previous month" } });
       header.createSpan({ text: visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" }), cls: "task-planner-due-date-calendar-title" });
       const next = header.createEl("button", { text: "›", attr: { type: "button", "aria-label": "Next month" } });
-      const changeMonth = (offset: number, deferRender = false): void => {
+      const changeMonth = (offset: number): void => {
         visibleMonth = makeDate(visibleMonth.getFullYear(), visibleMonth.getMonth() + offset, 1);
         const render = (): void => {
           drawCalendar();
           this.focusInside(calendar.querySelector<HTMLButtonElement>(`[aria-label="${offset < 0 ? "Previous" : "Next"} month"]`));
         };
-        if (deferRender) queueMicrotask(render);
-        else render();
+        queueMicrotask(render);
       };
       previous.addEventListener("click", (event) => {
         event.stopPropagation();
-        changeMonth(-1, true);
+        changeMonth(-1);
       });
       next.addEventListener("click", (event) => {
         event.stopPropagation();
-        changeMonth(1, true);
+        changeMonth(1);
       });
 
       const grid = calendar.createDiv({ cls: "task-planner-due-date-calendar-grid", attr: { role: "grid", "aria-label": "Choose due date" } });
