@@ -18,17 +18,17 @@ Every persisted preference in `TaskPlannerSettings` was compared with the old UI
 - **Changes affecting indexing did not consistently apply immediately.** Exclusions, field names and shortcut interpretation now reindex Markdown files after saving. No file contents are changed.
 - **Pinned-task help did not match the implementation.** Document the existing `@selected` keyword; it now respects the configured selected-task attribute.
 - **Collection edits could mutate saved state before confirmation.** Edit cloned drafts; Cancel/Escape/validation failures leave stored data untouched. Save failures restore scalar/list state. Unknown properties on existing collection entries survive editing.
-- **Invalid settings were too easy to save.** Native number bounds, integer checks, dropdown membership, attribute syntax, regular expressions, vault-relative Markdown paths and required Quick Add `{{task}}` placeholders are validated. Custom shortcuts reject unusable keywords and collisions with built-ins. Existing data is not mass-normalized by the UI.
+- **Invalid settings were too easy to save.** Native number bounds, integer checks, dropdown membership, attribute syntax, regular expressions, vault-relative Markdown paths and required Quick Add `{task}` placeholders are validated. Custom shortcuts reject unusable keywords and collisions with built-ins. Existing data is not mass-normalized by the UI.
 
 ## Complete preference coverage
 
 - **Planning board:** stacking cap, daily work-in-progress limit, fuzzy search.
-- **Quick add:** destination, inbox file, placement, location regex, task pattern, Templater processing and delay.
+- **Quick add:** destination, inbox file, placement, location regex, task pattern and Templater delay.
 - **Horizons:** backlog, overdue, seven weekdays, week start, next-week representation, future-week visibility/count, month visibility/count, quarters, next year; native custom-horizon collection with name/date/tag/position/color.
 - **Task attributes:** due date, completion date, selected-task field.
 - **Shortcuts:** automatic conversion, master enable, natural-language dates, built-ins, native custom-shortcut collection with keyword/attribute/value.
 - **Indexing:** archived-task filtering and native excluded-folder collection.
-- **Undo:** enabled, history size/age, toast enabled/duration, action notices.
+- **Undo:** enabled, history size/age and toast enabled/duration.
 - **Follow-up tasks:** prefix, tag copying, priority copying.
 
 Internal state (`version`, onboarding/warning acknowledgments) and the obsolete `horizonVisibility.showPast` compatibility key are retained but not presented as user controls. Per-board display modes and temporary filters remain in the board toolbar; they are not duplicated as global preferences.
