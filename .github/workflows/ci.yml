@@ -248,6 +248,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - obsidian: '1.13.4'
+            installer: '1.5.8'
           - obsidian: '1.13.7'
             installer: '1.5.8'
 

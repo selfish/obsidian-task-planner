@@ -133,7 +133,7 @@ Existing preferences and custom lists are preserved on upgrade; no notes are rew
 
 ## Compatibility and data ownership
 
-- Requires **Obsidian 1.13.7 or newer** as of Task Planner 2.2.0, for the canonical settings API. Task Planner 2.1.0 remains available for older hosts.
+- Requires **Obsidian 1.13.4 or newer** as of Task Planner 2.2.0, the first public desktop release with the canonical settings API. Task Planner 2.1.0 remains available for older hosts.
 - Desktop only
 - Stores tasks in user-owned Markdown files
 - Uses inline fields for planning metadata

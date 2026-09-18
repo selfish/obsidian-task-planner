@@ -13,7 +13,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 ### Changed
 
 - Settings now use one flat, searchable page with Obsidian's native groups, typed controls and editable lists. Removed nested Essential/Advanced pages and the legacy settings renderer.
-- Requires **Obsidian 1.13.7 or newer**. Existing preferences and custom lists are preserved; 2.1.0 remains the compatible release for older hosts.
+- Requires **Obsidian 1.13.4 or newer**, the first public 1.13 desktop release. Existing preferences and custom lists are preserved; 2.1.0 remains the compatible release for older hosts.
 - Custom horizons, shortcuts and excluded folders use validated draft editors with explicit Save and Cancel.
 
 ### Fixed

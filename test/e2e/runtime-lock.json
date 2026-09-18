@@ -7,6 +7,22 @@
     "source": "Official obsidianmd/obsidian-releases assets; SHA-256 values are independently pinned below"
   },
   "runtimes": {
+    "1.13.4/1.5.8": {
+      "app": {
+        "version": "1.13.4",
+        "url": "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.13.4/obsidian-1.13.4.asar.gz",
+        "sha256": "4da84f44ed4232feee2bb33bf94db3d22e8e5d206787268183cea22402cb093a",
+        "minInstallerVersion": "1.5.8",
+        "maxInstallerVersion": "1.13.4"
+      },
+      "installer": {
+        "version": "1.5.8",
+        "url": "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.5.8/Obsidian-1.5.8.AppImage",
+        "sha256": "41bf02e53cff52589847fd652bf683571833b8d6b096138d7077909789d59688",
+        "electron": "28.2.3",
+        "chrome": "120.0.6099.283"
+      }
+    },
     "1.13.7/1.5.8": {
       "app": {
         "version": "1.13.7",
