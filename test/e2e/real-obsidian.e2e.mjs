@@ -533,7 +533,9 @@ describe("real Obsidian vault smoke", function () {
     fs.mkdirSync(path.join(PROJECT_ROOT, "artifacts/e2e"), { recursive: true });
     await browser.saveScreenshot(path.join(PROJECT_ROOT, "artifacts/e2e/date-picker.png"));
     await browser.execute(() => {
-      document.querySelector('.task-planner-due-date-suggest input').value = "2026-10-20";
+      document.querySelector('.task-planner-due-date-suggest [aria-label="Next month"]').click();
+      document.querySelector('.task-planner-due-date-suggest [data-date="2026-10-20"]').click();
+      if (document.querySelector('.task-planner-due-date-suggest input').value !== "2026-10-20") throw new Error("Calendar click did not update the editable date");
       document.querySelector('.task-planner-due-date-suggest button[type="submit"]').click();
     });
     assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review @high [due:: 2026-10-20]");

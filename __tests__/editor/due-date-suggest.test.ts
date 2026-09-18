@@ -17,6 +17,7 @@ describe("native due date suggestion", () => {
         return child;
       },
       createDiv: (options: any) => (element as any).createEl("div", options),
+      createSpan: (options: any) => (element as any).createEl("span", options),
     });
     return element;
   }
@@ -38,7 +39,7 @@ describe("native due date suggestion", () => {
     expect(suggest.getSuggestions()).toEqual(["date"]);
   });
 
-  it("renders and submits the calendar in the existing suggestion popup", () => {
+  it("renders the calendar and submits a typed date in the existing suggestion popup", () => {
     const { suggest, editor, start, apply } = setup();
     suggest.selectSuggestion();
     expect(start).not.toHaveBeenCalled();
@@ -57,6 +58,26 @@ describe("native due date suggestion", () => {
     el.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
     expect(suggest.close).toHaveBeenCalled();
     expect(apply).toHaveBeenCalledWith("2026-12-25");
+  });
+
+  it("selects a calendar day, navigates months, and exposes keyboard-accessible dates", () => {
+    const { suggest, editor, start, apply } = setup();
+    start.mockReturnValue({ initialDate: "2026-09-17", apply });
+    suggest.context = { editor, file: new TFile(), start: { line: 0, ch: 11 }, end: { line: 0, ch: 16 }, query: "date" };
+    const el = hostElement(document.createElement("div"));
+    suggest.renderSuggestion("date", el);
+    expect(el.querySelector(".task-planner-due-date-calendar-title")!.textContent).toContain("September");
+    const day = el.querySelector<HTMLButtonElement>('[data-date="2026-09-25"]')!;
+    expect(day.getAttribute("aria-label")).toContain("September 25");
+    day.click();
+    expect(el.querySelector<HTMLInputElement>("input")!.value).toBe("2026-09-25");
+    expect(el.querySelector('[data-date="2026-09-25"]')!.getAttribute("aria-pressed")).toBe("true");
+    el.querySelector<HTMLButtonElement>('[aria-label="Next month"]')!.click();
+    expect(el.querySelector(".task-planner-due-date-calendar-title")!.textContent).toContain("October");
+    el.querySelector<HTMLButtonElement>('[data-date="2026-10-01"]')!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(el.querySelector<HTMLInputElement>("input")!.value).toBe("2026-10-02");
+    el.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    expect(apply).toHaveBeenCalledWith("2026-10-02");
   });
 
   it("cancels without applying and removes only an existing date", () => {
