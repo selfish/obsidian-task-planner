@@ -79,6 +79,13 @@ describe("canonical settings", () => {
     expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
     expect(plugin.refreshPlanningViews).toHaveBeenCalledTimes(1);
     expect(tab.update).toHaveBeenCalledTimes(1);
+
+    (plugin.saveSettings as jest.Mock).mockRejectedValueOnce(new Error("disk full"));
+    const monday = plugin.settings.horizonVisibility.showMonday;
+    buttons[1].click();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(plugin.settings.horizonVisibility.showMonday).toBe(monday);
+    expect(tab.update).toHaveBeenCalledTimes(2);
   });
 
   it("validates the cap, saves it, refreshes the board, and round-trips persisted settings", async () => {
