@@ -5,6 +5,6 @@
 	"description": "Turn Markdown tasks across your vault into a drag-and-drop planning board for Today, backlog, overdue, and configurable future horizons.",
 	"authorUrl": "https://github.com/selfish",
 	"version": "2.2.0",
-	"minAppVersion": "1.13.7",
+	"minAppVersion": "1.13.4",
 	"isDesktopOnly": true
 }

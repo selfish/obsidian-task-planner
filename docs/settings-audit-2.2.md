@@ -6,7 +6,7 @@ Every persisted preference in `TaskPlannerSettings` was compared with the old UI
 
 - Replace Essential/Horizons/Advanced subpages and their parallel legacy renderer with one native settings page.
 - Use public `PluginSettingTab.getSettingDefinitions`, `SettingControl`, `getControlValue`, `setControlValue`, `SettingDefinitionList`, and `update`. No patched host prototypes, internal search integration, custom navigation, or fallback renderers.
-- Require Obsidian **1.13.7**, the pinned host exercised by the real-host harness. The API declarations mark the declarative framework as available since 1.13.0; that older release's official test asset returned 404. `versions.json` keeps 2.1.0's 1.8.7 compatibility intact.
+- Require Obsidian **1.13.4**, the first officially public 1.13 desktop release. The declarative API was introduced in 1.13.0, but 1.13.0–1.13.3 were Catalyst releases and have no public test assets. The real-host harness exercises both the 1.13.4 floor and current public 1.13.7; `versions.json` keeps 2.1.0's 1.8.7 compatibility intact.
 - Native groups keep all controls exposed to host search. Conditional controls remain visible but disabled, with explanations, instead of disappearing.
 - Native collection rows own add/edit/reorder/delete affordances. Collection editors use public `Modal`/`Setting` APIs with draft values, explicit Save/Cancel, validation, and save-failure feedback. There is no legacy settings screen hidden behind these dialogs.
 
