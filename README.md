@@ -118,18 +118,22 @@ You can still edit inline metadata directly, for example `[due:: 2026-10-20]` (o
 
 ## Configuration
 
-Open **Settings → Task Planner** to configure:
+Open **Settings → Task Planner**. All preferences are on one page, in Obsidian's native searchable groups—no Essential/Advanced subpages or collapsed sections.
 
-- visible day, week, month, quarter, and year horizons;
-- custom dated horizons with optional tag filtering;
-- the daily WIP limit;
-- attribute names such as `due`, `completed`, and `selected`;
-- ignored folders and archived-task filtering;
-- shortcut expansion and quick-add behavior.
+- **Planning board:** maximum horizons per column, daily WIP limit and fuzzy search.
+- **Quick add:** destination, insertion point and task template.
+- **Horizons:** weekdays, week start, weeks, months, quarters and next year. Custom horizons use native add, edit, reorder and delete controls; edits are saved explicitly, and Cancel leaves the original untouched.
+- **Task attributes and @ shortcuts:** field names, automatic conversion and custom expansions.
+- **Indexing:** excluded folders, applied immediately without restarting.
+- **Undo and Follow-up tasks:** history limits, notifications and what follow-ups copy.
+
+**Maximum horizons per column** is the first setting. Choose 1–6 to limit vertical stacking in the future board. `0` preserves automatic layout (up to two normally, three in Future focus). This is a maximum: a short pane may fit fewer. Today is unchanged, and additional horizons remain reachable by horizontal scrolling.
+
+Existing preferences and custom lists are preserved on upgrade; no notes are rewritten. Invalid edits show validation feedback rather than silently storing an unusable value. Use Obsidian's settings search to find a preference directly.
 
 ## Compatibility and data ownership
 
-- Requires **Obsidian 1.8.7 or newer**
+- Requires **Obsidian 1.13.7 or newer** as of Task Planner 2.2.0, for the canonical settings API. Task Planner 2.1.0 remains available for older hosts.
 - Desktop only
 - Stores tasks in user-owned Markdown files
 - Uses inline fields for planning metadata

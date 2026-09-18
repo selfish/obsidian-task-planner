@@ -101,33 +101,105 @@ describe("real Obsidian vault smoke", function () {
     await waitForTaskCount(1);
   });
 
-  it("renders searchable settings through the current API with a legacy fallback", async function () {
-    const isDeclarativeHost = await browser.executeObsidian(({ app }) => typeof app.setting.getCurrentPageEl === "function");
-    const openedTabId = await browser.executeObsidian(({ app }) => {
+  it("renders flat native settings and persists validated controls without subpages", async function () {
+    await browser.executeObsidian(({ app }) => {
+      app.setting.open();
       app.setting.openTabById("task-planner");
-      return app.setting.activeTab?.id;
     });
-    assert.equal(openedTabId, "task-planner");
+    const names = await browser.executeObsidian(({ app }) => [...app.setting.getCurrentPageEl().querySelectorAll(".setting-item-name")].map((el) => el.textContent.trim()));
+    for (const name of ["Maximum horizons per column", "Destination", "Backlog", "Week starts on", "Due date attribute", "Undo history size", "Follow-up prefix"]) assert.ok(names.includes(name), `Missing native setting: ${name}`);
+    for (const name of ["Essential", "Advanced"]) assert.ok(!names.includes(name), `Unexpected nested page: ${name}`);
+    assert.equal(await browser.executeObsidian(({ app }) => app.setting.getCurrentPageEl().querySelectorAll("details, .th-settings-section").length), 0);
+    await browser.executeObsidian(({ app }) => new Promise((resolve) => app.setting.getCurrentPageEl().win.requestAnimationFrame(() => app.setting.getCurrentPageEl().win.requestAnimationFrame(resolve))));
+    await browser.saveSettingsScreenshot(path.resolve("artifacts/e2e/settings-native.png"));
+    const setNumber = (name, value) => browser.executeObsidian(({ app }, label, next) => {
+      const row = [...app.setting.getCurrentPageEl().querySelectorAll(".setting-item")].find((el) => el.querySelector(".setting-item-name")?.textContent.trim() === label);
+      const input = row.querySelector("input");
+      input.focus();
+      input.value = String(next);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.blur();
+    }, name, value);
+    await setNumber("Maximum horizons per column", 2);
+    await browser.waitUntil(() => browser.executeObsidian(async ({ plugins }) => (await plugins.taskPlanner.loadData()).maxHorizonsPerColumn === 2), { timeout: 5000, timeoutMsg: "Native number control did not persist" });
+    await setNumber("Maximum horizons per column", 1.5);
+    await browser.waitUntil(() => browser.executeObsidian(({ app }) => app.setting.getCurrentPageEl().textContent.includes("Enter a whole number")), { timeout: 5000, timeoutMsg: "Invalid count did not show validation feedback" });
+    assert.equal(await browser.executeObsidian(({ plugins }) => plugins.taskPlanner.settings.maxHorizonsPerColumn), 2);
+    await setNumber("Maximum horizons per column", 0);
+    await browser.waitUntil(() => browser.executeObsidian(async ({ plugins }) => (await plugins.taskPlanner.loadData()).maxHorizonsPerColumn === 0), { timeout: 5000 });
+    await browser.executeObsidian(({ app }) => app.setting.close());
+  });
 
-    const getSettingNames = () =>
-      browser.executeObsidian(({ app }) => {
-        const root = app.setting.getCurrentPageEl?.() ?? app.setting.activeTab?.containerEl;
-        return root ? [...root.querySelectorAll(".setting-item-name")].map((element) => element.textContent?.trim()) : [];
+  it("edits native collections as drafts, validates shortcuts, and reindexes exclusions immediately", async function () {
+    const original = await browser.executeObsidian(({ app }) => {
+      const s = app.plugins.plugins["task-planner"].settings;
+      app.setting.open(); app.setting.openTabById("task-planner");
+      return { customHorizons: structuredClone(s.customHorizons), shortcuts: structuredClone(s.atShortcutSettings.customShortcuts), folders: [...s.ignoredFolders] };
+    });
+    const action = (label) => browser.executeObsidian(({ app }, label) => {
+      const root = app.setting.getCurrentPageEl();
+      const element = [...root.querySelectorAll(".setting-item-name, button, [aria-label]")].find((el) => el.textContent.trim() === label || el.getAttribute("aria-label") === label);
+      if (!element) throw new Error(`Missing action ${label}`);
+      (element.matches(".setting-item-name") ? element.closest(".setting-item") : element).click();
+    }, label);
+    const editor = (fields = {}, button) => browser.executeObsidian(({ app }, fields, button) => {
+      const docs = [document, app.setting.getCurrentPageEl().ownerDocument];
+      const modal = docs.map((doc) => doc.querySelector(".task-planner-settings-editor")).find(Boolean);
+      if (!modal) throw new Error("Collection editor did not open");
+      for (const [label, value] of Object.entries(fields)) {
+        const row = [...modal.querySelectorAll(".setting-item")].find((el) => el.querySelector(".setting-item-name")?.textContent === label);
+        const input = row.querySelector("input, select");
+        input.value = value;
+        input.dispatchEvent(new input.win.Event(input.tagName === "SELECT" ? "change" : "input", { bubbles: true }));
+      }
+      if (button) [...modal.querySelectorAll("button")].find((el) => el.textContent === button).click();
+      return modal.querySelector('[role="alert"]')?.textContent;
+    }, fields, button);
+    const state = () => browser.executeObsidian(async ({ app }) => await app.plugins.plugins["task-planner"].loadData());
+    try {
+      await action("Add custom horizon");
+      await editor({ Name: "Cancelled milestone", Date: "2026-11-01" }, "Cancel");
+      assert.deepEqual((await state()).customHorizons, original.customHorizons);
+      await action("Add custom horizon");
+      await editor({ Name: "Release milestone", Date: "2026-11-01", Tag: "launch", Position: "inline", Color: "blue" }, "Save");
+      await browser.waitUntil(async () => (await state()).customHorizons.some((h) => h.label === "Release milestone"));
+      await action("Release milestone");
+      await editor({ Name: "Do not save" }, "Cancel");
+      assert.equal((await state()).customHorizons.at(-1).label, "Release milestone");
+      await action("Add custom shortcut");
+      await editor({ Keyword: "bad-key", Attribute: "owner", Value: "team" }, "Save");
+      await browser.waitUntil(async () => (await editor()).includes("keyword"));
+      await editor({ Keyword: "high" }, "Save");
+      await browser.waitUntil(async () => (await editor()).includes("reserved"));
+      await editor({ Keyword: "reviewer" }, "Save");
+      await browser.waitUntil(async () => (await state()).atShortcutSettings.customShortcuts.some((s) => s.keyword === "reviewer"));
+      await browser.executeObsidian(async ({ app }) => {
+        await app.vault.createFolder("ExcludeMe");
+        await app.vault.create("ExcludeMe/Tasks.md", "- [ ] Exclusion live test\n");
       });
-
-    if (isDeclarativeHost) {
-      await browser.waitUntil(
-        async () => {
-          const names = await getSettingNames();
-          return ["Essential", "Horizons", "Advanced"].every((name) => names.includes(name));
-        },
-        { timeout: 15000, timeoutMsg: "Declarative settings pages were not rendered" }
-      );
-    } else {
-      await browser.waitUntil(async () => (await getSettingNames()).includes("Destination"), {
-        timeout: 15000,
-        timeoutMsg: "Legacy settings fallback did not render",
-      });
+      await browser.waitUntil(async () => await browser.executeObsidian(({ app }) => app.plugins.plugins["task-planner"].taskIndex.all().some((task) => task.text.includes("Exclusion live test"))));
+      await action("Add ignored folder");
+      await editor({ Folder: "ExcludeMe" }, "Save");
+      await browser.waitUntil(async () => await browser.executeObsidian(({ app }) => !app.plugins.plugins["task-planner"].taskIndex.all().some((task) => task.text.includes("Exclusion live test"))));
+      assert.ok((await state()).ignoredFolders.includes("ExcludeMe"));
+      assert.equal(await browser.executeObsidian(async ({ app }) => app.vault.read(app.vault.getAbstractFileByPath("ExcludeMe/Tasks.md"))), "- [ ] Exclusion live test\n");
+    } catch (error) {
+      console.error("Collection scenario failed before cleanup", error);
+      throw error;
+    } finally {
+      await browser.executeObsidian(async ({ app }, original) => {
+        const plugin = app.plugins.plugins["task-planner"];
+        plugin.settings.customHorizons = original.customHorizons;
+        plugin.settings.atShortcutSettings.customShortcuts = original.shortcuts;
+        plugin.settings.ignoredFolders = original.folders;
+        await plugin.saveSettings(); plugin.refreshPlanningViews();
+        const file = app.vault.getAbstractFileByPath("ExcludeMe/Tasks.md");
+        if (file) await app.vault.delete(file);
+        const folder = app.vault.getAbstractFileByPath("ExcludeMe");
+        if (folder) await app.vault.delete(folder);
+        app.setting.close();
+      }, original);
     }
   });
 
@@ -301,6 +373,40 @@ describe("real Obsidian vault smoke", function () {
     assert.equal(mobile.sectionInsideViewport, true, JSON.stringify(mobile));
     assert.equal(mobile.controlsInsideViewport, true, JSON.stringify(mobile));
     await setViewport(1024);
+  });
+
+  it("caps the actual stacked horizons, refreshes immediately, and keeps every horizon reachable", async function () {
+    await browser.sendCommand("Emulation.setDeviceMetricsOverride", { width: 1100, height: 900, deviceScaleFactor: 1, mobile: false });
+    const measure = () => browser.execute(() => {
+      const section = document.querySelector(".future-section");
+      const stacks = {};
+      const cards = [...section.querySelectorAll(":scope > .column")];
+      for (const card of cards) {
+        const key = Math.round(card.getBoundingClientRect().left);
+        stacks[key] = (stacks[key] || 0) + 1;
+      }
+      return { max: Math.max(...Object.values(stacks)), count: cards.length, variable: getComputedStyle(section).getPropertyValue("--horizons-per-column").trim(), overflow: section.scrollWidth > section.clientWidth };
+    });
+    const count = (await measure()).count;
+    assert.ok(count > 6);
+    for (const cap of [1, 2, 3, 6]) {
+      await browser.executeObsidian(async ({ app }, value) => {
+        app.setting.openTabById("task-planner");
+        await app.setting.activeTab.setControlValue("maxHorizonsPerColumn", value);
+      }, cap);
+      await browser.waitUntil(async () => (await measure()).variable === String(cap), { timeout: 5000 });
+      const geometry = await measure();
+      assert.ok(geometry.max <= cap, JSON.stringify({ cap, geometry }));
+      assert.equal(geometry.count, count);
+      if (cap <= 2) assert.ok(geometry.overflow);
+      if (cap === 2) await browser.saveScreenshot(path.resolve("artifacts/e2e/horizon-cap-two.png"));
+    }
+    await browser.executeObsidian(async ({ app }) => {
+      await app.setting.activeTab.setControlValue("maxHorizonsPerColumn", 0);
+      app.setting.close();
+    });
+    await browser.waitUntil(async () => (await measure()).variable === "2", { timeout: 5000 });
+    await browser.sendCommand("Emulation.setDeviceMetricsOverride", { width: 1024, height: 700, deviceScaleFactor: 1, mobile: false });
   });
 
   it("moves through a dated/tagged horizon and supports UI undo", async function () {

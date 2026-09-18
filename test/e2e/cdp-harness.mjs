@@ -12,6 +12,7 @@ const appVersion = process.env.OBSIDIAN_VERSION ?? "1.13.7";
 const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.5.8";
 
 let client;
+let port;
 let processResult;
 let stderr = "";
 
@@ -57,6 +58,20 @@ export const browser = {
     const { data } = await client.Page.captureScreenshot({ format: "png" });
     fs.writeFileSync(file, Buffer.from(data, "base64"));
   },
+  async saveSettingsScreenshot(file) {
+    const { targetInfos } = await client.Target.getTargets();
+    for (const target of targetInfos.filter((info) => info.type === "page")) {
+      const page = await CDP({ port, target: target.targetId });
+      try {
+        const { result } = await page.Runtime.evaluate({ expression: 'Boolean(document.querySelector(".setting-item"))', returnByValue: true });
+        if (!result.value) continue;
+        const { data } = await page.Page.captureScreenshot({ format: "png" });
+        fs.writeFileSync(file, Buffer.from(data, "base64"));
+        return;
+      } finally { await page.close(); }
+    }
+    throw new Error("Native settings window not found");
+  },
 };
 
 export const obsidianPage = {
@@ -94,7 +109,8 @@ export async function startObsidian() {
       args: ["--remote-debugging-port=0", "--test-type=webdriver"],
       spawnOptions: { stdio: ["ignore", "pipe", "pipe"] },
     });
-    client = await CDP({ port: await devToolsPort(processResult.proc) });
+    port = await devToolsPort(processResult.proc);
+    client = await CDP({ port });
     await Promise.all([client.Runtime.enable(), client.Page.enable()]);
     await browser.waitUntil(() => browser.execute(() => Boolean(window.taskPlannerE2e)), {
       timeout: 15000,

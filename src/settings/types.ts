@@ -84,6 +84,7 @@ export interface TaskPlannerSettings {
   ignoredFolders: string[];
   ignoreArchivedTasks: boolean;
   dailyWipLimit: number;
+  maxHorizonsPerColumn: number; // 0 = automatic (2 normally, 3 in Future focus), 1-6 = cap
   dueDateAttribute: string;
   completedDateAttribute: string;
   selectedAttribute: string;
@@ -105,6 +106,7 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
   ignoredFolders: [],
   ignoreArchivedTasks: true,
   dailyWipLimit: 8,
+  maxHorizonsPerColumn: 0,
   dueDateAttribute: "due",
   completedDateAttribute: "completed",
   selectedAttribute: "selected",
@@ -233,6 +235,7 @@ export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
     ignoredFolders: Array.isArray(loaded.ignoredFolders) ? loaded.ignoredFolders.filter((folder): folder is string => typeof folder === "string") : [...DEFAULT_SETTINGS.ignoredFolders],
     ignoreArchivedTasks: booleanValue(loaded, "ignoreArchivedTasks", DEFAULT_SETTINGS.ignoreArchivedTasks),
     dailyWipLimit: numberValue(loaded, "dailyWipLimit", DEFAULT_SETTINGS.dailyWipLimit, (number) => Number.isFinite(number) && number >= 0),
+    maxHorizonsPerColumn: numberValue(loaded, "maxHorizonsPerColumn", DEFAULT_SETTINGS.maxHorizonsPerColumn, (number) => Number.isInteger(number) && number >= 0 && number <= 6),
     dueDateAttribute: stringValue(loaded, "dueDateAttribute", DEFAULT_SETTINGS.dueDateAttribute),
     completedDateAttribute: stringValue(loaded, "completedDateAttribute", DEFAULT_SETTINGS.completedDateAttribute),
     selectedAttribute: stringValue(loaded, "selectedAttribute", DEFAULT_SETTINGS.selectedAttribute),
