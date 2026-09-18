@@ -73,7 +73,7 @@ export class LineParser {
       }
 
       if (atSettings.enableBuiltinShortcuts && keyword === "selected") {
-        return [keyword, true];
+        return [this.settings?.selectedAttribute || keyword, true];
       }
 
       if (atSettings.customShortcuts) {

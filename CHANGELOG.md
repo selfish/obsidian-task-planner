@@ -4,6 +4,24 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-18
+
+### Added
+
+- Maximum horizons per column: choose a stacking limit or preserve the automatic layout, without hiding horizons or changing Today.
+
+### Changed
+
+- Settings now use one flat, searchable page with Obsidian's native groups, typed controls and editable lists. Removed nested Essential/Advanced pages and the legacy settings renderer.
+- Requires **Obsidian 1.13.7 or newer**. Existing preferences and custom lists are preserved; 2.1.0 remains the compatible release for older hosts.
+- Custom horizons, shortcuts and excluded folders use validated draft editors with explicit Save and Cancel.
+
+### Fixed
+
+- Expose every active preference, including previously inaccessible undo-history and notification options.
+- Apply indexing-related preference changes immediately, and restore preferences if saving fails.
+- Respect the configured selected-task field when expanding `@selected`; correct its settings help.
+
 ## [2.1.0] - 2026-09-17
 
 ### Added

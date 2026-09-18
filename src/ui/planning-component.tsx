@@ -1220,7 +1220,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         </div>
       )}
       {viewMode !== "today" && (
-        <div className="future-section" ref={futureSectionRef} tabIndex={0} aria-label="Future planning horizons">
+        <div className="future-section" ref={futureSectionRef} tabIndex={0} aria-label="Future planning horizons" style={{ "--horizons-per-column": settings.maxHorizonsPerColumn || (viewMode === "future" ? 3 : 2) } as React.CSSProperties}>
           {Array.from(getColumns())}
         </div>
       )}

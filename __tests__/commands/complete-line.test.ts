@@ -1,6 +1,7 @@
 import { CompleteLineCommand } from '../../src/commands/complete-line';
 import { StatusOperations } from '../../src/core/operations/status-operations';
 import { Editor, MarkdownView } from 'obsidian';
+import { parseTaskPlannerSettings } from '../../src/settings';
 
 const createMockEditor = (lines: string[]): Editor => {
   let currentLines = [...lines];
@@ -37,6 +38,12 @@ describe('CompleteLineCommand', () => {
   });
 
   describe('editorCallback', () => {
+    it('expands @selected using the configured pinned-task attribute', () => {
+      const configured = new CompleteLineCommand(new StatusOperations(parseTaskPlannerSettings({ selectedAttribute: 'pinned' })));
+      const editor = createMockEditor(['- [ ] Task @selected']);
+      configured.editorCallback(editor, {} as MarkdownView);
+      expect(editor.setLine).toHaveBeenCalledWith(0, '- [ ] Task [pinned:: true]');
+    });
     it('should convert priority shortcut to full attribute', () => {
       const editor = createMockEditor(['- [ ] Task @high']);
 
