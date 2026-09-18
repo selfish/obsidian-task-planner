@@ -178,10 +178,10 @@ describe("real Obsidian vault smoke", function () {
         await app.vault.createFolder("ExcludeMe");
         await app.vault.create("ExcludeMe/Tasks.md", "- [ ] Exclusion live test\n");
       });
-      await browser.waitUntil(async () => await browser.executeObsidian(({ app }) => app.plugins.plugins["task-planner"].taskIndex.all().some((task) => task.text.includes("Exclusion live test"))));
+      await browser.waitUntil(async () => await browser.executeObsidian(({ app }) => app.plugins.plugins["task-planner"].taskIndex.tasks.some((task) => task.text.includes("Exclusion live test"))));
       await action("Add ignored folder");
       await editor({ Folder: "ExcludeMe" }, "Save");
-      await browser.waitUntil(async () => await browser.executeObsidian(({ app }) => !app.plugins.plugins["task-planner"].taskIndex.all().some((task) => task.text.includes("Exclusion live test"))));
+      await browser.waitUntil(async () => await browser.executeObsidian(({ app }) => !app.plugins.plugins["task-planner"].taskIndex.tasks.some((task) => task.text.includes("Exclusion live test"))));
       assert.ok((await state()).ignoredFolders.includes("ExcludeMe"));
       assert.equal(await browser.executeObsidian(async ({ app }) => app.vault.read(app.vault.getAbstractFileByPath("ExcludeMe/Tasks.md"))), "- [ ] Exclusion live test\n");
     } catch (error) {
@@ -196,8 +196,6 @@ describe("real Obsidian vault smoke", function () {
         await plugin.saveSettings(); plugin.refreshPlanningViews();
         const file = app.vault.getAbstractFileByPath("ExcludeMe/Tasks.md");
         if (file) await app.vault.delete(file);
-        const folder = app.vault.getAbstractFileByPath("ExcludeMe");
-        if (folder) await app.vault.delete(folder);
         app.setting.close();
       }, original);
     }
@@ -549,6 +547,36 @@ describe("real Obsidian vault smoke", function () {
     await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "Z", code: "KeyZ", modifiers: 10, windowsVirtualKeyCode: 90 });
     await browser.executeObsidianCommand("task-planner:complete-line");
     assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review [priority:: high] [due:: 2026-10-20]");
+  });
+
+  it("finds the horizon cap through native search and restores it after a plugin reload", async function () {
+    await browser.executeObsidian(({ app }) => { app.setting.open(); app.setting.openTabById("task-planner"); });
+    await browser.executeObsidian(({ app }) => {
+      const doc = app.setting.getCurrentPageEl().ownerDocument;
+      const search = doc.querySelector('input[placeholder="Search settings..."]');
+      if (!search) throw new Error("Native settings search input missing");
+      search.value = "Maximum horizons per column";
+      search.dispatchEvent(new search.win.Event("input", { bubbles: true }));
+    });
+    await browser.waitUntil(() => browser.executeObsidian(({ app }) => {
+      const doc = app.setting.getCurrentPageEl().ownerDocument;
+      return [...doc.querySelectorAll('[class*="search-result"]')].some((element) => element.textContent.includes("Maximum horizons per column"));
+    }), { timeout: 5000, timeoutMsg: "Native search did not index the plugin setting" });
+    await browser.saveSettingsScreenshot(path.resolve("artifacts/e2e/settings-search.png"));
+    await browser.executeObsidian(async ({ app }) => {
+      app.setting.close();
+      const plugin = app.plugins.plugins["task-planner"];
+      plugin.settings.maxHorizonsPerColumn = 2;
+      await plugin.saveSettings();
+      await app.plugins.unloadPlugin("task-planner");
+      await app.plugins.loadPlugin("task-planner");
+    });
+    assert.equal(await browser.executeObsidian(({ app }) => app.plugins.plugins["task-planner"].settings.maxHorizonsPerColumn), 2);
+    await browser.executeObsidian(async ({ app }) => {
+      const plugin = app.plugins.plugins["task-planner"];
+      plugin.settings.maxHorizonsPerColumn = 0;
+      await plugin.saveSettings();
+    });
   });
 
   it("refuses a stale picker write and leaves fenced examples unchanged", async function () {
