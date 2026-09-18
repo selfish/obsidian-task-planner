@@ -38,3 +38,42 @@
   justify-content: flex-end;
   gap: var(--size-4-2);
 }
+
+.task-planner-due-date-calendar-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--size-4-2);
+}
+
+.task-planner-due-date-calendar-title {
+  text-align: center;
+  font-weight: var(--font-semibold);
+}
+
+.task-planner-due-date-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(2rem, 1fr));
+  gap: var(--size-4-1);
+  margin-top: var(--size-4-2);
+
+  button {
+    aspect-ratio: 1;
+    padding: 0;
+  }
+
+  .is-today {
+    box-shadow: inset 0 0 0 1px var(--interactive-accent);
+  }
+
+  .is-selected {
+    color: var(--text-on-accent);
+    background: var(--interactive-accent);
+  }
+}
+
+.task-planner-due-date-weekday {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-align: center;
+}
