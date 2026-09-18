@@ -60,23 +60,31 @@ describe("native due date suggestion", () => {
     expect(apply).toHaveBeenCalledWith("2026-12-25");
   });
 
-  it("selects a calendar day, navigates months, and exposes keyboard-accessible dates", () => {
+  it("selects a calendar day without selecting the host suggestion row and exposes keyboard-accessible dates", async () => {
     const { suggest, editor, start, apply } = setup();
     start.mockReturnValue({ initialDate: "2026-09-17", apply });
     suggest.context = { editor, file: new TFile(), start: { line: 0, ch: 11 }, end: { line: 0, ch: 16 }, query: "date" };
     const el = hostElement(document.createElement("div"));
+    document.body.appendChild(el);
     suggest.renderSuggestion("date", el);
+    const hostClick = jest.fn();
+    el.addEventListener("click", hostClick);
     expect(el.querySelector(".task-planner-due-date-calendar-title")!.textContent).toContain("September");
     const day = el.querySelector<HTMLButtonElement>('[data-date="2026-09-25"]')!;
     expect(day.getAttribute("aria-label")).toContain("September 25");
     day.click();
+    expect(hostClick).not.toHaveBeenCalled();
     expect(el.querySelector<HTMLInputElement>("input")!.value).toBe("2026-09-25");
+    await Promise.resolve();
     expect(el.querySelector('[data-date="2026-09-25"]')!.getAttribute("aria-pressed")).toBe("true");
     el.querySelector<HTMLButtonElement>('[aria-label="Next month"]')!.click();
+    expect(hostClick).not.toHaveBeenCalled();
+    await Promise.resolve();
     expect(el.querySelector(".task-planner-due-date-calendar-title")!.textContent).toContain("October");
     el.querySelector<HTMLButtonElement>('[data-date="2026-10-01"]')!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
     expect(el.querySelector<HTMLInputElement>("input")!.value).toBe("2026-10-02");
-    el.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
+    [...el.querySelectorAll("button")].find((button) => button.textContent === "Save")!.click();
+    expect(hostClick).not.toHaveBeenCalled();
     expect(apply).toHaveBeenCalledWith("2026-10-02");
   });
 
