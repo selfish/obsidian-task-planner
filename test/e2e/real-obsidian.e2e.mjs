@@ -101,8 +101,7 @@ describe("real Obsidian vault smoke", function () {
     await waitForTaskCount(1);
   });
 
-  it("renders searchable settings through the current API with a legacy fallback", async function () {
-    const isDeclarativeHost = await browser.executeObsidian(({ app }) => typeof app.setting.getCurrentPageEl === "function");
+  it("renders searchable settings through the current API", async function () {
     const openedTabId = await browser.executeObsidian(({ app }) => {
       app.setting.openTabById("task-planner");
       return app.setting.activeTab?.id;
@@ -115,20 +114,14 @@ describe("real Obsidian vault smoke", function () {
         return root ? [...root.querySelectorAll(".setting-item-name")].map((element) => element.textContent?.trim()) : [];
       });
 
-    if (isDeclarativeHost) {
-      await browser.waitUntil(
-        async () => {
-          const names = await getSettingNames();
-          return ["Essential", "Horizons", "Advanced"].every((name) => names.includes(name));
-        },
-        { timeout: 15000, timeoutMsg: "Declarative settings pages were not rendered" }
-      );
-    } else {
-      await browser.waitUntil(async () => (await getSettingNames()).includes("Destination"), {
-        timeout: 15000,
-        timeoutMsg: "Legacy settings fallback did not render",
-      });
-    }
+    await browser.waitUntil(
+      async () => {
+        const names = await getSettingNames();
+        return ["Essential", "Horizons", "Advanced"].every((name) => names.includes(name));
+      },
+      { timeout: 15000, timeoutMsg: "Declarative settings pages were not rendered" }
+    );
+    assert.equal(await browser.execute(() => document.querySelectorAll(".th-subsection, .th-collapsible").length), 0);
   });
 
   it("atomically relocates a stale UI task and preserves unrelated CRLF bytes", async function () {
@@ -236,6 +229,33 @@ describe("real Obsidian vault smoke", function () {
       });
 
     await setViewport(1024);
+    for (const horizonsPerColumn of [1, 2, 4]) {
+      await browser.executeObsidian(({ plugins }, value) => {
+        plugins.taskPlanner.settings.horizonsPerColumn = value;
+        plugins.taskPlanner.refreshPlanningViews();
+      }, horizonsPerColumn);
+      await browser.waitUntil(
+        () =>
+          browser.execute((value) => {
+            const section = document.querySelector(".future-section");
+            return Number.parseInt(getComputedStyle(section).getPropertyValue("--horizons-per-column")) === value;
+          }, horizonsPerColumn),
+        { timeout: 5000, timeoutMsg: `Horizon density ${horizonsPerColumn} did not apply` }
+      );
+      const maximumStack = await browser.execute(() => {
+        const counts = new Map();
+        for (const column of document.querySelectorAll(".future-section > .column")) {
+          const left = Math.round(column.getBoundingClientRect().left);
+          counts.set(left, (counts.get(left) ?? 0) + 1);
+        }
+        return Math.max(...counts.values());
+      });
+      assert.ok(maximumStack <= horizonsPerColumn, `Expected at most ${horizonsPerColumn} horizons per column, saw ${maximumStack}`);
+    }
+    await browser.executeObsidian(({ plugins }) => {
+      plugins.taskPlanner.settings.horizonsPerColumn = 2;
+      plugins.taskPlanner.refreshPlanningViews();
+    });
     const desktop = await browser.execute(async () => {
       const section = document.querySelector(".future-section");
       const style = getComputedStyle(section);

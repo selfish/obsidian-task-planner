@@ -113,6 +113,8 @@
   }
 
   .future-section {
+    --horizons-per-column: 2;
+
     display: flex;
     gap: var(--column-gap);
     overflow-x: auto;

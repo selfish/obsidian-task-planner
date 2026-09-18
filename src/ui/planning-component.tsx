@@ -854,7 +854,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       yield todoColumn("inbox", "Backlog\nNo due date", backlogTodos, false, removeDate(), batchRemoveDate(), "backlog", undefined, "backlog");
     }
 
-    if (horizonVisibility.showOverdue || horizonVisibility.showPast) {
+    if (horizonVisibility.showOverdue) {
       const overdueTodos = getOverdueTodos(assignedTaskIds);
       markTasksAsAssigned(overdueTodos);
       const overdueHeaderActions: ColumnHeaderAction[] = [
@@ -1220,7 +1220,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         </div>
       )}
       {viewMode !== "today" && (
-        <div className="future-section" ref={futureSectionRef} tabIndex={0} aria-label="Future planning horizons">
+        <div className="future-section" ref={futureSectionRef} tabIndex={0} aria-label="Future planning horizons" style={{ "--horizons-per-column": settings.horizonsPerColumn } as React.CSSProperties}>
           {Array.from(getColumns())}
         </div>
       )}

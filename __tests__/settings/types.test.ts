@@ -15,6 +15,7 @@ describe("parseTaskPlannerSettings", () => {
       version: -1,
       ignoredFolders: ["Archive", 42, null],
       dailyWipLimit: -1,
+      horizonsPerColumn: 5,
       firstWeekday: 9,
       customHorizons: [
         { label: "Valid", date: "2026-08-01", position: "inline", tag: "#valid", color: "blue", futureHorizonOption: true },
@@ -87,12 +88,15 @@ describe("parseTaskPlannerSettings", () => {
       hasSeenOnboarding: true,
       futureSetting: { preserved: true },
     });
+    expect(parsed.horizonsPerColumn).toBe(DEFAULT_SETTINGS.horizonsPerColumn);
+    expect(parsed.horizonVisibility).not.toHaveProperty("showPast");
   });
 
   it("accepts valid boundary values for every guarded number", () => {
     const parsed = parseTaskPlannerSettings({
       version: 0,
       dailyWipLimit: 0,
+      horizonsPerColumn: 4,
       firstWeekday: 7,
       horizonVisibility: { weeksToShow: 4, monthsToShow: 3 },
       quickAdd: { templaterDelay: 0 },
@@ -103,6 +107,7 @@ describe("parseTaskPlannerSettings", () => {
     expect(parsed).toMatchObject({
       version: 0,
       dailyWipLimit: 0,
+      horizonsPerColumn: 4,
       firstWeekday: 7,
       horizonVisibility: { weeksToShow: 4, monthsToShow: 3 },
       quickAdd: { templaterDelay: 0 },

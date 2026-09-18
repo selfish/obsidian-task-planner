@@ -27,7 +27,6 @@ export type NextWeekMode = "collapsed" | "same-as-this-week" | "rolling-week";
 export interface HorizonVisibility {
   // Basic horizons
   showBacklog: boolean;
-  showPast: boolean;
   showOverdue: boolean;
 
   // Individual weekdays (this week)
@@ -84,6 +83,7 @@ export interface TaskPlannerSettings {
   ignoredFolders: string[];
   ignoreArchivedTasks: boolean;
   dailyWipLimit: number;
+  horizonsPerColumn: number;
   dueDateAttribute: string;
   completedDateAttribute: string;
   selectedAttribute: string;
@@ -105,6 +105,7 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
   ignoredFolders: [],
   ignoreArchivedTasks: true,
   dailyWipLimit: 8,
+  horizonsPerColumn: 2,
   dueDateAttribute: "due",
   completedDateAttribute: "completed",
   selectedAttribute: "selected",
@@ -114,7 +115,6 @@ export const DEFAULT_SETTINGS: TaskPlannerSettings = {
   customHorizons: [],
   horizonVisibility: {
     showBacklog: true,
-    showPast: true,
     showOverdue: true,
     showMonday: true,
     showTuesday: true,
@@ -221,7 +221,7 @@ function parseCustomShortcut(value: unknown): CustomAtShortcut | undefined {
  */
 export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
   const loaded = asRecord(value) ?? {};
-  const horizonVisibility = asRecord(loaded.horizonVisibility) ?? {};
+  const { showPast: _showPast, ...horizonVisibility } = asRecord(loaded.horizonVisibility) ?? {};
   const atShortcutSettings = asRecord(loaded.atShortcutSettings) ?? {};
   const quickAdd = asRecord(loaded.quickAdd) ?? {};
   const followUp = asRecord(loaded.followUp) ?? {};
@@ -233,6 +233,7 @@ export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
     ignoredFolders: Array.isArray(loaded.ignoredFolders) ? loaded.ignoredFolders.filter((folder): folder is string => typeof folder === "string") : [...DEFAULT_SETTINGS.ignoredFolders],
     ignoreArchivedTasks: booleanValue(loaded, "ignoreArchivedTasks", DEFAULT_SETTINGS.ignoreArchivedTasks),
     dailyWipLimit: numberValue(loaded, "dailyWipLimit", DEFAULT_SETTINGS.dailyWipLimit, (number) => Number.isFinite(number) && number >= 0),
+    horizonsPerColumn: numberValue(loaded, "horizonsPerColumn", DEFAULT_SETTINGS.horizonsPerColumn, (number) => Number.isInteger(number) && number >= 1 && number <= 4),
     dueDateAttribute: stringValue(loaded, "dueDateAttribute", DEFAULT_SETTINGS.dueDateAttribute),
     completedDateAttribute: stringValue(loaded, "completedDateAttribute", DEFAULT_SETTINGS.completedDateAttribute),
     selectedAttribute: stringValue(loaded, "selectedAttribute", DEFAULT_SETTINGS.selectedAttribute),
@@ -243,7 +244,6 @@ export function parseTaskPlannerSettings(value: unknown): TaskPlannerSettings {
     horizonVisibility: {
       ...horizonVisibility,
       showBacklog: booleanValue(horizonVisibility, "showBacklog", DEFAULT_SETTINGS.horizonVisibility.showBacklog),
-      showPast: booleanValue(horizonVisibility, "showPast", DEFAULT_SETTINGS.horizonVisibility.showPast),
       showOverdue: booleanValue(horizonVisibility, "showOverdue", DEFAULT_SETTINGS.horizonVisibility.showOverdue),
       showMonday: booleanValue(horizonVisibility, "showMonday", DEFAULT_SETTINGS.horizonVisibility.showMonday),
       showTuesday: booleanValue(horizonVisibility, "showTuesday", DEFAULT_SETTINGS.horizonVisibility.showTuesday),

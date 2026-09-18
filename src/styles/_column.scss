@@ -8,7 +8,7 @@
     max-height: 100%;
     height: max-content;
     flex-grow: 3;
-    min-height: calc(50% - 4px);
+    min-height: calc((100% - (var(--column-gap) * (var(--horizons-per-column) - 1))) / var(--horizons-per-column));
 
     // Column in today section - cohesive with future columns but refined
     &.today {
