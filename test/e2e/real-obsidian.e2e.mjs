@@ -532,20 +532,45 @@ describe("real Obsidian vault smoke", function () {
     await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('.task-planner-due-date-suggest input[type="date"]'))), { timeout: 5000, timeoutMsg: "inline @date picker did not open" });
     fs.mkdirSync(path.join(PROJECT_ROOT, "artifacts/e2e"), { recursive: true });
     await browser.saveScreenshot(path.join(PROJECT_ROOT, "artifacts/e2e/date-picker.png"));
-    await browser.execute(() => {
-      document.querySelector('.task-planner-due-date-suggest [aria-label="Next month"]').click();
-      document.querySelector('.task-planner-due-date-suggest [data-date="2026-10-20"]').click();
-      if (document.querySelector('.task-planner-due-date-suggest input').value !== "2026-10-20") throw new Error("Calendar click did not update the editable date");
-      document.querySelector('.task-planner-due-date-suggest button[type="submit"]').click();
+    const initialMonth = await browser.execute(() => {
+      const picker = document.querySelector(".task-planner-due-date-suggest");
+      const month = picker.querySelector("input").value.slice(0, 7);
+      picker.querySelector('[aria-label="Next month"]').click();
+      return month;
     });
-    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review @high [due:: 2026-10-20]");
+    if (!(await browser.execute(() => Boolean(document.querySelector(".task-planner-due-date-suggest"))))) throw new Error("Calendar navigation closed the picker");
+    await browser.waitUntil(() => browser.execute((month) => {
+      const day = document.querySelector(".task-planner-due-date-suggest .task-planner-due-date-calendar-grid [data-date]");
+      return day?.dataset.date.slice(0, 7) !== month;
+    }, initialMonth), { timeout: 2000, timeoutMsg: "Calendar did not advance to the next month" });
+    const selectedDate = await browser.execute(() => {
+      const picker = document.querySelector(".task-planner-due-date-suggest");
+      const day = [...picker.querySelectorAll(".task-planner-due-date-calendar-grid [data-date]")].find((button) => button.textContent === "20");
+      if (!day) throw new Error("Calendar did not render day 20 after month navigation");
+      day.click();
+      const value = picker.querySelector("input").value;
+      if (value !== day.dataset.date) throw new Error("Calendar click did not update the editable date");
+      picker.querySelector('button[type="submit"]').click();
+      return value;
+    });
+    const expectedSuggestionEdit = `- [ ] Review @high [due:: ${selectedDate}]`;
+    await browser.waitUntil(() => browser.executeObsidian(({ app }, expected) => app.workspace.activeEditor.editor.getValue() === expected, expectedSuggestionEdit), {
+      timeout: 2000,
+      timeoutMsg: await browser.executeObsidian(({ app }) =>
+        JSON.stringify({
+          text: app.workspace.activeEditor?.editor?.getValue(),
+          file: app.workspace.activeEditor?.file?.path,
+          notices: [...document.querySelectorAll(".notice")].map((notice) => notice.textContent),
+        })
+      ),
+    });
     await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "z", code: "KeyZ", modifiers: 2, windowsVirtualKeyCode: 90 });
     await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "z", code: "KeyZ", modifiers: 2, windowsVirtualKeyCode: 90 });
     assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review @high @date");
     await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "Z", code: "KeyZ", modifiers: 10, windowsVirtualKeyCode: 90 });
     await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "Z", code: "KeyZ", modifiers: 10, windowsVirtualKeyCode: 90 });
     await browser.executeObsidianCommand("task-planner:complete-line");
-    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), "- [ ] Review [priority:: high] [due:: 2026-10-20]");
+    assert.equal(await browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue()), `- [ ] Review [priority:: high] [due:: ${selectedDate}]`);
   });
 
   it("finds the horizon cap through native search and restores it after a plugin reload", async function () {

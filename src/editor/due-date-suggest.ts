@@ -25,6 +25,8 @@ function formatDate(date: Date): string {
 
 export class DueDateSuggest extends EditorSuggest<string> {
   private input?: HTMLInputElement;
+  private forceClose = false;
+  private preserveDuringFocus = false;
 
   constructor(
     app: App,
@@ -66,13 +68,23 @@ export class DueDateSuggest extends EditorSuggest<string> {
       const previous = header.createEl("button", { text: "‹", attr: { type: "button", "aria-label": "Previous month" } });
       header.createSpan({ text: visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" }), cls: "task-planner-due-date-calendar-title" });
       const next = header.createEl("button", { text: "›", attr: { type: "button", "aria-label": "Next month" } });
-      const changeMonth = (offset: number): void => {
+      const changeMonth = (offset: number, deferRender = false): void => {
         visibleMonth = makeDate(visibleMonth.getFullYear(), visibleMonth.getMonth() + offset, 1);
-        drawCalendar();
-        calendar.querySelector<HTMLButtonElement>(`[aria-label="${offset < 0 ? "Previous" : "Next"} month"]`)?.focus();
+        const render = (): void => {
+          drawCalendar();
+          this.focusInside(calendar.querySelector<HTMLButtonElement>(`[aria-label="${offset < 0 ? "Previous" : "Next"} month"]`));
+        };
+        if (deferRender) queueMicrotask(render);
+        else render();
       };
-      previous.addEventListener("click", () => changeMonth(-1));
-      next.addEventListener("click", () => changeMonth(1));
+      previous.addEventListener("click", (event) => {
+        event.stopPropagation();
+        changeMonth(-1, true);
+      });
+      next.addEventListener("click", (event) => {
+        event.stopPropagation();
+        changeMonth(1, true);
+      });
 
       const grid = calendar.createDiv({ cls: "task-planner-due-date-calendar-grid", attr: { role: "grid", "aria-label": "Choose due date" } });
       for (const weekday of ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]) grid.createSpan({ text: weekday, cls: "task-planner-due-date-weekday", attr: { role: "columnheader", "aria-label": weekday } });
@@ -96,13 +108,22 @@ export class DueDateSuggest extends EditorSuggest<string> {
             ...(value === today ? { "aria-current": "date" } : {}),
           },
         });
-        const select = (selected: Date): void => {
+        const select = (selected: Date, deferRender = false): void => {
           input.value = formatDate(selected);
           visibleMonth = selected;
-          drawCalendar();
-          calendar.querySelector<HTMLButtonElement>(`[data-date="${input.value}"]`)?.focus();
+          const render = (): void => {
+            drawCalendar();
+            this.focusInside(calendar.querySelector<HTMLButtonElement>(`[data-date="${input.value}"]`));
+          };
+          if (deferRender) queueMicrotask(render);
+          else render();
         };
-        button.addEventListener("click", () => select(date));
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          // Keep the clicked target attached until propagation has finished;
+          // otherwise the host suggestion row can treat the date as a row click.
+          select(date, true);
+        });
         button.addEventListener("keydown", (event) => {
           const offset = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
           if (offset === undefined) return;
@@ -121,11 +142,26 @@ export class DueDateSuggest extends EditorSuggest<string> {
     drawCalendar();
     const buttons = form.createDiv({ cls: "task-planner-due-date-actions" });
     if (session.initialDate) buttons.createEl("button", { text: "Remove date", attr: { type: "button" } }).addEventListener("click", () => this.submit(session.apply, null));
-    buttons.createEl("button", { text: "Cancel", attr: { type: "button" } }).addEventListener("click", () => this.close());
+    buttons.createEl("button", { text: "Cancel", attr: { type: "button" } }).addEventListener("click", () => this.dismiss());
     buttons.createEl("button", { text: "Save", attr: { type: "submit" }, cls: "mod-cta" });
+    form.addEventListener("mousedown", (event) => {
+      event.stopPropagation();
+      this.preserveDuringFocus = true;
+      queueMicrotask(() => (this.preserveDuringFocus = false));
+    });
+    form.addEventListener("pointerdown", (event) => event.stopPropagation());
     form.addEventListener("click", (event) => event.stopPropagation());
     form.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") event.stopPropagation();
+      event.stopPropagation();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.dismiss();
+      }
+    });
+    form.addEventListener("focusout", () => {
+      queueMicrotask(() => {
+        if (!form.contains(form.ownerDocument.activeElement)) this.close();
+      });
     });
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -133,12 +169,37 @@ export class DueDateSuggest extends EditorSuggest<string> {
     });
   }
 
-  selectSuggestion(): void {
-    this.input?.focus();
+  selectSuggestion(_value?: string, event?: MouseEvent | KeyboardEvent): void {
+    if (event instanceof MouseEvent && event.target instanceof HTMLElement && event.target.closest("form")) return;
+    this.focusInside(this.input);
+  }
+
+  close(): void {
+    if (!this.forceClose && (this.preserveDuringFocus || this.input?.form?.contains(this.input.ownerDocument.activeElement))) return;
+    super.close();
+  }
+
+  private focusInside(element: HTMLElement | null | undefined): void {
+    if (!element) return;
+    this.preserveDuringFocus = true;
+    try {
+      element.focus();
+    } finally {
+      queueMicrotask(() => (this.preserveDuringFocus = false));
+    }
   }
 
   private submit(apply: (date: string | null) => void, date: string | null): void {
-    this.close();
+    this.dismiss();
     apply(date);
+  }
+
+  private dismiss(): void {
+    this.forceClose = true;
+    try {
+      this.close();
+    } finally {
+      this.forceClose = false;
+    }
   }
 }
