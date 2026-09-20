@@ -153,6 +153,7 @@ export class MetadataCache {
   getFileCache = jest.fn().mockReturnValue(null);
   getCache = jest.fn().mockReturnValue(null);
   getFirstLinkpathDest = jest.fn().mockReturnValue(null);
+  fileToLinktext = jest.fn((file: TFile) => file.basename);
   on = jest.fn().mockReturnValue({ unload: jest.fn() });
   off = jest.fn();
   trigger = jest.fn();
