@@ -19,6 +19,7 @@ jest.mock("../../../src/utils/moment", () => ({
 jest.mock("../../../src/core/services/daily-note-service", () => ({
   DailyNoteService: jest.fn().mockImplementation(() => ({
     ensureDailyNoteExists: jest.fn(),
+    getTodayNotePath: jest.fn().mockReturnValue("Journal/2026-01-19.md"),
   })),
 }));
 
@@ -31,6 +32,23 @@ describe("TaskCreator", () => {
     mockApp = new App();
     settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     taskCreator = new TaskCreator(mockApp, settings);
+  });
+
+  describe("getTargetPath", () => {
+    it("normalizes the configured inbox path", () => {
+      settings.quickAdd.destination = "inbox";
+      settings.quickAdd.inboxFilePath = "Tasks\\Inbox.md";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      expect(taskCreator.getTargetPath()).toBe("Tasks/Inbox.md");
+    });
+
+    it("returns today's configured daily-note path", () => {
+      settings.quickAdd.destination = "daily";
+      taskCreator = new TaskCreator(mockApp, settings);
+
+      expect(taskCreator.getTargetPath()).toBe("Journal/2026-01-19.md");
+    });
   });
 
   describe("formatTaskLine", () => {

@@ -25,6 +25,13 @@ export class TaskCreator {
     await this.app.vault.process(targetFile, (content) => this.insertContent(content, taskLine));
   }
 
+  getTargetPath(): string | null {
+    if (this.settings.quickAdd.destination === "daily") {
+      return this.dailyNoteService.getTodayNotePath();
+    }
+    return normalizePath(this.settings.quickAdd.inboxFilePath);
+  }
+
   private formatTaskLine(task: string): string {
     const { taskPattern } = this.settings.quickAdd;
     const now = moment();

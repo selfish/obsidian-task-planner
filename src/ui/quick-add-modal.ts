@@ -38,9 +38,14 @@ export class QuickAddModal extends Modal {
     });
 
     // Set up wikilink suggestions
-    this.suggest = new WikilinkSuggest(this.app, this.inputEl, () => {
-      // Called when a link is inserted
-    });
+    this.suggest = new WikilinkSuggest(
+      this.app,
+      this.inputEl,
+      () => {
+        // Called when a link is inserted
+      },
+      this.taskCreator.getTargetPath() ?? ""
+    );
 
     // Handle keyboard events
     this.inputEl.addEventListener("keydown", this.handleKeyDown.bind(this));

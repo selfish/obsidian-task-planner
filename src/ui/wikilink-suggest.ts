@@ -14,7 +14,8 @@ export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
   constructor(
     app: App,
     inputEl: HTMLDivElement,
-    private onLinkInserted: () => void
+    private onLinkInserted: () => void,
+    private sourcePath = ""
   ) {
     super(app, inputEl);
     this.inputEl = inputEl;
@@ -55,10 +56,11 @@ export class WikilinkSuggest extends AbstractInputSuggest<TFile> {
     const before = text.slice(0, linkStart);
     const after = text.slice(cursorPos);
 
-    // Create the wikilink span
+    // Use Obsidian's canonical link text so duplicate basenames stay unambiguous.
+    const linkText = this.app.metadataCache.fileToLinktext(file, this.sourcePath, true);
     const linkSpan = this.inputEl.createSpan();
     linkSpan.className = "quick-add-wikilink";
-    linkSpan.dataset.target = file.basename;
+    linkSpan.dataset.target = linkText;
     linkSpan.textContent = file.basename;
     linkSpan.contentEditable = "false";
 

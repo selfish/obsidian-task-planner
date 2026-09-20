@@ -90,9 +90,11 @@ jest.mock("obsidian", () => ({
 // Mock WikilinkSuggest (excluded from coverage)
 // Capture the onLinkInserted callback for testing
 let capturedOnLinkInserted: (() => void) | null = null;
+let capturedWikilinkSourcePath: string | null = null;
 jest.mock("../../src/ui/wikilink-suggest", () => ({
-  WikilinkSuggest: jest.fn().mockImplementation((_app: unknown, _inputEl: unknown, onLinkInserted: () => void) => {
+  WikilinkSuggest: jest.fn().mockImplementation((_app: unknown, _inputEl: unknown, onLinkInserted: () => void, sourcePath: string) => {
     capturedOnLinkInserted = onLinkInserted;
+    capturedWikilinkSourcePath = sourcePath;
     return {
       close: jest.fn(),
     };
@@ -101,9 +103,11 @@ jest.mock("../../src/ui/wikilink-suggest", () => ({
 
 // Mock TaskCreator
 const mockCreateTask = jest.fn().mockResolvedValue(undefined);
+const mockGetTargetPath = jest.fn().mockReturnValue("Tasks.md");
 jest.mock("../../src/core/services/task-creator", () => ({
   TaskCreator: jest.fn().mockImplementation(() => ({
     createTask: mockCreateTask,
+    getTargetPath: mockGetTargetPath,
   })),
 }));
 
@@ -127,7 +131,9 @@ describe("QuickAddModal", () => {
     settings = { ...DEFAULT_SETTINGS };
     mockCreateTask.mockClear();
     mockCreateTask.mockResolvedValue(undefined);
+    mockGetTargetPath.mockReturnValue("Tasks.md");
     capturedOnLinkInserted = null;
+    capturedWikilinkSourcePath = null;
     jest.clearAllMocks();
   });
 
@@ -265,6 +271,24 @@ describe("QuickAddModal", () => {
 
       // Calling the callback should not throw (it's an empty function)
       expect(() => capturedOnLinkInserted!()).not.toThrow();
+    });
+
+    it("should resolve wikilinks relative to the task destination", () => {
+      mockGetTargetPath.mockReturnValue("Projects/Tasks.md");
+      const modal = createModal();
+
+      modal.onOpen();
+
+      expect(capturedWikilinkSourcePath).toBe("Projects/Tasks.md");
+    });
+
+    it("should fall back to root-relative links when no destination path is available", () => {
+      mockGetTargetPath.mockReturnValue(null);
+      const modal = createModal();
+
+      modal.onOpen();
+
+      expect(capturedWikilinkSourcePath).toBe("");
     });
   });
 

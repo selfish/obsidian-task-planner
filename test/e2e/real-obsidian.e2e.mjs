@@ -78,6 +78,75 @@ describe("real Obsidian vault smoke", function () {
     });
   });
 
+  it("writes duplicate-basename wikilinks relative to the quick-add destination", async function () {
+    const fixture = await browser.executeObsidian(async ({ app, plugins }) => {
+      const plugin = plugins.taskPlanner;
+      const originalQuickAdd = structuredClone(plugin.settings.quickAdd);
+      plugin.settings.quickAdd.destination = "inbox";
+      plugin.settings.quickAdd.inboxFilePath = "Quick Add/Inbox.md";
+      await plugin.saveSettings();
+
+      await app.vault.createFolder("Quick Add Links A");
+      await app.vault.createFolder("Quick Add Links B");
+      await app.vault.create("Quick Add Links A/QuickAddDuplicate.md", "First target\n");
+      await app.vault.create("Quick Add Links B/QuickAddDuplicate.md", "Second target\n");
+
+      const selected = app.vault.getMarkdownFiles().find((file) => file.basename === "QuickAddDuplicate");
+      return {
+        originalQuickAdd,
+        selectedPath: selected.path,
+        expectedLink: app.metadataCache.fileToLinktext(selected, "Quick Add/Inbox.md", true),
+      };
+    });
+
+    try {
+      await browser.executeObsidianCommand("task-planner:quick-add-task");
+      await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector(".quick-add-editor"))), {
+        timeout: 5000,
+        timeoutMsg: "Quick-add editor did not open",
+      });
+      await browser.execute(() => {
+        const editor = document.querySelector(".quick-add-editor");
+        editor.textContent = "[[QuickAddDuplicate";
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        editor.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText" }));
+      });
+      await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector(".suggestion-item"))), {
+        timeout: 5000,
+        timeoutMsg: "Duplicate note suggestions did not open",
+      });
+      await browser.execute(() => document.querySelector(".suggestion-item").click());
+
+      const insertedLink = await browser.execute(() => document.querySelector(".quick-add-wikilink")?.dataset.target);
+      assert.equal(insertedLink, fixture.expectedLink);
+      const resolvedPath = await browser.executeObsidian(({ app }, link) => app.metadataCache.getFirstLinkpathDest(link, "Quick Add/Inbox.md")?.path, insertedLink);
+      assert.equal(resolvedPath, fixture.selectedPath);
+
+      await browser.execute(() => [...document.querySelectorAll(".quick-add-modal button")].find((button) => button.textContent === "Add task").click());
+      await browser.waitUntil(() => obsidianPage.read("Quick Add/Inbox.md").then((text) => text.includes(`[[${fixture.expectedLink}]]`)), {
+        timeout: 5000,
+        timeoutMsg: "Quick-add task with canonical wikilink was not written",
+      });
+      assert.equal(await obsidianPage.read("Quick Add/Inbox.md"), `- [ ] [[${fixture.expectedLink}]]\n`);
+    } finally {
+      await browser.executeObsidian(async ({ app, plugins }, originalQuickAdd) => {
+        document.querySelector(".quick-add-modal")?.closest(".modal-container")?.querySelector(".modal-close-button")?.click();
+        plugins.taskPlanner.settings.quickAdd = originalQuickAdd;
+        await plugins.taskPlanner.saveSettings();
+        for (const path of ["Quick Add", "Quick Add Links A", "Quick Add Links B"]) {
+          const fixtureFolder = app.vault.getAbstractFileByPath(path);
+          if (fixtureFolder) await app.vault.delete(fixtureFolder, true);
+        }
+      }, fixture.originalQuickAdd);
+    }
+    await waitForTaskCount(1);
+  });
+
   it("keeps the index current across ignored-folder renames", async function () {
     await browser.executeObsidian(async ({ app, plugins }) => {
       plugins.taskPlanner.settings.ignoreArchivedTasks = true;
