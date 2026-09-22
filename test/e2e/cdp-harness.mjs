@@ -1,12 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import CDP from "chrome-remote-interface";
-import ObsidianLauncher from "obsidian-launcher";
+import { PinnedLauncher } from "./pinned-launcher.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
-const CACHE = path.join(ROOT, ".obsidian-cache");
+
 const ARTIFACTS = path.join(ROOT, "artifacts/e2e");
 const appVersion = process.env.OBSIDIAN_VERSION ?? "1.13.7";
 const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.5.8";
@@ -109,10 +108,7 @@ function devToolsPort(proc) {
 
 export async function startObsidian() {
   stderr = "";
-  const launcher = new ObsidianLauncher({
-    cacheDir: CACHE,
-    versionsUrl: pathToFileURL(path.join(CACHE, "pinned-versions.json")).href,
-  });
+  const launcher = new PinnedLauncher({ root: ROOT, appVersion, installerVersion });
   try {
     processResult = await launcher.launch({
       appVersion,

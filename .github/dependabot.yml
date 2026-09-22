@@ -19,6 +19,10 @@ updates:
     ignore:
       - dependency-name: "@codemirror/state"
       - dependency-name: "@codemirror/view"
+      # >=6.10.3 requires state >=6.6; the Obsidian SDK still requires 6.5.0.
+      # Revisit alongside the SDK peer pins, rather than overriding host types.
+      - dependency-name: "@codemirror/commands"
+        versions: [">=6.10.3"]
     groups:
       runtime:
         patterns:
