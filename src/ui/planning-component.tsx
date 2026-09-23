@@ -89,7 +89,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   );
 
   const setPlanningSettings = React.useMemo(() => settingsStore.decorateSetterWithSaveSettings(setPlanningSettingsState), [settingsStore, setPlanningSettingsState]);
-  const { searchParameters, hideEmpty, hideDone, viewMode, showLoadColors, priorityFilter } = planningSettings;
+  const { searchParameters, hideDone, viewMode, showLoadColors, priorityFilter } = planningSettings;
 
   // Derive WIP limit from main settings (single source of truth)
   const dailyWipLimit = settings.dailyWipLimit;
@@ -97,27 +97,12 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Show ignored is session-only state (not persisted)
   const [showIgnored, setShowIgnored] = React.useState(false);
-  const hideEmptyBeforeIgnoredRef = React.useRef<boolean | null>(null);
-
-  // Auto-toggle hideEmpty when entering/exiting show ignored mode.
-  // Synchronizes persisted settings (external system) with session-only showIgnored state.
-  React.useEffect(() => {
-    if (showIgnored) {
-      // Entering show ignored mode - save current hideEmpty and force it on
-      hideEmptyBeforeIgnoredRef.current = hideEmpty;
-      if (!hideEmpty) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally syncing persisted setting with session-only showIgnored toggle
-        setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: true }));
-      }
-    } else if (hideEmptyBeforeIgnoredRef.current !== null) {
-      // Exiting show ignored mode - restore previous hideEmpty
-      const previousValue = hideEmptyBeforeIgnoredRef.current;
-      hideEmptyBeforeIgnoredRef.current = null;
-      if (hideEmpty !== previousValue) {
-        setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: previousValue }));
-      }
-    }
-  }, [hideEmpty, showIgnored]);
+  // Ignored-only mode is a view override, never a persisted preference.
+  const hideEmpty = showIgnored || planningSettings.hideEmpty;
+  const displayedPlanningSettings = { ...planningSettings, hideEmpty };
+  const setDisplayedPlanningSettings = (next: PlanningSettings) => {
+    setPlanningSettings({ ...next, hideEmpty: showIgnored ? planningSettings.hideEmpty : next.hideEmpty });
+  };
 
   const fileOperations = new FileOperations(settings);
 
@@ -170,6 +155,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   // Keep Task Planner undo scoped to this view, including when it is popped out.
   const handleUndoKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Avoid global instanceof checks: this view may live in another window.
+      const target = event.target as HTMLElement;
+      if (event.defaultPrevented || event.nativeEvent.isComposing || event.altKey || target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
       const isMod = event.metaKey || event.ctrlKey;
       if (settings.undo.enableUndo && isMod && event.key === "z" && !event.shiftKey && undoManager.canUndo()) {
         event.preventDefault();
@@ -1191,8 +1179,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   return (
     <div className={boardClass} ref={boardRef} onKeyDown={handleUndoKeyDown}>
       <PlanningSettingsComponent
-        planningSettings={planningSettings}
-        setPlanningSettings={setPlanningSettings}
+        planningSettings={displayedPlanningSettings}
+        setPlanningSettings={setDisplayedPlanningSettings}
         showIgnored={showIgnored}
         setShowIgnored={setShowIgnored}
         totalTasks={totalTasks}
