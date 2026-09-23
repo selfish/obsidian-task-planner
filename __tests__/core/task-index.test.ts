@@ -94,6 +94,21 @@ describe('TaskIndex', () => {
     });
   });
 
+  it('flattens skewed large files in order, preserving task identity and cache reuse', () => {
+    const index = new TaskIndex(deps, settings);
+    const file = createMockFileAdapter('large');
+    const tasks = Array.from({length: 150000}, (_, i) => createTodo(String(i), file));
+    const last = createTodo('last', file);
+    index.files = [{file, tasks: []}, {file, tasks}, {file, tasks: [last]}];
+    const flattened = index.tasks;
+    expect(flattened).toHaveLength(tasks.length + 1);
+    expect(flattened[0]).toBe(tasks[0]);
+    expect(flattened[149999]).toBe(tasks[149999]);
+    expect(flattened[150000]).toBe(last);
+    expect(index.tasks).toBe(flattened);
+    expect(tasks).toHaveLength(150000);
+  });
+
   describe('filesLoaded', () => {
     it('should parse all files and update files array', async () => {
       const file1 = createMockFileAdapter('file1');

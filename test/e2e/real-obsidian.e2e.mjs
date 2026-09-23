@@ -555,6 +555,68 @@ describe("real Obsidian vault smoke", function () {
     assert.match(await obsidianPage.read("Tasks.md"), /-   \[x\]\tTarget \(due:: 2026-08-02\)/);
   });
 
+  it("keeps duplicate-note group moves isolated and search undo native", async function () {
+    const a = "- [ ] Safety alpha\n", b = "- [ ] Safety beta\n";
+    await browser.executeObsidian(async ({app}, a, b) => {
+      await app.vault.createFolder("Safety A"); await app.vault.createFolder("Safety B");
+      await app.vault.create("Safety A/Same.md", a); await app.vault.create("Safety B/Same.md", b);
+    }, a, b);
+    await waitForTaskCount(5);
+    await browser.waitUntil(() => browser.execute(() => Boolean(document.querySelector('[aria-label="Task: Safety beta"]'))));
+    try {
+      const payload = await browser.execute(() => {
+        const alpha = document.querySelector('[aria-label="Task: Safety alpha"]');
+        const beta = document.querySelector('[aria-label="Task: Safety beta"]');
+        if(alpha.closest('.group') === beta.closest('.group')) throw Error('Duplicate notes share a group');
+        const header=alpha.closest('.group').querySelector(':scope > .header');
+        const target=[...document.querySelectorAll('.column')].find(c=>c.querySelector('.title')?.textContent==='E2E').querySelector(':scope > .content');
+        const dataTransfer=new DataTransfer();
+        header.dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer}));
+        for(const type of ['dragenter','dragover','drop']) target.dispatchEvent(new DragEvent(type,{bubbles:true,cancelable:true,dataTransfer}));
+        return dataTransfer.getData('application/x-task-group-ids');
+      });
+      assert.ok(payload.includes('Safety A/Same.md'));
+      assert.ok(!payload.includes('Safety B/Same.md'));
+      await browser.waitUntil(()=>obsidianPage.read('Safety A/Same.md').then(text=>text.includes('#e2e')));
+      const moved = await obsidianPage.read('Safety A/Same.md');
+      assert.equal(await obsidianPage.read('Safety B/Same.md'), b);
+      await browser.waitUntil(()=>browser.execute(()=>Boolean(document.querySelector('.th-undo-toast-button'))));
+      await browser.execute(()=>document.querySelector('input[placeholder="Filter tasks..."]').focus());
+      await browser.sendCommand('Input.insertText',{text:'Safety'});
+      await browser.waitUntil(()=>browser.execute(()=>document.querySelector('input[placeholder="Filter tasks..."]').value==='Safety'));
+      await browser.sendCommand('Input.dispatchKeyEvent',{type:'keyDown',key:'z',code:'KeyZ',modifiers:2,windowsVirtualKeyCode:90});
+      await browser.sendCommand('Input.dispatchKeyEvent',{type:'keyUp',key:'z',code:'KeyZ',modifiers:2,windowsVirtualKeyCode:90});
+      await browser.waitUntil(()=>browser.execute(()=>document.querySelector('input[placeholder="Filter tasks..."]').value===''));
+      assert.equal(await obsidianPage.read('Safety A/Same.md'), moved);
+      // The actual board undo must still own the pending operation.
+      await browser.execute(()=>{
+        const board=document.querySelector('.board');
+        document.activeElement.blur();
+        board.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true,cancelable:true}));
+      });
+      await browser.waitUntil(()=>obsidianPage.read('Safety A/Same.md').then(text=>text===a));
+      assert.equal(await obsidianPage.read('Safety B/Same.md'), b);
+    } finally {
+      await browser.executeObsidian(async ({app})=>{
+        for(const name of ['Safety A','Safety B']) await app.vault.delete(app.vault.getAbstractFileByPath(name),true);
+      });
+    }
+    await waitForTaskCount(3);
+  });
+
+  it("restores empty-horizon preference after ignored-only mode and unrelated saves", async function () {
+    const click = label => browser.execute(label=>document.querySelector(`button[aria-label="${label}"]`).click(),label);
+    const active = label => browser.execute(label=>document.querySelector(`button[aria-label="${label}"]`).classList.contains('active'),label);
+    assert.equal(await active('Hide empty horizons'),false);
+    await click('View ignored tasks only');
+    await browser.waitUntil(()=>active('Hide empty horizons'));
+    await click('Hide completed tasks');
+    assert.equal(await browser.executeObsidian(({app})=>JSON.parse(app.loadLocalStorage('TaskPlanner.PlanningSettings')).hideEmpty),false);
+    await click('View ignored tasks only');
+    await browser.waitUntil(async()=>!(await active('Hide empty horizons')));
+    await click('Hide completed tasks');
+  });
+
   it("fails closed when duplicate source lines are ambiguous", async function () {
     const duplicateText = "- [ ] Duplicate\r\n- [ ] Duplicate\r\n";
     await browser.executeObsidian(async ({ app }, text) => {
@@ -739,4 +801,40 @@ describe("real Obsidian vault smoke", function () {
     assert.equal(await browser.execute(() => Boolean(document.querySelector('.task-planner-due-date'))), false);
     assert.equal(await obsidianPage.read("Date example.md"), "```md\n- [ ] Example @date\n```\n");
   });
+  it("renders a thousand-task board and measures edit-to-board latency", async function () {
+    await browser.executeObsidian(async ({app})=>{
+      await app.vault.createFolder('Large board');
+      for(let i=0;i<250;i++) await app.vault.create(`Large board/${i}.md`,Array.from({length:4},(_,j)=>`- [ ] Large fixture ${i}-${j}`).join('\n')+'\n');
+      app.saveLocalStorage('TaskPlanner.PlanningSettings',JSON.stringify({hideEmpty:false}));
+    });
+    await browser.executeObsidianCommand('task-planner:open-planning');
+    await browser.waitUntil(()=>browser.execute(()=>document.querySelectorAll('[aria-label^="Task: Large fixture"]').length===1000),{timeout:30000,timeoutMsg:'Large board did not render all fixture tasks'});
+    const samples=[];
+    for(let i=0;i<3;i++) {
+      const elapsed=await browser.executeObsidian(async ({app},i)=>{
+        const file=app.vault.getAbstractFileByPath('Large board/0.md');
+        const label=`Large edited ${i}`;
+        const start=performance.now();
+        const rendered=new Promise((resolve,reject)=>{
+          const observer=new MutationObserver(()=>{
+            if(document.querySelector(`[aria-label="Task: ${label}"]`)) {
+              observer.disconnect();clearTimeout(timer);
+              requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(performance.now()-start)));
+            }
+          });
+          const timer=setTimeout(()=>{observer.disconnect();reject(Error('Edit did not reach large board'));},15000);
+          observer.observe(document.querySelector('.board'),{subtree:true,childList:true,attributes:true});
+        });
+        await app.vault.process(file,text=>text.replace(/^.*\n/,`- [ ] ${label}\n`));
+        return rendered;
+      },i);
+      samples.push(elapsed);
+    }
+    fs.mkdirSync(path.join(PROJECT_ROOT,'artifacts/e2e'),{recursive:true});
+    fs.writeFileSync(path.join(PROJECT_ROOT,'artifacts/e2e/large-board-timing.json'),JSON.stringify({obsidian:process.env.OBSIDIAN_VERSION,files:250,tasks:1000,editToPaintMs:samples},null,2));
+    await browser.saveScreenshot(path.join(PROJECT_ROOT,'artifacts/e2e/large-board.png'));
+    console.log('      Large-board edit-to-paint ms:',samples.map(n=>n.toFixed(1)).join(', '));
+    assert.equal(await browser.execute(()=>document.querySelectorAll('[aria-label^="Task: Large fixture"]').length),999);
+  });
+
 });

@@ -83,7 +83,7 @@ function sortTodos(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
   if (!todos) {
     return [];
   }
-  return todos.sort((a, b) => {
+  return [...todos].sort((a, b) => {
     const statusDiff = getStatusValue(b) - getStatusValue(a);
     if (statusDiff) {
       return statusDiff;
@@ -100,7 +100,7 @@ function groupTodosByFile(todos: TaskItem<TFile>[]): Map<string, TaskItem<TFile>
   const groups = new Map<string, TaskItem<TFile>[]>();
 
   for (const todo of todos) {
-    const fileName = todo.file.file.name;
+    const fileName = todo.file.file.path;
     let fileTodos = groups.get(fileName);
     if (!fileTodos) {
       fileTodos = [];
