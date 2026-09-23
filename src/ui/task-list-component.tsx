@@ -79,11 +79,11 @@ function getStatusValue(todo: TaskItem<TFile>): number {
   }
 }
 
-function sortTodos(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
+export function sortTodos(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
   if (!todos) {
     return [];
   }
-  return todos.sort((a, b) => {
+  return [...todos].sort((a, b) => {
     const statusDiff = getStatusValue(b) - getStatusValue(a);
     if (statusDiff) {
       return statusDiff;
@@ -96,15 +96,15 @@ function sortTodos(todos: TaskItem<TFile>[]): TaskItem<TFile>[] {
   });
 }
 
-function groupTodosByFile(todos: TaskItem<TFile>[]): Map<string, TaskItem<TFile>[]> {
+export function groupTodosByFile(todos: TaskItem<TFile>[]): Map<string, TaskItem<TFile>[]> {
   const groups = new Map<string, TaskItem<TFile>[]>();
 
   for (const todo of todos) {
-    const fileName = todo.file.file.name;
-    let fileTodos = groups.get(fileName);
+    const filePath = todo.file.file.path;
+    let fileTodos = groups.get(filePath);
     if (!fileTodos) {
       fileTodos = [];
-      groups.set(fileName, fileTodos);
+      groups.set(filePath, fileTodos);
     }
     fileTodos.push(todo);
   }

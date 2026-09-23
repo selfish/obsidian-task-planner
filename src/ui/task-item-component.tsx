@@ -136,10 +136,12 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef,
   const fileOperations = new FileOperations(settings);
 
   // Use state for file display name to handle metadata cache updates
-  const [fileDisplayName, setFileDisplayName] = React.useState(() => getFileDisplayName(todo.file.file, app));
+  const [fileDisplayName, setFileDisplayName] = React.useState(() => (hideFileRef ? "" : getFileDisplayName(todo.file.file, app)));
 
   // Listen for metadata cache changes to update display name
   React.useEffect(() => {
+    if (hideFileRef) return undefined;
+
     // Update immediately in case cache changed; metadataCache is an external Obsidian system.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local state with Obsidian metadataCache (external system)
     setFileDisplayName(getFileDisplayName(todo.file.file, app));
@@ -155,7 +157,7 @@ export function TodoItemComponent({ todo, deps, dontCrossCompleted, hideFileRef,
     return () => {
       app.metadataCache.offref(ref);
     };
-  }, [todo.file.file, app]);
+  }, [todo.file.file, app, hideFileRef]);
 
   async function openFileAsync(file: TFile, line: number, inOtherLeaf: boolean): Promise<void> {
     let leaf = app.workspace.getLeaf();

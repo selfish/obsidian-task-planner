@@ -23,7 +23,11 @@ export class TaskIndex<T> {
 
   get tasks(): TaskItem<T>[] {
     if (this._tasksCache === null) {
-      this._tasksCache = this.files.reduce((res, ts) => res.concat(ts.tasks), [] as TaskItem<T>[]);
+      const tasks: TaskItem<T>[] = [];
+      for (const entry of this.files) {
+        for (const task of entry.tasks) tasks.push(task);
+      }
+      this._tasksCache = tasks;
     }
     return this._tasksCache;
   }

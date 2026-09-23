@@ -92,6 +92,23 @@ describe('TaskIndex', () => {
       expect(index.tasks).toContain(todo1);
       expect(index.tasks).toContain(todo2);
     });
+
+    it('preserves file order, task identity, and the cached array', () => {
+      const index = new TaskIndex(deps, settings);
+      const file1 = createMockFileAdapter('file1');
+      const file2 = createMockFileAdapter('file2');
+      const tasks = [createTodo('First', file1), createTodo('Second', file1), createTodo('Third', file2)];
+      index.files = [
+        { file: file1, tasks: tasks.slice(0, 2) },
+        { file: file2, tasks: tasks.slice(2) },
+      ];
+
+      const flattened = index.tasks;
+
+      expect(flattened).toEqual(tasks);
+      expect(flattened[0]).toBe(tasks[0]);
+      expect(index.tasks).toBe(flattened);
+    });
   });
 
   describe('filesLoaded', () => {

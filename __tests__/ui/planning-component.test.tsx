@@ -71,7 +71,7 @@ describe("priority filtering", () => {
   });
 });
 
-function renderPlanner() {
+function renderPlanner(savedPlanningSettings: Record<string, unknown> | null = null) {
   const frame = document.createElement("iframe");
   document.body.appendChild(frame);
   const ownerDocument = frame.contentDocument!;
@@ -85,7 +85,7 @@ function renderPlanner() {
     popForUndo: jest.fn(() => null),
   } as unknown as UndoManager;
   const app = {
-    loadLocalStorage: jest.fn(() => null),
+    loadLocalStorage: jest.fn(() => (savedPlanningSettings ? JSON.stringify(savedPlanningSettings) : null)),
     saveLocalStorage: jest.fn(),
   } as unknown as App;
   const settings = {
@@ -147,6 +147,16 @@ describe("PlanningComponent window ownership", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("leaves undo inside the search field to native text editing", () => {
+    const { container, undoManager } = renderPlanner();
+    const search = container.querySelector('input[placeholder="Filter tasks..."]')!;
+
+    fireEvent.keyDown(search, { key: "z", ctrlKey: true });
+
+    expect(undoManager.canUndo).not.toHaveBeenCalled();
+    expect(undoManager.popForUndo).not.toHaveBeenCalled();
+  });
+
   it("uses the live future section and its owning window after mode transitions", () => {
     const { container, ownerWindow } = renderPlanner();
     const initialFutureSection = container.querySelector(".future-section")!;
@@ -178,5 +188,23 @@ describe("PlanningComponent window ownership", () => {
 
     fireEvent.drop(currentFutureSection);
     expect(clearIntervalSpy).toHaveBeenCalledWith(123);
+  });
+});
+
+describe("PlanningComponent ignored-task mode", () => {
+  it.each([false, true])("preserves hide-empty=%s across ignored-mode toggles and unrelated filter edits", (hideEmpty) => {
+    const { container, app } = renderPlanner({ hideEmpty });
+    const hideEmptyButton = container.querySelector('button[aria-label="Hide empty horizons"]')!;
+    const ignoredButton = container.querySelector('button[aria-label="View ignored tasks only"]')!;
+    const priority = container.querySelector('select[aria-label="Filter by priority"]')!;
+
+    expect(hideEmptyButton).toHaveClass(hideEmpty ? "active" : "toggle-btn");
+    fireEvent.click(ignoredButton);
+    fireEvent.change(priority, { target: { value: "high" } });
+    fireEvent.click(ignoredButton);
+
+    expect(hideEmptyButton).toHaveClass(hideEmpty ? "active" : "toggle-btn");
+    const saved = JSON.parse((app.saveLocalStorage as jest.Mock).mock.calls.at(-1)[1]);
+    expect(saved.hideEmpty).toBe(hideEmpty);
   });
 });

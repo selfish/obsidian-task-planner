@@ -97,27 +97,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
 
   // Show ignored is session-only state (not persisted)
   const [showIgnored, setShowIgnored] = React.useState(false);
-  const hideEmptyBeforeIgnoredRef = React.useRef<boolean | null>(null);
-
-  // Auto-toggle hideEmpty when entering/exiting show ignored mode.
-  // Synchronizes persisted settings (external system) with session-only showIgnored state.
-  React.useEffect(() => {
-    if (showIgnored) {
-      // Entering show ignored mode - save current hideEmpty and force it on
-      hideEmptyBeforeIgnoredRef.current = hideEmpty;
-      if (!hideEmpty) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally syncing persisted setting with session-only showIgnored toggle
-        setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: true }));
-      }
-    } else if (hideEmptyBeforeIgnoredRef.current !== null) {
-      // Exiting show ignored mode - restore previous hideEmpty
-      const previousValue = hideEmptyBeforeIgnoredRef.current;
-      hideEmptyBeforeIgnoredRef.current = null;
-      if (hideEmpty !== previousValue) {
-        setPlanningSettingsState((prev) => ({ ...prev, hideEmpty: previousValue }));
-      }
-    }
-  }, [hideEmpty, showIgnored]);
+  const hideEmptyForView = showIgnored || hideEmpty;
 
   const fileOperations = new FileOperations(settings);
 
@@ -171,7 +151,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const handleUndoKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       const isMod = event.metaKey || event.ctrlKey;
-      if (settings.undo.enableUndo && isMod && event.key === "z" && !event.shiftKey && undoManager.canUndo()) {
+      const target = event.target as Element | null;
+      const isEditingText = Boolean(target?.closest?.('input, textarea, [contenteditable]:not([contenteditable="false"])'));
+      if (!isEditingText && !event.nativeEvent.isComposing && settings.undo.enableUndo && isMod && event.key.toLowerCase() === "z" && !event.shiftKey && undoManager.canUndo()) {
         event.preventDefault();
         event.stopPropagation();
         void handleUndo();
@@ -584,7 +566,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     icon: string,
     title: string,
     todos: TaskItem<TFile>[],
-    hideIfEmpty = hideEmpty,
+    hideIfEmpty = hideEmptyForView,
     onTodoDropped: ((taskId: string) => void) | null = null,
     onBatchTodoDropped?: ((todoIds: string[]) => Promise<void>) | null,
     substyle?: string,
@@ -729,7 +711,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const onBatchDrop = horizon.tag ? batchMoveToDateAndTag(horizonDate, horizon.tag) : batchMoveToDate(horizonDate);
       const subtitle = horizon.tag ? `${horizonDate.format("MMM D")} · #${horizon.tag}` : horizonDate.format("MMM D");
       const label = `${horizon.label}\n${subtitle}`;
-      yield todoColumn("calendar-days", label, todos, hideEmpty, onDrop, onBatchDrop, undefined, horizon.color, "future");
+      yield todoColumn("calendar-days", label, todos, hideEmptyForView, onDrop, onBatchDrop, undefined, horizon.color, "future");
     }
 
     // Track which inline horizons have been rendered
@@ -947,7 +929,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const isTomorrow = currentDate.isSame(today.clone().add(1, "day"), "day");
         const headerActions = createFutureColumnActions(currentDate, todos);
 
-        yield todoColumn(isTomorrow ? "calendar-clock" : "calendar", label, todos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future", headerActions);
+        yield todoColumn(isTomorrow ? "calendar-clock" : "calendar", label, todos, hideEmptyForView, moveToDate(currentDate), batchMoveToDate(currentDate), style, undefined, "future", headerActions);
       }
 
       currentDate = currentDate.clone().add(1, "days");
@@ -970,7 +952,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
         const style = getWipStyle(todos);
         const label = `Next week\n${endOfWeek.format("MMM D")} - ${endOfNextWeek.clone().subtract(1, "days").format("MMM D")}`;
         const headerActions = createFutureColumnActions(endOfWeek, todos);
-        yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(endOfWeek), batchMoveToDate(endOfWeek), `${style}`, undefined, "future", headerActions);
+        yield todoColumn("calendar", label, todos, hideEmptyForView, moveToDate(endOfWeek), batchMoveToDate(endOfWeek), `${style}`, undefined, "future", headerActions);
       }
       currentDate = endOfNextWeek.clone();
     } else {
@@ -998,7 +980,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           const label = formatDayLabel(nextWeekDate);
           const headerActions = createFutureColumnActions(nextWeekDate, todos);
 
-          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), undefined, undefined, "future", headerActions);
+          yield todoColumn("calendar", label, todos, hideEmptyForView, moveToDate(nextWeekDate), batchMoveToDate(nextWeekDate), undefined, undefined, "future", headerActions);
         }
 
         nextWeekDate = nextWeekDate.clone().add(1, "days");
@@ -1022,7 +1004,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           markTasksAsAssigned(todos);
           const style = getWipStyle(todos);
           const headerActions = createFutureColumnActions(weekStart, todos);
-          yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(weekStart), batchMoveToDate(weekStart), style, undefined, "future", headerActions);
+          yield todoColumn("calendar", label, todos, hideEmptyForView, moveToDate(weekStart), batchMoveToDate(weekStart), style, undefined, "future", headerActions);
         }
         weekStart = weekEnd;
       }
@@ -1048,7 +1030,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           markTasksAsAssigned(todos);
           const style = getWipStyle(todos);
           const headerActions = createFutureColumnActions(monthStart, todos);
-          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(monthStart), batchMoveToDate(monthStart), style, undefined, "future", headerActions);
+          yield todoColumn("calendar-range", label, todos, hideEmptyForView, moveToDate(monthStart), batchMoveToDate(monthStart), style, undefined, "future", headerActions);
         }
         monthStart = monthEnd;
       }
@@ -1076,7 +1058,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
           markTasksAsAssigned(todos);
           const style = getWipStyle(todos);
           const headerActions = createFutureColumnActions(quarterStart, todos);
-          yield todoColumn("calendar-range", label, todos, hideEmpty, moveToDate(quarterStart), batchMoveToDate(quarterStart), style, undefined, "future", headerActions);
+          yield todoColumn("calendar-range", label, todos, hideEmptyForView, moveToDate(quarterStart), batchMoveToDate(quarterStart), style, undefined, "future", headerActions);
         }
         quarterStart = quarterEnd;
       }
@@ -1094,7 +1076,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const todos = getTodosByDate(nextYearStart, nextYearEnd, false, assignedTaskIds);
       markTasksAsAssigned(todos);
       const headerActions = createFutureColumnActions(nextYearStart, todos);
-      yield todoColumn("calendar", label, todos, hideEmpty, moveToDate(nextYearStart), batchMoveToDate(nextYearStart), undefined, undefined, "future", headerActions);
+      yield todoColumn("calendar", label, todos, hideEmptyForView, moveToDate(nextYearStart), batchMoveToDate(nextYearStart), undefined, undefined, "future", headerActions);
       currentDate = nextYearEnd;
     }
 
@@ -1105,7 +1087,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       const laterTodos = getTodosByDate(currentDate, null, false, assignedTaskIds);
       markTasksAsAssigned(laterTodos);
       const headerActions = createFutureColumnActions(currentDate, laterTodos);
-      yield todoColumn("calendar-plus", `Later\nSomeday · ${currentDate.format("MMM D, YYYY")} and later`, laterTodos, hideEmpty, moveToDate(currentDate), batchMoveToDate(currentDate), undefined, undefined, "future", headerActions);
+      yield todoColumn("calendar-plus", `Later\nSomeday · ${currentDate.format("MMM D, YYYY")} and later`, laterTodos, hideEmptyForView, moveToDate(currentDate), batchMoveToDate(currentDate), undefined, undefined, "future", headerActions);
     }
 
     // Render custom horizons with position "end"

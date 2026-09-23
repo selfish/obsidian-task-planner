@@ -156,6 +156,7 @@ export class MetadataCache {
   fileToLinktext = jest.fn((file: TFile) => file.basename);
   on = jest.fn().mockReturnValue({ unload: jest.fn() });
   off = jest.fn();
+  offref = jest.fn();
   trigger = jest.fn();
 }
 
@@ -383,6 +384,10 @@ export class Component {
   registerDomEvent = jest.fn();
   registerInterval = jest.fn().mockReturnValue(0);
 }
+
+export const MarkdownRenderer = {
+  render: jest.fn().mockResolvedValue(undefined),
+};
 
 export function setIcon(_el: HTMLElement, _iconId: string): void {}
 export function setTooltip(_el: HTMLElement, _tooltip: string): void {}
