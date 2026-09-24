@@ -1,4 +1,4 @@
-import { createRoot } from "react-dom/client";
+import { createRoot, Root } from "react-dom/client";
 
 import { App, TFile, setIcon } from "obsidian";
 
@@ -226,9 +226,10 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   );
 }
 
-export function mountSidePanelComponent(onElement: HTMLElement, props: TodoSidePanelComponentProps) {
+export function mountSidePanelComponent(onElement: HTMLElement, props: TodoSidePanelComponentProps, root?: Root): Root {
   onElement.addClass("task-planner");
   onElement.addClass("sidebar");
-  const root = createRoot(onElement);
-  root.render(<TodoSidePanelComponent {...props} />);
+  const client = root ?? createRoot(onElement);
+  client.render(<TodoSidePanelComponent {...props} />);
+  return client;
 }

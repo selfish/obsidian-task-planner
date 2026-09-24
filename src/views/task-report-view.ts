@@ -1,3 +1,5 @@
+import { Root } from "react-dom/client";
+
 import { ItemView, Platform, WorkspaceLeaf } from "obsidian";
 
 import { TaskPlannerSettings } from "../settings";
@@ -6,6 +8,7 @@ import { mountTaskReportComponent, TaskReportComponentDeps } from "../ui/task-re
 
 export class TodoReportView extends ItemView {
   static viewType = "task-planner.report";
+  private root?: Root;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -33,21 +36,27 @@ export class TodoReportView extends ItemView {
   }
 
   onClose(): Promise<void> {
+    this.root?.unmount();
+    this.root = undefined;
     return Promise.resolve();
   }
 
   render(): void {
-    mountTaskReportComponent(this.containerEl, {
-      deps: {
-        logger: this.deps.logger,
-        taskIndex: this.deps.taskIndex,
-        app: this.app,
-        settings: this.settings,
+    this.root = mountTaskReportComponent(
+      this.containerEl,
+      {
+        deps: {
+          logger: this.deps.logger,
+          taskIndex: this.deps.taskIndex,
+          app: this.app,
+          settings: this.settings,
+        },
+        onOpenPlanning: () => {
+          void this.openPlanning();
+        },
       },
-      onOpenPlanning: () => {
-        void this.openPlanning();
-      },
-    });
+      this.root
+    );
   }
 
   private async openPlanning(): Promise<void> {

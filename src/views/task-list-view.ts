@@ -1,3 +1,5 @@
+import { Root } from "react-dom/client";
+
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 
 import { TaskIndex } from "../core";
@@ -11,6 +13,7 @@ export interface TodoListViewDeps {
 
 export class TodoListView extends ItemView {
   static viewType = "task-planner.todo-list";
+  private root?: Root;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -34,17 +37,23 @@ export class TodoListView extends ItemView {
   }
 
   onClose(): Promise<void> {
+    this.root?.unmount();
+    this.root = undefined;
     return Promise.resolve();
   }
 
   render(): void {
-    mountSidePanelComponent(this.containerEl, {
-      deps: {
-        app: this.app,
-        logger: this.deps.logger,
-        taskIndex: this.taskIndex,
-        settings: this.settings,
+    this.root = mountSidePanelComponent(
+      this.containerEl,
+      {
+        deps: {
+          app: this.app,
+          logger: this.deps.logger,
+          taskIndex: this.taskIndex,
+          settings: this.settings,
+        },
       },
-    });
+      this.root
+    );
   }
 }
