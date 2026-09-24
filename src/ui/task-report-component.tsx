@@ -56,15 +56,7 @@ function moveToPreviousMonday(date: Moment): Moment {
 }
 
 function findTaskCompletionDate(todo: TaskItem<TFile>, settings: TaskPlannerSettings): Moment | null {
-  let d = findTaskDate(todo, settings.completedDateAttribute);
-  if (d) {
-    return d;
-  }
-  d = findTaskDate(todo, settings.dueDateAttribute);
-  if (d) {
-    return d;
-  }
-  return null;
+  return findTaskDate(todo, settings.completedDateAttribute);
 }
 
 function formatInterval(from: Moment, to: Moment) {
@@ -135,32 +127,37 @@ function filterTasksByStatus(todos: TaskItem<TFile>[], statusFilter: StatusFilte
 }
 
 function groupTasks(todos: TaskItem<TFile>[], containers: DateContainer[], settings: TaskPlannerSettings): Container[] {
-  const assignedTodoIds = new Set<string>();
-
   containers.forEach((container) => {
     container.todos = todos.filter((todo) => {
       const date = findTaskCompletionDate(todo, settings);
       if (!date) {
         return false;
       }
-      const isInRange = container.from.diff(date) <= 0 && container.to.diff(date) > 0;
-      if (isInRange) {
-        assignedTodoIds.add(`${todo.file.path}-${todo.line}`);
-      }
-      return isInRange;
+      return container.from.diff(date) <= 0 && container.to.diff(date) > 0;
     });
   });
 
-  const emptyContainer: Container = {
-    id: "no-date",
-    title: "No date",
+  const startOfTomorrow = moment().add(1, "days").startOf("day");
+  const futureContainer: Container = {
+    id: "future-completion-date",
+    title: "Future completion date",
+    todos: todos.filter((todo) => {
+      const date = findTaskCompletionDate(todo, settings);
+      return date !== null && date.diff(startOfTomorrow) >= 0;
+    }),
+  };
+  const noDateContainer: Container = {
+    id: "no-completion-date",
+    title: "No completion date",
     todos: todos.filter((todo) => !findTaskCompletionDate(todo, settings)),
   };
 
-  // Only add no-date container if it has todos
   const result: Container[] = containers.filter((c) => c.todos.length > 0);
-  if (emptyContainer.todos.length > 0) {
-    result.push(emptyContainer);
+  if (futureContainer.todos.length > 0) {
+    result.push(futureContainer);
+  }
+  if (noDateContainer.todos.length > 0) {
+    result.push(noDateContainer);
   }
 
   return result;

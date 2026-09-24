@@ -128,6 +128,65 @@ describe("real Obsidian vault smoke", function () {
     });
   });
 
+  it("shows dated, future-dated, and undated completed tasks exactly once", async function () {
+    const fixturePath = "Report completeness.md";
+    const fixture = [
+      "- [x] Historical completion [completed:: 2026-09-01]",
+      "- [x] Future completion [completed:: 2099-01-01]",
+      "- [x] Future due only [due:: 2099-01-01]",
+      "- [-] Missing completion",
+      "- [ ] Still open",
+      "",
+    ].join("\n");
+
+    await browser.executeObsidian(async ({ app }, file, contents) => {
+      await app.vault.create(file, contents);
+      await app.workspace.getLeaf("tab").setViewState({ type: "task-planner.report" });
+    }, fixturePath, fixture);
+    try {
+      await waitForTaskCount(6);
+      await browser.waitUntil(() => browser.execute(() => document.querySelector(".report-container .result-count")?.textContent.includes("4 tasks in 3 periods")), {
+        timeout: 5000,
+        timeoutMsg: "Completed-task report did not group every matching fixture task",
+      });
+
+      const report = await browser.execute(() => ({
+        stats: document.querySelector(".report-container .stats")?.textContent,
+        sections: [...document.querySelectorAll(".report-container .report-section")].map((section) => ({
+          title: section.querySelector(".section-title")?.textContent,
+          count: section.querySelector(".section-count")?.textContent,
+          text: section.querySelector(".section-content")?.textContent,
+        })),
+      }));
+      assert.match(report.stats, /4 total.*3 completed.*1 canceled/);
+      assert.equal(report.sections.reduce((total, section) => total + Number(section.count), 0), 4);
+      assert.ok(report.sections.some((section) => section.title === "Future completion date" && section.count === "1" && section.text.includes("Future completion")));
+      assert.ok(report.sections.some((section) => section.title === "No completion date" && section.count === "2" && section.text.includes("Future due only") && section.text.includes("Missing completion")));
+      for (const text of ["Historical completion", "Future completion", "Future due only", "Missing completion"]) {
+        assert.equal(report.sections.filter((section) => section.text.includes(text)).length, 1, `${text} was not displayed exactly once`);
+      }
+      assert.ok(report.sections.every((section) => !section.text.includes("Still open")));
+      assert.equal(await obsidianPage.read(fixturePath), fixture);
+
+      await browser.execute(() => {
+        const search = document.querySelector(".report-container .search");
+        search.value = "Future";
+        search.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await browser.waitUntil(() => browser.execute(() => document.querySelector(".report-container .result-count")?.textContent.includes("2 tasks in 2 periods")), {
+        timeout: 5000,
+        timeoutMsg: "Report search did not keep result and section counts aligned",
+      });
+    } finally {
+      await browser.executeObsidian(async ({ app }, file) => {
+        for (const leaf of app.workspace.getLeavesOfType("task-planner.report")) leaf.detach();
+        const fixtureFile = app.vault.getAbstractFileByPath(file);
+        if (fixtureFile) await app.vault.delete(fixtureFile);
+      }, fixturePath);
+    }
+    await waitForTaskCount(1);
+  });
+
   it("writes duplicate-basename wikilinks relative to the quick-add destination", async function () {
     const fixture = await browser.executeObsidian(async ({ app, plugins }) => {
       const plugin = plugins.taskPlanner;
