@@ -78,6 +78,56 @@ describe("real Obsidian vault smoke", function () {
     });
   });
 
+  it("releases report and Today Focus subscriptions when their leaves close", async function () {
+    const handlerCount = () => browser.executeObsidian(({ plugins }) => plugins.taskPlanner.taskIndex.onUpdateEvent.handlers.length);
+    const baseline = await handlerCount();
+    assert.ok(baseline >= 1, `Expected the open Today Focus view to subscribe, received ${baseline}`);
+
+    for (let i = 0; i < 3; i++) {
+      await browser.executeObsidian(async ({ app }) => {
+        await app.workspace.getLeaf("tab").setViewState({ type: "task-planner.report" });
+      });
+      await browser.waitUntil(async () => (await handlerCount()) === baseline + 1, {
+        timeout: 5000,
+        timeoutMsg: `Report subscription ${i + 1} did not attach exactly once`,
+      });
+      await browser.executeObsidian(({ app }) => app.workspace.getLeavesOfType("task-planner.report").at(-1).detach());
+      await browser.waitUntil(async () => (await handlerCount()) === baseline, {
+        timeout: 5000,
+        timeoutMsg: `Report subscription ${i + 1} remained after close`,
+      });
+    }
+
+    await browser.executeObsidian(({ app }) => app.workspace.getLeavesOfType("task-planner.todo-list")[0].detach());
+    await browser.waitUntil(async () => (await handlerCount()) === baseline - 1, {
+      timeout: 5000,
+      timeoutMsg: "Today Focus subscription remained after close",
+    });
+
+    for (let i = 0; i < 3; i++) {
+      await browser.executeObsidian(async ({ app }) => {
+        await app.workspace.getRightLeaf(false).setViewState({ type: "task-planner.todo-list" });
+      });
+      await browser.waitUntil(async () => (await handlerCount()) === baseline, {
+        timeout: 5000,
+        timeoutMsg: `Today Focus subscription ${i + 1} did not attach exactly once`,
+      });
+      await browser.executeObsidian(({ app }) => app.workspace.getLeavesOfType("task-planner.todo-list")[0].detach());
+      await browser.waitUntil(async () => (await handlerCount()) === baseline - 1, {
+        timeout: 5000,
+        timeoutMsg: `Today Focus subscription ${i + 1} remained after close`,
+      });
+    }
+
+    await browser.executeObsidian(async ({ app }) => {
+      await app.workspace.getRightLeaf(false).setViewState({ type: "task-planner.todo-list" });
+    });
+    await browser.waitUntil(async () => (await handlerCount()) === baseline, {
+      timeout: 5000,
+      timeoutMsg: "Today Focus view was not restored after lifecycle checks",
+    });
+  });
+
   it("writes duplicate-basename wikilinks relative to the quick-add destination", async function () {
     const fixture = await browser.executeObsidian(async ({ app, plugins }) => {
       const plugin = plugins.taskPlanner;
@@ -762,14 +812,20 @@ describe("real Obsidian vault smoke", function () {
       return [...doc.querySelectorAll('[class*="search-result"]')].some((element) => element.textContent.includes("Maximum horizons per column"));
     }), { timeout: 5000, timeoutMsg: "Native search did not index the plugin setting" });
     await browser.saveSettingsScreenshot(path.resolve("artifacts/e2e/settings-search.png"));
-    await browser.executeObsidian(async ({ app }) => {
+    const reload = await browser.executeObsidian(async ({ app }) => {
       app.setting.close();
       const plugin = app.plugins.plugins["task-planner"];
       plugin.settings.maxHorizonsPerColumn = 2;
       await plugin.saveSettings();
+      const updateEvent = plugin.taskIndex.onUpdateEvent;
+      const handlersBeforeUnload = updateEvent.handlers.length;
       await app.plugins.unloadPlugin("task-planner");
+      const handlersAfterUnload = updateEvent.handlers.length;
       await app.plugins.loadPlugin("task-planner");
+      return { handlersBeforeUnload, handlersAfterUnload };
     });
+    assert.ok(reload.handlersBeforeUnload >= 1, "Expected mounted views to subscribe before plugin unload");
+    assert.equal(reload.handlersAfterUnload, 0, "Plugin unload retained task-index view subscriptions");
     assert.equal(await browser.executeObsidian(({ app }) => app.plugins.plugins["task-planner"].settings.maxHorizonsPerColumn), 2);
     await browser.executeObsidian(async ({ app }) => {
       const plugin = app.plugins.plugins["task-planner"];
