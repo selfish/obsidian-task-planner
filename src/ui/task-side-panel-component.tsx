@@ -105,8 +105,10 @@ function saveCollapsedState(app: App, state: Record<string, boolean>): void {
 
 export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const { settings, app, logger } = deps;
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const [todos, setTodos] = React.useState<TaskItem<TFile>[]>(deps.taskIndex.tasks);
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>(() => loadCollapsedState(app));
+  const [currentDay, setCurrentDay] = React.useState(() => moment().format("YYYY-MM-DD"));
 
   React.useEffect(() => {
     const unsubscribe = deps.taskIndex.onUpdateEvent.listen((updatedTodos: TaskItem<TFile>[]) => {
@@ -118,6 +120,40 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
       if (unsubscribe) unsubscribe();
     };
   }, [deps.taskIndex]);
+
+  React.useEffect(() => {
+    const ownerDocument = containerRef.current?.ownerDocument;
+    const ownerWindow = ownerDocument?.defaultView;
+    if (!ownerDocument || !ownerWindow) return undefined;
+
+    let midnightTimer: number | undefined;
+
+    const scheduleMidnightRefresh = () => {
+      if (midnightTimer !== undefined) ownerWindow.clearTimeout(midnightTimer);
+      const now = moment();
+      const nextMidnight = now.clone().add(1, "day").startOf("day");
+      midnightTimer = ownerWindow.setTimeout(refreshCurrentDay, Math.max(0, nextMidnight.diff(now)) + 1);
+    };
+
+    const refreshCurrentDay = () => {
+      setCurrentDay(moment().format("YYYY-MM-DD"));
+      scheduleMidnightRefresh();
+    };
+
+    const refreshAfterVisibilityChange = () => {
+      if (ownerDocument.visibilityState === "visible") refreshCurrentDay();
+    };
+
+    scheduleMidnightRefresh();
+    ownerWindow.addEventListener("focus", refreshCurrentDay);
+    ownerDocument.addEventListener("visibilitychange", refreshAfterVisibilityChange);
+
+    return () => {
+      if (midnightTimer !== undefined) ownerWindow.clearTimeout(midnightTimer);
+      ownerWindow.removeEventListener("focus", refreshCurrentDay);
+      ownerDocument.removeEventListener("visibilitychange", refreshAfterVisibilityChange);
+    };
+  }, []);
 
   const toggleSection = (section: string) => {
     setCollapsed((prev) => {
@@ -135,16 +171,16 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   }, [todos, settings.selectedAttribute]);
 
   const overdueTodos = React.useMemo(() => {
-    const today = moment().startOf("day");
+    const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
     return todos.filter((todo) => {
       if (!isIncomplete(todo)) return false;
       const dueDate = findTaskDate(todo, settings.dueDateAttribute);
       return dueDate && dueDate.isBefore(today);
     });
-  }, [todos, settings.dueDateAttribute]);
+  }, [todos, settings.dueDateAttribute, currentDay]);
 
   const todayTodos = React.useMemo(() => {
-    const today = moment().startOf("day");
+    const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
     const tomorrow = today.clone().add(1, "day");
     return todos.filter((todo) => {
       if (!isIncomplete(todo)) return false;
@@ -155,7 +191,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
       const dueDate = findTaskDate(todo, settings.dueDateAttribute);
       return dueDate && dueDate.isSameOrAfter(today) && dueDate.isBefore(tomorrow);
     });
-  }, [todos, settings.dueDateAttribute, settings.selectedAttribute]);
+  }, [todos, settings.dueDateAttribute, settings.selectedAttribute, currentDay]);
 
   const startedTodos = React.useMemo(() => {
     return todos.filter((todo) => {
@@ -164,21 +200,21 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   }, [todos]);
 
   const doneTodayTodos = React.useMemo(() => {
-    const today = moment().startOf("day");
+    const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
     const tomorrow = today.clone().add(1, "day");
     return todos.filter((todo) => {
       if (todo.status !== TaskStatus.Complete && todo.status !== TaskStatus.Canceled) return false;
       const completedDate = findTaskDate(todo, settings.completedDateAttribute);
       return completedDate && completedDate.isSameOrAfter(today) && completedDate.isBefore(tomorrow);
     });
-  }, [todos, settings.completedDateAttribute]);
+  }, [todos, settings.completedDateAttribute, currentDay]);
 
   const componentDeps = { app, settings, logger };
 
   const totalActionable = pinnedTodos.length + overdueTodos.length + todayTodos.length + startedTodos.length;
 
   return (
-    <div className="sidebar-container">
+    <div ref={containerRef} className="sidebar-container">
       <div className="sidebar-header">
         <span className="sidebar-title">Today Focus</span>
         {totalActionable > 0 && <span className="sidebar-total">{totalActionable}</span>}
