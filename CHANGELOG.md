@@ -14,6 +14,10 @@ All notable changes to Task Planner are documented here. The project follows [Se
 - Show every completed or canceled task in the report, with explicit sections for missing and future completion dates instead of treating due dates as completion dates.
 - Refresh Today Focus at local midnight and after wake/focus so its Today, Overdue, and Done Today sections cannot remain on the previous date.
 
+### Security
+
+- Refresh compatible development-toolchain `brace-expansion` and `fast-uri` patches, and override the Obsidian npm package's pinned Moment dependency to 2.31.0. This changes the npm validation tree, not Obsidian's host-provided Moment or the shipped plugin assets.
+
 ### Performance
 
 - Rebuild the task index's combined array in a single linear pass rather than repeatedly copying earlier files' tasks.
