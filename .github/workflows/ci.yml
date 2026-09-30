@@ -145,6 +145,11 @@ jobs:
           fi
           echo "## ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
 
+      - name: Verify midnight refresh across DST boundaries
+        env:
+          TZ: America/New_York
+        run: npx jest --runInBand __tests__/ui/task-side-panel-component.test.tsx
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         continue-on-error: true
