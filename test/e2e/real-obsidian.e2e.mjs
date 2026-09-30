@@ -128,6 +128,76 @@ describe("real Obsidian vault smoke", function () {
     });
   });
 
+  it("refreshes Today Focus at midnight and after wake without changing fixture Markdown", async function () {
+    const fixturePath = "Midnight rollover.md";
+    const fixture = [
+      "- [ ] Midnight due today [due:: 2026-09-30] [unknown:: preserve-me]",
+      "- [ ] Midnight due tomorrow [due:: 2026-10-01]",
+      "- [x] Midnight done today [completed:: 2026-09-30]",
+      "- [ ] Midnight wake task [due:: 2026-10-02]",
+      "",
+    ].join("\n");
+    const sections = () => browser.execute(() => [...document.querySelectorAll(".sidebar-section")].map((section) => ({
+      title: section.querySelector(".title")?.textContent,
+      count: Number(section.querySelector(".count")?.textContent),
+      text: section.querySelector(".sidebar-section-content")?.textContent ?? "",
+    })));
+    const find = (snapshot, title) => snapshot.find((section) => section.title === title);
+
+    await browser.executeObsidian(async ({ app }, file, contents) => {
+      await app.vault.create(file, contents);
+    }, fixturePath, fixture);
+    try {
+      await waitForTaskCount(5);
+      await browser.executeObsidian(async ({ app }) => {
+        for (const leaf of app.workspace.getLeavesOfType("task-planner.todo-list")) leaf.detach();
+        // Control only the disposable renderer's wall clock; timers remain real.
+        const NativeDate = window.Date;
+        window.taskPlannerClock = { NativeDate, now: new NativeDate(2026, 8, 30, 23, 59, 57).getTime() };
+        window.Date = class extends NativeDate {
+          constructor(...args) { super(...(args.length ? args : [window.taskPlannerClock.now])); }
+          static now() { return window.taskPlannerClock.now; }
+        };
+        await app.workspace.getRightLeaf(false).setViewState({ type: "task-planner.todo-list" });
+      });
+      await browser.waitUntil(async () => find(await sections(), "Today")?.text.includes("Midnight due today"), { timeout: 5000 });
+      const before = await sections();
+      assert.ok(find(before, "Done Today").text.includes("Midnight done today"));
+      assert.ok(!find(before, "Today").text.includes("Midnight due tomorrow"));
+
+      await browser.execute(() => {
+        window.taskPlannerClock.now = new window.taskPlannerClock.NativeDate(2026, 9, 1, 0, 0, 0).getTime();
+      });
+      await browser.waitUntil(async () => find(await sections(), "Overdue")?.text.includes("Midnight due today"), {
+        timeout: 5000, timeoutMsg: "The real midnight timer did not refresh Today Focus",
+      });
+      const after = await sections();
+      assert.ok(find(after, "Today").text.includes("Midnight due tomorrow"));
+      assert.ok(!find(after, "Done Today").text.includes("Midnight done today"));
+
+      await browser.execute(() => {
+        window.taskPlannerClock.now = new window.taskPlannerClock.NativeDate(2026, 9, 2, 8, 0, 0).getTime();
+        window.dispatchEvent(new Event("focus"));
+      });
+      await browser.waitUntil(async () => find(await sections(), "Today")?.text.includes("Midnight wake task"), {
+        timeout: 5000, timeoutMsg: "Wake/focus did not recover a suspended Today Focus view",
+      });
+      assert.equal(await obsidianPage.read(fixturePath), fixture);
+    } finally {
+      await browser.executeObsidian(async ({ app }, file) => {
+        for (const leaf of app.workspace.getLeavesOfType("task-planner.todo-list")) leaf.detach();
+        if (window.taskPlannerClock) {
+          window.Date = window.taskPlannerClock.NativeDate;
+          delete window.taskPlannerClock;
+        }
+        const fixtureFile = app.vault.getAbstractFileByPath(file);
+        if (fixtureFile) await app.vault.delete(fixtureFile);
+        await app.workspace.getRightLeaf(false).setViewState({ type: "task-planner.todo-list" });
+      }, fixturePath);
+    }
+    await waitForTaskCount(1);
+  });
+
   it("shows dated, future-dated, and undated completed tasks exactly once", async function () {
     const fixturePath = "Report completeness.md";
     const fixture = [

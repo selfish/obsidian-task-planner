@@ -104,6 +104,57 @@ describe("Today Focus day rollover", () => {
     expect(within(section(container, "Today")).getByText("New year task")).toBeInTheDocument();
   });
 
+  it("refreshes only when a suspended document becomes visible and keeps one timer", () => {
+    const visibilitySpy = jest.spyOn(document, "visibilityState", "get");
+    const { container, unmount } = setup([task("Tomorrow task", TaskStatus.Todo, 1, { due: "2026-10-01" })]);
+    expect(jest.getTimerCount()).toBe(1);
+
+    act(() => {
+      jest.setSystemTime(new Date("2026-10-01T08:00:00"));
+      visibilitySpy.mockReturnValue("hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expectCount(container, "Today", 0);
+
+    act(() => {
+      visibilitySpy.mockReturnValue("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("focus"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    expectCount(container, "Today", 1);
+    expect(jest.getTimerCount()).toBe(1);
+    unmount();
+    expect(jest.getTimerCount()).toBe(0);
+    visibilitySpy.mockRestore();
+  });
+
+  it.each([
+    ["spring-forward", "2026-03-08", "2026-03-09", 23],
+    ["fall-back", "2026-11-01", "2026-11-02", 25],
+  ])("schedules the next local midnight on the %s day", (_label, today, tomorrow, dstHours) => {
+    const start = new Date(`${today}T00:00:00`);
+    const end = new Date(`${tomorrow}T00:00:00`);
+    jest.setSystemTime(start);
+    // CI also runs this suite in America/New_York to exercise 23/25-hour days.
+    if (process.env.TZ === "America/New_York") {
+      expect(end.getTime() - start.getTime()).toBe(Number(dstHours) * 60 * 60 * 1000);
+    }
+    const timerSpy = jest.spyOn(window, "setTimeout");
+    const { container, unmount } = setup([task("DST task", TaskStatus.Todo, 1, { due: String(today) })]);
+    const midnightDelay = end.getTime() - start.getTime() + 1;
+    expect(timerSpy).toHaveBeenLastCalledWith(expect.any(Function), midnightDelay);
+
+    act(() => jest.advanceTimersByTime(midnightDelay - 1));
+    expectCount(container, "Today", 1);
+    act(() => jest.advanceTimersByTime(1));
+    expectCount(container, "Today", 0);
+    expectCount(container, "Overdue", 1);
+    expect(jest.getTimerCount()).toBe(1);
+    unmount();
+    timerSpy.mockRestore();
+  });
+
   it("removes its clock and wake listeners when unmounted", () => {
     const clearTimeoutSpy = jest.spyOn(window, "clearTimeout");
     const removeWindowListenerSpy = jest.spyOn(window, "removeEventListener");
