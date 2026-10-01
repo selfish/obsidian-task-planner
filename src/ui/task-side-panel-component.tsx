@@ -5,6 +5,7 @@ import { App, TFile, setIcon } from "obsidian";
 import * as React from "react";
 
 import { TodoItemComponent } from "./task-item-component";
+import { useCurrentDay } from "./use-current-day";
 import { TaskIndex } from "../core/index/task-index";
 import { TaskPlannerSettings } from "../settings/types";
 import { Logger } from "../types/logger";
@@ -108,7 +109,7 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [todos, setTodos] = React.useState<TaskItem<TFile>[]>(deps.taskIndex.tasks);
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>(() => loadCollapsedState(app));
-  const [currentDay, setCurrentDay] = React.useState(() => moment().format("YYYY-MM-DD"));
+  const currentDay = useCurrentDay(containerRef);
 
   React.useEffect(() => {
     const unsubscribe = deps.taskIndex.onUpdateEvent.listen((updatedTodos: TaskItem<TFile>[]) => {
@@ -120,40 +121,6 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
       if (unsubscribe) unsubscribe();
     };
   }, [deps.taskIndex]);
-
-  React.useEffect(() => {
-    const ownerDocument = containerRef.current?.ownerDocument;
-    const ownerWindow = ownerDocument?.defaultView;
-    if (!ownerDocument || !ownerWindow) return undefined;
-
-    let midnightTimer: number | undefined;
-
-    const scheduleMidnightRefresh = () => {
-      if (midnightTimer !== undefined) ownerWindow.clearTimeout(midnightTimer);
-      const now = moment();
-      const nextMidnight = now.clone().add(1, "day").startOf("day");
-      midnightTimer = ownerWindow.setTimeout(refreshCurrentDay, Math.max(0, nextMidnight.diff(now)) + 1);
-    };
-
-    const refreshCurrentDay = () => {
-      setCurrentDay(moment().format("YYYY-MM-DD"));
-      scheduleMidnightRefresh();
-    };
-
-    const refreshAfterVisibilityChange = () => {
-      if (ownerDocument.visibilityState === "visible") refreshCurrentDay();
-    };
-
-    scheduleMidnightRefresh();
-    ownerWindow.addEventListener("focus", refreshCurrentDay);
-    ownerDocument.addEventListener("visibilitychange", refreshAfterVisibilityChange);
-
-    return () => {
-      if (midnightTimer !== undefined) ownerWindow.clearTimeout(midnightTimer);
-      ownerWindow.removeEventListener("focus", refreshCurrentDay);
-      ownerDocument.removeEventListener("visibilitychange", refreshAfterVisibilityChange);
-    };
-  }, []);
 
   const toggleSection = (section: string) => {
     setCollapsed((prev) => {

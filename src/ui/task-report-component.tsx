@@ -5,6 +5,7 @@ import { App, TFile, setIcon } from "obsidian";
 import * as React from "react";
 
 import { TaskListComponent } from "./task-list-component";
+import { useCurrentDay } from "./use-current-day";
 import { TaskIndex } from "../core/index/task-index";
 import { TaskMatcher } from "../core/matchers/task-matcher";
 import { TaskPlannerSettings } from "../settings/types";
@@ -95,8 +96,8 @@ function getOneMonthFrom(startDate: Moment): DateContainer {
   };
 }
 
-function getDateContainers(minDate: Moment, numberOfWeeks: number): DateContainer[] {
-  let dateCursor = moment().add(1, "days").startOf("day");
+function getDateContainers(minDate: Moment, numberOfWeeks: number, today: Moment): DateContainer[] {
+  let dateCursor = today.clone().add(1, "days").startOf("day");
   const containers: DateContainer[] = [];
   for (let i = 0; i < numberOfWeeks && dateCursor.diff(minDate) > 0; i++) {
     const week = getOneWeekFrom(dateCursor);
@@ -126,7 +127,7 @@ function filterTasksByStatus(todos: TaskItem<TFile>[], statusFilter: StatusFilte
   });
 }
 
-function groupTasks(todos: TaskItem<TFile>[], containers: DateContainer[], settings: TaskPlannerSettings): Container[] {
+function groupTasks(todos: TaskItem<TFile>[], containers: DateContainer[], settings: TaskPlannerSettings, today: Moment): Container[] {
   containers.forEach((container) => {
     container.todos = todos.filter((todo) => {
       const date = findTaskCompletionDate(todo, settings);
@@ -137,7 +138,7 @@ function groupTasks(todos: TaskItem<TFile>[], containers: DateContainer[], setti
     });
   });
 
-  const startOfTomorrow = moment().add(1, "days").startOf("day");
+  const startOfTomorrow = today.clone().add(1, "days").startOf("day");
   const futureContainer: Container = {
     id: "future-completion-date",
     title: "Future completion date",
@@ -163,24 +164,25 @@ function groupTasks(todos: TaskItem<TFile>[], containers: DateContainer[], setti
   return result;
 }
 
-function getMinDate(todos: TaskItem<TFile>[], settings: TaskPlannerSettings): Moment {
+function getMinDate(todos: TaskItem<TFile>[], settings: TaskPlannerSettings, today: Moment): Moment {
   return todos.reduce((min, thisTodo) => {
     const completionDate = findTaskCompletionDate(thisTodo, settings);
     if (completionDate) {
       return min.diff(completionDate) > 0 ? completionDate : min;
     }
     return min;
-  }, moment());
+  }, today);
 }
 
-function assembleTasksByDate(todos: TaskItem<TFile>[], numberOfWeeks: number, settings: TaskPlannerSettings): Container[] {
+function assembleTasksByDate(todos: TaskItem<TFile>[], numberOfWeeks: number, settings: TaskPlannerSettings, currentDay: string): Container[] {
   // Return empty array early if no todos
   if (todos.length === 0) {
     return [];
   }
-  const minDate = getMinDate(todos, settings);
-  const containers = getDateContainers(minDate, numberOfWeeks);
-  return groupTasks(todos, containers, settings);
+  const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
+  const minDate = getMinDate(todos, settings, today);
+  const containers = getDateContainers(minDate, numberOfWeeks, today);
+  return groupTasks(todos, containers, settings, today);
 }
 
 function ReportHeader({ reportSettings, setReportSettings, stats, _app, onOpenPlanning }: { reportSettings: ReportSettings; setReportSettings: (settings: ReportSettings) => void; stats: { total: number; completed: number; canceled: number }; _app: App; onOpenPlanning?: () => void }) {
@@ -272,6 +274,8 @@ function ReportSection({ container, deps, isCollapsed, onToggle }: { container: 
 }
 
 export function TaskReportComponent({ deps, onOpenPlanning }: TaskReportComponentProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const currentDay = useCurrentDay(containerRef);
   const [todos, setTodos] = React.useState(deps.taskIndex.tasks);
   const [numberOfWeeks] = React.useState(4);
   const [reportSettings, setReportSettings] = React.useState<ReportSettings>({
@@ -301,7 +305,7 @@ export function TaskReportComponent({ deps, onOpenPlanning }: TaskReportComponen
   }, [statusFilteredTodos, reportSettings.searchPhrase, deps.settings.fuzzySearch]);
 
   // Group into containers
-  const containers = React.useMemo(() => assembleTasksByDate(filteredTodos, numberOfWeeks, deps.settings), [filteredTodos, numberOfWeeks, deps.settings]);
+  const containers = React.useMemo(() => assembleTasksByDate(filteredTodos, numberOfWeeks, deps.settings, currentDay), [filteredTodos, numberOfWeeks, deps.settings, currentDay]);
 
   // Calculate stats
   const stats = React.useMemo(() => {
@@ -345,7 +349,7 @@ export function TaskReportComponent({ deps, onOpenPlanning }: TaskReportComponen
   const allCollapsed = containers.length > 0 && containers.every((c) => reportSettings.collapsedSections[c.id]);
 
   return (
-    <div className="report-container">
+    <div className="report-container" ref={containerRef}>
       <ReportHeader reportSettings={reportSettings} setReportSettings={setReportSettings} stats={stats} _app={deps.app} onOpenPlanning={onOpenPlanning} />
       <div className="report-actions">
         <button className="action-btn" onClick={allCollapsed ? expandAll : collapseAll}>
