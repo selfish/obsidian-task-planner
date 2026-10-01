@@ -7,7 +7,7 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   transform: {
     '^.+\\.tsx?$': [
-      'ts-jest',
+      '<rootDir>/scripts/jest-transformer.cjs',
       {
         tsconfig: {
           jsx: 'react',
@@ -22,13 +22,15 @@ module.exports = {
     '^obsidian$': '<rootDir>/__tests__/__mocks__/obsidian.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
+  // Focused-core surface: historical selection and thresholds, not whole-plugin coverage.
+  // jest.whole-source.config.js instruments the complete runtime source separately.
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/main.ts',
     // Exclude barrel exports (re-exports only, no testable logic)
     '!src/**/index.ts',
-    // Exclude Obsidian view wrappers (thin wrappers around React components)
+    // View lifecycle behavior is also checked by unit and real-host tests.
     '!src/views/**/*.ts',
     // Settings definitions and collection editors are covered by focused UI/logic tests.
     '!src/settings/settings-store.ts',
@@ -39,13 +41,13 @@ module.exports = {
     '!src/commands/open-report.ts',
     // Exclude CodeMirror editor extension (requires full editor mocking)
     '!src/editor/auto-convert-extension.ts',
-    // Exclude React components (tested via logic tests, not rendering)
+    // React rendering is tested but instrumented in the whole-source report.
     '!src/ui/**/*.tsx',
     // Exclude WikilinkSuggest (requires browser Selection API not available in jsdom)
     '!src/ui/wikilink-suggest.ts',
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageDirectory: 'coverage/focused-core',
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
   coverageThreshold: {
     global: {
       branches: 70,
