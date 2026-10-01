@@ -13,6 +13,7 @@ All notable changes to Task Planner are documented here. The project follows [Se
 - Release Today Focus and completed-task report subscriptions when their views close, and reuse each view's React root during refreshes.
 - Show every completed or canceled task in the report, with explicit sections for missing and future completion dates instead of treating due dates as completion dates.
 - Refresh Today Focus at local midnight and after wake/focus so its Today, Overdue, and Done Today sections cannot remain on the previous date.
+- Refresh the planning board's date horizons and completed-today count, and the report's completion periods, at local midnight and after wake/focus without editing notes or resetting view filters.
 
 ### Security
 

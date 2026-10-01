@@ -9,6 +9,7 @@ import { PlanningSettingsComponent } from "./planning-settings-component";
 import { PlanningSettingsStore } from "./planning-settings-store";
 import { PlanningTaskColumn, ColumnType, ColumnHeaderAction, WipLimitConfig } from "./planning-task-column";
 import { UndoToastContainer } from "./undo-toast";
+import { useCurrentDay } from "./use-current-day";
 import { TaskIndex } from "../core/index/task-index";
 import { TaskMatcher } from "../core/matchers/task-matcher";
 import { FileOperations } from "../core/operations/file-operations";
@@ -63,6 +64,8 @@ function startAutoScroll(container: HTMLDivElement, delta: number): AutoScrollTi
 }
 
 export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport, onQuickAdd }: PlanningComponentProps) {
+  const boardRef = React.useRef<HTMLDivElement>(null);
+  const currentDay = useCurrentDay(boardRef);
   const settingsStore = React.useMemo(() => new PlanningSettingsStore(app), [app]);
   const savedSettings = React.useMemo(() => settingsStore.getSettings(), [settingsStore]);
   const [planningSettings, setPlanningSettingsState] = React.useState(savedSettings);
@@ -610,7 +613,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function* getTodayColumns() {
-    const today = moment().startOf("day");
+    const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
     const tomorrow = today.clone().add(1, "day");
     const columnCount = hideDone ? 2 : 3;
 
@@ -645,7 +648,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }
 
   function getOverdueTodos(excludeIds?: Set<string>): TaskItem<TFile>[] {
-    const today = moment().startOf("day");
+    const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
     return filteredTodos.filter((todo) => {
       if (excludeIds && excludeIds.has(getTaskId(todo))) return false;
       if (todo.status === TaskStatus.Complete || todo.status === TaskStatus.Canceled) {
@@ -675,7 +678,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   function* getColumns() {
     const { horizonVisibility, customHorizons } = settings;
 
-    const today = moment().startOf("day");
+    const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
 
     // Track assigned task IDs to prevent duplicates across horizons
     // Custom horizons have highest priority, then standard horizons in order
@@ -1113,7 +1116,7 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   }, [filteredTodos]);
 
   const completedToday = React.useMemo(() => {
-    const today = moment().startOf("day");
+    const today = moment(currentDay, "YYYY-MM-DD", true).startOf("day");
     const tomorrow = today.clone().add(1, "day");
     const dateIsInRange = (date: Moment | null) => date && date.isSameOrAfter(today) && date.isBefore(tomorrow);
     const completedTodos = filteredTodos.filter((todo) => {
@@ -1123,9 +1126,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
       return dateIsInRange(completedDate);
     });
     return completedTodos.length;
-  }, [filteredTodos, settings.completedDateAttribute]);
+  }, [filteredTodos, settings.completedDateAttribute, currentDay]);
 
-  const boardRef = React.useRef<HTMLDivElement>(null);
   const futureSectionRef = React.useRef<HTMLDivElement>(null);
   const scrollIntervalRef = React.useRef<AutoScrollTimer | null>(null);
 

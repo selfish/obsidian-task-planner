@@ -198,6 +198,102 @@ describe("real Obsidian vault smoke", function () {
     await waitForTaskCount(1);
   });
 
+  it("refreshes board and report calendars at midnight and after visibility recovery without vault writes", async function () {
+    const fixturePath = "Board report calendar.md";
+    const fixture = [
+      "- [ ] Calendar old day [due:: 2026-09-30] [unknown:: preserve-me] 📅 2026-09-30",
+      "- [ ] Calendar new day [due:: 2026-10-01] (custom:: untouched)",
+      "- [ ] Calendar next tomorrow [due:: 2026-10-02] https://example.com/#fragment",
+      "- [x] Calendar old completion [due:: 2026-09-30] [completed:: 2026-09-30]",
+      "- [x] Calendar future completion [completed:: 2026-10-01]",
+      "- [-] Calendar undated completion",
+      "",
+    ].join("\r\n");
+    const snapshot = () => browser.execute(() => ({
+      columns: [...document.querySelectorAll(".board .column")].map(column => ({
+        title: column.querySelector(".title")?.textContent,
+        subtitle: column.querySelector(".subtitle")?.textContent,
+        text: column.querySelector(".content")?.textContent,
+      })),
+      done: document.querySelector(".board .stats .stat")?.textContent,
+      report: [...document.querySelectorAll(".report-section")].map(section => ({
+        title: section.querySelector(".section-title")?.textContent,
+        text: section.querySelector(".section-content")?.textContent,
+      })),
+      count: document.querySelector(".report-container .result-count")?.textContent,
+    }));
+    const column = (state, title) => state.columns.find(item => item.title === title);
+    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.13.7"}`);
+    fs.mkdirSync(artifactDir, { recursive: true });
+    await browser.executeObsidian(async ({ app }, file, contents) => {
+      await app.vault.create(file, contents);
+    }, fixturePath, fixture);
+    try {
+      await waitForTaskCount(7);
+      await browser.executeObsidian(async ({ app }) => {
+        const NativeDate = window.Date;
+        window.taskPlannerClock = { NativeDate, now: new NativeDate(2026, 8, 30, 23, 59, 57).getTime() };
+        window.Date = class extends NativeDate {
+          constructor(...args) { super(...(args.length ? args : [window.taskPlannerClock.now])); }
+          static now() { return window.taskPlannerClock.now; }
+        };
+        await app.workspace.getLeaf("tab").setViewState({ type: "task-planner.planning" });
+        await app.workspace.getLeaf("tab").setViewState({ type: "task-planner.report" });
+      });
+      await browser.waitUntil(async () => {
+        const state = await snapshot();
+        return column(state, "Todo")?.text.includes("Calendar old day") && state.report.some(item => item.title === "Future completion date");
+      }, { timeout: 5000 });
+      const before = await snapshot();
+      assert.ok(column(before, "Tomorrow").text.includes("Calendar new day"));
+      assert.equal(before.done, "1 done");
+
+      await browser.execute(() => {
+        window.taskPlannerClock.now = new window.taskPlannerClock.NativeDate(2026, 9, 1, 0, 0, 0).getTime();
+      });
+      await browser.waitUntil(async () => {
+        const state = await snapshot();
+        return column(state, "Todo")?.text.includes("Calendar new day") && !state.report.some(item => item.title === "Future completion date");
+      }, { timeout: 5000, timeoutMsg: "Board/report real midnight timers did not refresh their calendars" });
+      const after = await snapshot();
+      assert.ok(column(after, "Overdue").text.includes("Calendar old day"));
+      assert.ok(column(after, "Tomorrow").text.includes("Calendar next tomorrow"));
+      assert.equal(after.done, "1 done"); // The Oct 1 completion now counts instead of Sep 30.
+      assert.ok(after.report.some(item => item.title === "Sep 28 - Oct 1" && item.text.includes("Calendar future completion")));
+      assert.ok(after.count.includes("3 tasks in 2 periods"));
+
+      await browser.execute(() => {
+        window.taskPlannerClock.now = new window.taskPlannerClock.NativeDate(2026, 9, 2, 8, 0, 0).getTime();
+        document.dispatchEvent(new Event("visibilitychange"));
+        window.dispatchEvent(new Event("focus"));
+      });
+      await browser.waitUntil(async () => column(await snapshot(), "Todo")?.text.includes("Calendar next tomorrow"), { timeout: 5000 });
+      const wake = await snapshot();
+      assert.equal(wake.done, "0 done");
+      assert.ok(wake.report.some(item => item.title === "Sep 28 - Oct 2"));
+      for (const text of ["Calendar old completion", "Calendar future completion", "Calendar undated completion"]) {
+        assert.equal(wake.report.filter(item => item.text.includes(text)).length, 1, `${text} was not displayed exactly once`);
+      }
+      assert.equal(await obsidianPage.read(fixturePath), fixture);
+      fs.writeFileSync(path.join(artifactDir, "snapshots.json"), JSON.stringify({ before, after, wake, reviewedSha: process.env.REVIEWED_SHA ?? null, mainSha256: sha256(path.join(PROJECT_ROOT, "main.js")) }, null, 2));
+      await browser.saveScreenshot(path.join(artifactDir, "report-after-wake.png"));
+    } finally {
+      await browser.executeObsidian(async ({ app }, file) => {
+        for (const type of ["task-planner.planning", "task-planner.report"]) {
+          for (const leaf of app.workspace.getLeavesOfType(type)) leaf.detach();
+        }
+        if (window.taskPlannerClock) {
+          window.Date = window.taskPlannerClock.NativeDate;
+          delete window.taskPlannerClock;
+        }
+        const fixtureFile = app.vault.getAbstractFileByPath(file);
+        if (fixtureFile) await app.vault.delete(fixtureFile);
+        window.dispatchEvent(new Event("focus"));
+      }, fixturePath);
+    }
+    await waitForTaskCount(1);
+  });
+
   it("shows dated, future-dated, and undated completed tasks exactly once", async function () {
     const fixturePath = "Report completeness.md";
     const fixture = [
