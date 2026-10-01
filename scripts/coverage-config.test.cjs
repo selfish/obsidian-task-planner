@@ -1,6 +1,8 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const focused = require('../jest.config.js');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
 
 test('whole-source coverage includes UI, views, entrypoint and integration code', () => {
   const whole = require('../jest.whole-source.config.js');
@@ -41,4 +43,14 @@ test('focused-core coverage retains its original surface and threshold gate', ()
     lines: 70,
     statements: 70,
   });
+});
+
+test('Codecov only uploads the explicit focused-core report at the reviewed SHA', () => {
+  const workflow = readFileSync(join(__dirname, '../.github/workflows/ci.yml'), 'utf8');
+  const upload = workflow.split('- name: Upload coverage to Codecov')[1]
+    .split('- name: Upload test results to Codecov')[0];
+  assert.match(upload, /files: \.\/coverage\/focused-core\/lcov\.info/);
+  assert.match(upload, /disable_search: true/);
+  assert.match(upload, /flags: unittests/);
+  assert.match(upload, /override_commit: \$\{\{ env\.REVIEWED_SHA \}\}/);
 });

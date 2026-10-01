@@ -196,6 +196,8 @@ jobs:
           use_oidc: true
           override_pr: ${{ github.event.pull_request.number }}
           files: ./coverage/focused-core/lcov.info
+          disable_search: true
+          override_commit: ${{ env.REVIEWED_SHA }}
           flags: unittests
           fail_ci_if_error: false
 
@@ -207,6 +209,7 @@ jobs:
           override_pr: ${{ github.event.pull_request.number }}
           files: ./junit.xml
           disable_search: true
+          override_commit: ${{ env.REVIEWED_SHA }}
           report_type: test_results
           fail_ci_if_error: false
 
