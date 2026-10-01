@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS } from "../../src/settings/types";
 import { PlanningComponent } from "../../src/ui/planning-component";
 import { PlanningTodoColumnProps } from "../../src/ui/planning-task-column";
 import { TaskReportComponent } from "../../src/ui/task-report-component";
+import { useCurrentDay } from "../../src/ui/use-current-day";
 import { TaskItem, TaskStatus } from "../../src/types/task";
 
 jest.mock("../../src/ui/planning-task-column", () => ({
@@ -158,5 +159,25 @@ describe("board and report calendar rollover", () => {
     expect(mainFocus).not.toHaveBeenCalledWith("focus", expect.any(Function));
     unmount();
     frame.remove();
+  });
+
+  it("does not schedule a clock before a container is attached", () => {
+    function DetachedClock() {
+      useCurrentDay(React.useRef<HTMLElement>(null));
+      return null;
+    }
+    const { unmount } = render(<DetachedClock />);
+    expect(jest.getTimerCount()).toBe(0);
+    unmount();
+  });
+
+  it("does not fall back to the main window for a document without a browsing context", () => {
+    const detachedDocument = document.implementation.createHTMLDocument("Detached view");
+    const mainFocus = jest.spyOn(window, "addEventListener");
+    expect(detachedDocument.defaultView).toBeNull();
+    const { unmount } = setup("report", [], detachedDocument.body);
+    expect(jest.getTimerCount()).toBe(0);
+    expect(mainFocus).not.toHaveBeenCalledWith("focus", expect.any(Function));
+    unmount();
   });
 });
