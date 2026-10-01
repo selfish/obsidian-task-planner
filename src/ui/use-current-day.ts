@@ -14,7 +14,7 @@ export function useCurrentDay(containerRef: React.RefObject<HTMLElement | null>)
     let midnightTimer: number | undefined;
 
     const scheduleMidnightRefresh = () => {
-      if (midnightTimer !== undefined) ownerWindow.clearTimeout(midnightTimer);
+      ownerWindow.clearTimeout(midnightTimer);
       const now = moment();
       const nextMidnight = now.clone().add(1, "day").startOf("day");
       midnightTimer = ownerWindow.setTimeout(refreshCurrentDay, Math.max(0, nextMidnight.diff(now)) + 1);
@@ -34,7 +34,7 @@ export function useCurrentDay(containerRef: React.RefObject<HTMLElement | null>)
     ownerDocument.addEventListener("visibilitychange", refreshAfterVisibilityChange);
 
     return () => {
-      if (midnightTimer !== undefined) ownerWindow.clearTimeout(midnightTimer);
+      ownerWindow.clearTimeout(midnightTimer);
       ownerWindow.removeEventListener("focus", refreshCurrentDay);
       ownerDocument.removeEventListener("visibilitychange", refreshAfterVisibilityChange);
     };
