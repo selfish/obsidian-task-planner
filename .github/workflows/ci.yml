@@ -115,12 +115,16 @@ jobs:
   test:
     name: 🧪 Tests
     runs-on: ubuntu-latest
+    env:
+      REVIEWED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     permissions:
       contents: read
       id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.REVIEWED_SHA }}
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -131,7 +135,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Verify coverage configuration
+        run: npm run test:coverage:config
+
+      - name: Run focused-core unit coverage (existing gate)
         id: test
         run: |
           if ! JEST_JUNIT_CLASSNAME="{filepath}" npx jest --coverage --reporters=default --reporters=jest-junit 2>&1 | tee test-output.txt; then
@@ -145,6 +152,38 @@ jobs:
           fi
           echo "## ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
 
+      - name: Run whole-source unit coverage
+        run: npm run test:coverage:whole -- --runInBand
+
+      - name: Summarize both unit coverage surfaces
+        run: |
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SHA"
+          printf '%s\n' "$REVIEWED_SHA" > coverage/revision.txt
+          node -e '
+            const fs = require("node:fs");
+            let summary = "## Unit coverage\n\nReviewed revision: `" + process.env.REVIEWED_SHA + "`\n\n";
+            summary += "Real-Obsidian smoke tests are separate and not included.\n\n";
+            summary += "| Surface | Lines | Statements | Branches | Functions |\n| --- | --- | --- | --- | --- |\n";
+            for (const surface of ["focused-core", "whole-source"]) {
+              const report = JSON.parse(fs.readFileSync(`coverage/${surface}/coverage-summary.json`, "utf8"));
+              for (const file of Object.keys(report).filter(file => file !== "total")) {
+                if (!fs.existsSync(file)) throw new Error(`Unresolved coverage source: ${file}`);
+              }
+              const { total } = report;
+              const values = ["lines", "statements", "branches", "functions"].map(key => `${total[key].pct}% (${total[key].covered}/${total[key].total})`);
+              summary += `| ${surface} | ${values.join(" | ")} |\n`;
+            }
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+          '
+
+      - name: Publish labeled coverage reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-${{ env.REVIEWED_SHA }}
+          path: coverage/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Verify midnight refresh across DST boundaries
         env:
           TZ: America/New_York
@@ -156,7 +195,7 @@ jobs:
         with:
           use_oidc: true
           override_pr: ${{ github.event.pull_request.number }}
-          files: ./coverage/lcov.info
+          files: ./coverage/focused-core/lcov.info
           flags: unittests
           fail_ci_if_error: false
 

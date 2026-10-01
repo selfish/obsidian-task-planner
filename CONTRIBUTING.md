@@ -119,7 +119,9 @@ chore(deps): update typescript to 5.3.0
 | `npm run build` | Build for production |
 | `npm run test` | Run tests |
 | `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with coverage |
+| `npm run test:coverage` | Run tests with focused-core coverage (historical selection) |
+| `npm run test:coverage:whole` | Run the same tests with whole-source unit coverage |
+| `npm run test:coverage:config` | Verify coverage surfaces and threshold configuration |
 | `npm run test:e2e` | Build and test in a pinned real Obsidian runtime |
 | `npm run audit` | Audit production and development dependencies |
 | `npm run lint` | Run ESLint |
@@ -192,8 +194,11 @@ npm run test
 # Run tests in watch mode
 npm run test:watch
 
-# Run tests with coverage
+# Run tests with focused-core coverage
 npm run test:coverage
+
+# Instrument the full runtime source, including UI and integration code
+npm run test:coverage:whole
 ```
 
 ### Writing Tests
@@ -214,7 +219,9 @@ npm run test:coverage
 
 ### Coverage
 
-We track code coverage with Codecov. The CI pipeline uploads coverage reports automatically.
+CI publishes separately labeled **focused-core** and **whole-source** unit coverage in its job summary and downloadable `coverage-<reviewed-sha>` artifact. Codecov continues to receive the historical focused-core report; its percentage is not whole-plugin coverage. Real-Obsidian smoke tests are a separate gate, not part of either unit coverage percentage.
+
+See [Coverage surfaces and gates](docs/COVERAGE.md) for report paths, exclusions, thresholds, and how to ratchet them as behavioral coverage improves.
 
 ## Pull Request Guidelines
 
