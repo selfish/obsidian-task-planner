@@ -138,6 +138,9 @@ jobs:
       - name: Verify coverage configuration
         run: npm run test:coverage:config
 
+      - name: Verify code-scanning configuration
+        run: node --test scripts/code-scanning-config.test.cjs
+
       - name: Run focused-core unit coverage (existing gate)
         id: test
         run: |
