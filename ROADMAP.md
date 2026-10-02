@@ -12,11 +12,11 @@ Completed on `main`, awaiting a separately approved release:
 - [x] Include every matching completed/canceled task exactly once in report groups, including tasks with missing or future completion dates (#266).
 - [x] Refresh Today Focus, board horizons/counts, and report periods at local midnight and on focus/visible recovery (#268, #270).
 - [x] Publish separately labeled focused-core and whole-source unit coverage, with ratcheting gates and revision-bound artifacts (#269). See [Coverage surfaces and gates](docs/COVERAGE.md); real-host smoke tests are separate from unit coverage percentages.
+- [x] Add SHA-bound CodeQL scanning for JavaScript/TypeScript and GitHub Actions with [actionable finding triage](SECURITY.md#code-scanning-and-maintainer-triage) (#272). A successful scan is not proof that the plugin is vulnerability-free.
 
 Remaining work in #264:
 
 - [ ] Profile the existing 1,000-task edit-to-board scenario on a fixed runtime/fixture. Separate parse/index, notification, rendering, and paint; report repeated p50/p95 measurements rather than claiming whole-app gains from a microbenchmark.
-- [ ] Evaluate code scanning and define actionable finding triage. A badge alone is not a security outcome.
 - [ ] Finish branch-protection verification without broadening credentials or changing policy as part of the audit. The active default-branch ruleset is readable, but the classic branch-protection endpoint returns 403; do not interpret that denial as absent protection.
 
 ## Future proposals
