@@ -84,7 +84,7 @@
     "@codemirror/view": "6.38.6",
     "@preact/compat": "^18.3.2",
     "obsidian": "^1.13.1",
-    "preact": "^10.29.8"
+    "preact": "^11.0.0"
   },
   "repository": {
     "type": "git",
