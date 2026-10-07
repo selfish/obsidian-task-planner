@@ -38,13 +38,35 @@ async function waitForTaskCount(count) {
 }
 
 describe("real Obsidian vault smoke", function () {
-  before(startObsidian);
+  before(() => startObsidian());
   afterEach(async function () {
     if (this.currentTest?.state === "failed") await captureFailure();
   });
   after(async () => {
     await stopObsidian();
     await stopObsidian();
+  });
+
+  it("runs the exact pinned app, installer, Electron and Chromium versions", async function () {
+    const appVersion = process.env.OBSIDIAN_VERSION ?? "1.14.4";
+    const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.4";
+    const lock = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "test/e2e/runtime-lock.json"), "utf8"));
+    const expected = lock.runtimes[`${appVersion}/${installerVersion}`];
+    const actual = await browser.executeObsidian(({ obsidian, require }) => ({
+      app: obsidian.apiVersion,
+      installer: require("@electron/remote").app.getVersion(),
+      electron: process.versions.electron,
+      chrome: process.versions.chrome,
+    }));
+    assert.deepEqual(actual, { app: expected.app.version, installer: expected.installer.version, electron: expected.installer.electron, chrome: expected.installer.chrome });
+    const assets = {};
+    for (const file of ["main.js", "styles.css", "manifest.json"]) {
+      assets[file] = sha256(path.join(PROJECT_ROOT, file));
+      assert.equal(sha256(path.join(obsidianPage.getVaultPath(), ".obsidian/plugins/task-planner", file)), assets[file]);
+    }
+    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${appVersion}`);
+    fs.mkdirSync(artifactDir, { recursive: true });
+    fs.writeFileSync(path.join(artifactDir, "runtime-identity.json"), `${JSON.stringify({ reviewedSha: process.env.REVIEWED_SHA ?? null, ...actual, assets }, null, 2)}\n`);
   });
 
   it("loads the exact built plugin in a copied synthetic vault", async function () {
@@ -223,7 +245,7 @@ describe("real Obsidian vault smoke", function () {
       count: document.querySelector(".report-container .result-count")?.textContent,
     }));
     const column = (state, title) => state.columns.find(item => item.title === title);
-    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.13.7"}`);
+    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.14.4"}`);
     fs.mkdirSync(artifactDir, { recursive: true });
     await browser.executeObsidian(async ({ app }, file, contents) => {
       await app.vault.create(file, contents);
