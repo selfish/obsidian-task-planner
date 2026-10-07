@@ -7,8 +7,8 @@ import { PinnedLauncher } from "./pinned-launcher.mjs";
 const ROOT = path.resolve(import.meta.dirname, "../..");
 
 const ARTIFACTS = path.join(ROOT, "artifacts/e2e");
-const appVersion = process.env.OBSIDIAN_VERSION ?? "1.13.7";
-const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.5.8";
+const appVersion = process.env.OBSIDIAN_VERSION ?? "1.14.4";
+const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.4";
 
 let client;
 let port;
@@ -58,11 +58,13 @@ export const browser = {
     fs.writeFileSync(file, Buffer.from(data, "base64"));
   },
   async executeSettings(fn, ...args) {
+    // Workspace/sidebar controls can also carry .setting-item. Select this
+    // plugin's rendered settings rather than the first page with any setting.
     const { targetInfos } = await client.Target.getTargets();
     for (const target of targetInfos.filter((info) => info.type === "page")) {
       const page = await CDP({ port, target: target.targetId });
       try {
-        const { result } = await page.Runtime.evaluate({ expression: 'Boolean(document.querySelector(".setting-item"))', returnByValue: true });
+        const { result } = await page.Runtime.evaluate({ expression: 'Boolean(document.querySelector(".th-weekday-grid"))', returnByValue: true });
         if (!result.value) continue;
         const value = await page.Runtime.evaluate({ expression: `(${fn.toString()})(...${JSON.stringify(args)})`, awaitPromise: true, returnByValue: true, userGesture: true });
         if (value.exceptionDetails) throw new Error(errorText(value.exceptionDetails));
@@ -106,7 +108,7 @@ function devToolsPort(proc) {
   });
 }
 
-export async function startObsidian() {
+export async function startObsidian({ language = "en" } = {}) {
   stderr = "";
   const launcher = new PinnedLauncher({ root: ROOT, appVersion, installerVersion });
   try {
@@ -115,6 +117,7 @@ export async function startObsidian() {
       installerVersion,
       vault: path.join(ROOT, "test/e2e/vault"),
       copy: true,
+      localStorage: { language },
       plugins: [ROOT, path.join(ROOT, "test/e2e/helper-plugin")],
       args: ["--remote-debugging-port=0", "--test-type=webdriver"],
       spawnOptions: { stdio: ["ignore", "pipe", "pipe"] },
