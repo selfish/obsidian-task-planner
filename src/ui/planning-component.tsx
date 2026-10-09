@@ -1133,8 +1133,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const futureSectionRef = React.useRef<HTMLDivElement>(null);
   const scrollIntervalRef = React.useRef<AutoScrollTimer | null>(null);
 
-  // Auto-scroll during drag
-  React.useEffect(() => {
+  // Stop an in-flight drag timer synchronously when its board is unmounted.
+  React.useLayoutEffect(() => {
     const board = boardRef.current;
     if (!board) return undefined;
 
