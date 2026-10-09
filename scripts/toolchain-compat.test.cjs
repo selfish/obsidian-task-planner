@@ -5,6 +5,30 @@ const path = require('node:path');
 const { createRequire } = require('node:module');
 const { test } = require('node:test');
 const { loadNycConfig } = require('@istanbuljs/load-nyc-config');
+const Handlebars = require('handlebars');
+
+// This is ts-jest's development-only dependency, not a plugin template API.
+// Regressions cover the three public advisories fixed in Handlebars 4.7.10.
+test('Handlebars precompilation escapes inline script terminators', () => {
+  const source = Handlebars.precompile('safe</script><script>fixture</script>');
+  assert.equal(source.toLowerCase().includes('</script>'), false);
+});
+
+test('Handlebars rejects malformed AST block parameters before code generation', () => {
+  const ast = Handlebars.parse('{{#if value}}fixture{{/if}}');
+  ast.body[0].program.blockParams = { length: '0' };
+  assert.throws(() => Handlebars.precompile(ast));
+});
+
+test('Handlebars denies prototype-owned constructors even with prototype methods enabled', () => {
+  const template = Handlebars.compile('{{#if (lookup prototype "constructor")}}exposed{{else}}blocked{{/if}}');
+  assert.equal(template({ prototype: Function.prototype }, { allowProtoMethodsByDefault: true }), 'blocked');
+});
+
+test('Handlebars trusted string templates retain escaping and block behavior', () => {
+  const template = Handlebars.compile('{{#each entries}}{{name}}={{#if enabled}}yes{{else}}no{{/if}};{{/each}}');
+  assert.equal(template({ entries: [{ name: '<fixture>', enabled: true }, { name: 'plain', enabled: false }] }), '&lt;fixture&gt;=yes;plain=no;');
+});
 
 // Only this legacy coverage loader needs the scoped YAML override. Do not change
 // plugin dependencies or globally replace parsers used by unrelated tools.
