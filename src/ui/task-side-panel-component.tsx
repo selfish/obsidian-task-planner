@@ -111,7 +111,9 @@ export function TodoSidePanelComponent({ deps }: TodoSidePanelComponentProps) {
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>(() => loadCollapsedState(app));
   const currentDay = useCurrentDay(containerRef);
 
-  React.useEffect(() => {
+  // Preact 11 defers passive cleanup until after paint; detach index listeners
+  // synchronously so closed views cannot receive updates after plugin unload.
+  React.useLayoutEffect(() => {
     const unsubscribe = deps.taskIndex.onUpdateEvent.listen((updatedTodos: TaskItem<TFile>[]) => {
       setTodos(updatedTodos);
       return Promise.resolve();

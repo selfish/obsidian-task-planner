@@ -15,8 +15,8 @@ const runtimeCacheDir = path.join(root, ".obsidian-cache");
 const artifactDir = path.join(root, "artifacts/e2e");
 const metadataPath = path.join(runtimeCacheDir, "pinned-versions.json");
 
-const appVersion = process.env.OBSIDIAN_VERSION ?? "1.13.7";
-const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.5.8";
+const appVersion = process.env.OBSIDIAN_VERSION ?? "1.14.4";
+const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.4";
 const runtimeKey = `${appVersion}/${installerVersion}`;
 
 async function sha256(file) {

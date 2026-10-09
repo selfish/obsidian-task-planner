@@ -141,6 +141,9 @@ jobs:
       - name: Verify code-scanning configuration
         run: node --test scripts/code-scanning-config.test.cjs
 
+      - name: Verify coverage-toolchain compatibility
+        run: node --test scripts/toolchain-compat.test.cjs
+
       - name: Run focused-core unit coverage (existing gate)
         id: test
         run: |
@@ -302,8 +305,8 @@ jobs:
         include:
           - obsidian: '1.13.4'
             installer: '1.5.8'
-          - obsidian: '1.13.7'
-            installer: '1.5.8'
+          - obsidian: '1.14.4'
+            installer: '1.14.4'
 
     steps:
       - name: Checkout

@@ -225,7 +225,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     });
   }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored, priorityFilter, promotedSubtaskIds]);
 
-  React.useEffect(() => {
+  // Preact 11 defers passive cleanup until after paint; detach index listeners
+  // synchronously so closed views cannot receive updates after plugin unload.
+  React.useLayoutEffect(() => {
     const unsubscribe = deps.taskIndex.onUpdateEvent.listen((todos) => {
       setTodos(todos);
       return Promise.resolve();
