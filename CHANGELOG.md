@@ -4,6 +4,8 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-10-10
+
 ### Fixed
 
 - Keep Ctrl/Cmd+Z in search fields and other editors from undoing task operations; preserve board undo outside text editing.
