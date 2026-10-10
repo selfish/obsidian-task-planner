@@ -17,6 +17,34 @@ describe("ObsidianFile atomic writes", () => {
 });
 
 describe("ObsidianFile folder matching", () => {
+  it.each([
+    ["Archive/Tasks.md", "///ARCHIVE///", true],
+    ["Archive/Nested/Tasks.md", "/archive/nested/", true],
+    ["Archive", "/archive/", true],
+    ["Archive2/Tasks.md", "/archive/", false],
+    ["Elsewhere/Archive/Tasks.md", "archive", false],
+    ["Archive/Tasks.md", "", false],
+    ["Archive/Tasks.md", "////", false],
+    ["Archive/Tasks.md", "/", false],
+    ["Archive//Nested/Tasks.md", "/archive//nested/", true],
+    ["Archive/Nested/Tasks.md", "/archive//nested/", false],
+    ["Archive/Tasks.md", " archive ", false],
+    ["Ärchive/Tasks.md", "/ÄRCHIVE/", true],
+    ["Archive/Tasks.md", "Archive\\", false],
+  ])("matches %s against %s without changing boundaries", (path, folder, expected) => {
+    expect(new ObsidianFile(new App(), new TFile(path)).isInFolder(folder)).toBe(expected);
+  });
+
+  it("handles large interior and boundary slash runs within a generous local budget", () => {
+    const adapter = new ObsidianFile(new App(), new TFile("Archive/Tasks.md"));
+    const folders = ["a" + "/".repeat(100_000) + "b", "/".repeat(100_000) + "ARCHIVE" + "/".repeat(100_000), "/".repeat(200_000)];
+    const started = performance.now();
+    expect(folders.map((folder) => adapter.isInFolder(folder))).toEqual([false, true, false]);
+    // Availability regression, not a benchmark or whole-app performance claim.
+    // Linear boundary scans take milliseconds; the old retrying regex takes seconds.
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+
   it("requires a complete folder name", () => {
     const app = new App();
 
