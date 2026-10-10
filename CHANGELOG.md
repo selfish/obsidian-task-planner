@@ -4,6 +4,13 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-10-10
+
+### Security
+
+- Bound excluded-folder normalization work so malformed saved preferences cannot stall task indexing; preserve folder matching, settings, and Markdown contents.
+- Update compatible development-toolchain dependencies, including Handlebars 4.7.10. Full and production dependency audits report no known vulnerabilities at release verification.
+
 ## [2.2.1] - 2026-10-10
 
 ### Fixed
@@ -19,8 +26,6 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ### Security
 
-- Bound excluded-folder normalization work so malformed saved preferences cannot stall task indexing; preserve folder matching, settings, and Markdown contents.
-- Update compatible development-toolchain dependencies, including Handlebars 4.7.10. Full and production dependency audits report no known vulnerabilities at release verification.
 - Refresh compatible development-toolchain `brace-expansion` and `fast-uri` patches, and override the Obsidian npm package's pinned Moment dependency to 2.31.0. This changes the npm validation tree, not Obsidian's host-provided Moment or the shipped plugin assets.
 
 ### Performance
