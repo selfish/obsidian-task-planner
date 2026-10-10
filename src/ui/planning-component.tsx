@@ -225,7 +225,9 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
     });
   }, [flattenedTodos.todos, searchParameters.searchPhrase, settings.fuzzySearch, showIgnored, priorityFilter, promotedSubtaskIds]);
 
-  React.useEffect(() => {
+  // Preact 11 defers passive cleanup until after paint; detach index listeners
+  // synchronously so closed views cannot receive updates after plugin unload.
+  React.useLayoutEffect(() => {
     const unsubscribe = deps.taskIndex.onUpdateEvent.listen((todos) => {
       setTodos(todos);
       return Promise.resolve();
@@ -1131,8 +1133,8 @@ export function PlanningComponent({ deps, settings, app, onRefresh, onOpenReport
   const futureSectionRef = React.useRef<HTMLDivElement>(null);
   const scrollIntervalRef = React.useRef<AutoScrollTimer | null>(null);
 
-  // Auto-scroll during drag
-  React.useEffect(() => {
+  // Stop an in-flight drag timer synchronously when its board is unmounted.
+  React.useLayoutEffect(() => {
     const board = boardRef.current;
     if (!board) return undefined;
 

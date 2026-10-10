@@ -6,7 +6,9 @@ import { moment } from "../utils/moment";
 export function useCurrentDay(containerRef: React.RefObject<HTMLElement | null>): string {
   const [currentDay, setCurrentDay] = React.useState(() => moment().format("YYYY-MM-DD"));
 
-  React.useEffect(() => {
+  // Release the clock and wake listeners during unmount, before a focus event
+  // can rearm a closed view's timer while passive cleanup is still pending.
+  React.useLayoutEffect(() => {
     const ownerDocument = containerRef.current?.ownerDocument;
     const ownerWindow = ownerDocument?.defaultView;
     if (!ownerDocument || !ownerWindow) return undefined;

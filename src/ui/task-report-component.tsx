@@ -284,7 +284,9 @@ export function TaskReportComponent({ deps, onOpenPlanning }: TaskReportComponen
     collapsedSections: {},
   });
 
-  React.useEffect(() => {
+  // Preact 11 defers passive cleanup until after paint; detach index listeners
+  // synchronously so closed views cannot receive updates after plugin unload.
+  React.useLayoutEffect(() => {
     const unsubscribe = deps.taskIndex.onUpdateEvent.listen((todos) => {
       setTodos(todos);
       return Promise.resolve();
