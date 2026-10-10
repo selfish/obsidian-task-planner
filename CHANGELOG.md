@@ -9,7 +9,6 @@ All notable changes to Task Planner are documented here. The project follows [Se
 ### Security
 
 - Bound excluded-folder normalization work so malformed saved preferences cannot stall task indexing; preserve folder matching, settings, and Markdown contents.
-- Update compatible development-toolchain dependencies, including Handlebars 4.7.10. Full and production dependency audits report no known vulnerabilities at release verification.
 
 ## [2.2.1] - 2026-10-10
 
