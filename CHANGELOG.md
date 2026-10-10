@@ -4,6 +4,12 @@ All notable changes to Task Planner are documented here. The project follows [Se
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-10-10
+
+### Security
+
+- Bound excluded-folder normalization work so malformed saved preferences cannot stall task indexing; preserve folder matching, settings, and Markdown contents.
+
 ## [2.2.1] - 2026-10-10
 
 ### Fixed

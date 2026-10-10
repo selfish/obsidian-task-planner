@@ -22,7 +22,14 @@ export class ObsidianFile implements FileAdapter<TFile> {
 
   isInFolder(folder: string): boolean {
     const path = this.file.path.toLowerCase();
-    const normalizedFolder = folder.toLowerCase().replace(/^\/+|\/+$/g, "");
+    // Trim only boundary slashes; keep interior separators and matching semantics.
+    // Explicit scans avoid retrying a trailing-slash regex at every interior slash.
+    const lowerFolder = folder.toLowerCase();
+    let start = 0;
+    let end = lowerFolder.length;
+    while (start < end && lowerFolder.charCodeAt(start) === 47) start++;
+    while (end > start && lowerFolder.charCodeAt(end - 1) === 47) end--;
+    const normalizedFolder = lowerFolder.slice(start, end);
     return normalizedFolder !== "" && (path === normalizedFolder || path.startsWith(`${normalizedFolder}/`));
   }
 

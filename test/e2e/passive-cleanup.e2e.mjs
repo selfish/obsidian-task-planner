@@ -54,6 +54,14 @@ describe("view timer cleanup at the host lifecycle boundary", function () {
   });
 
   it("does not rearm a closed report's midnight timer on immediate focus", async function () {
+    // Indexing restores Today Focus asynchronously. Wait for that startup view
+    // before isolating the report's timer, or a later sidebar restoration can
+    // schedule an unrelated midnight timeout when this test dispatches focus.
+    await browser.waitUntil(() => browser.executeObsidian(({ app }) =>
+      app.plugins.plugins["task-planner"].taskIndex.tasks.length === 1 &&
+      app.workspace.getLeavesOfType("task-planner.todo-list").length === 1 &&
+      app.plugins.plugins["task-planner"].taskIndex.onUpdateEvent.handlers.length === 1
+    ), { timeoutMsg: "Initial Today Focus view did not finish loading" });
     await browser.executeObsidian(async ({ app }) => {
       const win = window;
       const nativeSet = win.setTimeout;

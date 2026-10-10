@@ -444,6 +444,47 @@ describe("real Obsidian vault smoke", function () {
     await waitForTaskCount(1);
   });
 
+  it("indexes persisted boundary-heavy folder settings without changing Markdown or settings", async function () {
+    const fixtureFolder = "Folder boundary fixture";
+    const contents = "- [ ] Folder boundary visible [unknown:: keep-me]\r\n";
+    const hiddenContents = "- [ ] Folder boundary hidden [unknown:: untouched]\r\n";
+    const originalData = await browser.executeObsidian(({ plugins }) => plugins.taskPlanner.loadData());
+    const ignoredFolders = ["a" + "/".repeat(100_000) + "b", "/".repeat(100_000) + "folder boundary fixture/hidden" + "/".repeat(100_000), "", "////"];
+    try {
+      await browser.executeObsidian(async ({ app, plugins }, folder, visible, hidden, ignored) => {
+        await app.vault.createFolder(folder);
+        await app.vault.createFolder(`${folder}/Hidden`);
+        await app.vault.createFolder(`${folder}/Hidden2`);
+        await app.vault.create(`${folder}/Hidden/Tasks.md`, hidden);
+        await app.vault.create(`${folder}/Hidden2/Tasks.md`, visible);
+        await plugins.taskPlanner.saveData({ ...plugins.taskPlanner.settings, ignoreArchivedTasks: true, ignoredFolders: ignored });
+        await app.plugins.unloadPlugin("task-planner");
+        await app.plugins.loadPlugin("task-planner");
+      }, fixtureFolder, contents, hiddenContents, ignoredFolders);
+      await waitForTaskCount(2);
+      const indexed = await browser.executeObsidian(async ({ plugins }) => ({
+        paths: plugins.taskPlanner.taskIndex.tasks.map((task) => task.file.path),
+        live: plugins.taskPlanner.settings.ignoredFolders,
+        persisted: (await plugins.taskPlanner.loadData()).ignoredFolders,
+      }));
+      assert.ok(indexed.paths.includes(`${fixtureFolder}/Hidden2/Tasks.md`));
+      assert.ok(!indexed.paths.includes(`${fixtureFolder}/Hidden/Tasks.md`));
+      assert.deepEqual(indexed.live, ignoredFolders);
+      assert.deepEqual(indexed.persisted, ignoredFolders);
+      assert.equal(await obsidianPage.read(`${fixtureFolder}/Hidden2/Tasks.md`), contents);
+      assert.equal(await obsidianPage.read(`${fixtureFolder}/Hidden/Tasks.md`), hiddenContents);
+    } finally {
+      await browser.executeObsidian(async ({ app, plugins }, folder, data) => {
+        await plugins.taskPlanner.saveData(data);
+        await app.plugins.unloadPlugin("task-planner");
+        const fixture = app.vault.getAbstractFileByPath(folder);
+        if (fixture) await app.vault.delete(fixture, true);
+        await app.plugins.loadPlugin("task-planner");
+      }, fixtureFolder, originalData);
+    }
+    await waitForTaskCount(1);
+  });
+
   it("keeps the index current across ignored-folder renames", async function () {
     await browser.executeObsidian(async ({ app, plugins }) => {
       plugins.taskPlanner.settings.ignoreArchivedTasks = true;
