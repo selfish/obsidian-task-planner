@@ -2,26 +2,28 @@
 
 This document separates implemented capabilities from proposals. GitHub issues and owner decisions are the source of truth for active work; a roadmap entry is not approval to implement, merge, or publish it.
 
-## Current maintenance
+## Delivered maintenance
 
-The reliability follow-up is tracked in [#264](https://github.com/selfish/obsidian-task-planner/issues/264). The latest published release is **2.2.0**; changes under [Unreleased in the changelog](CHANGELOG.md#unreleased) are on `main`, not in that release.
+The reliability follow-up [#264](https://github.com/selfish/obsidian-task-planner/issues/264) is closed and shipped in **2.2.1**. The latest published release is [**2.2.2**](https://github.com/selfish/obsidian-task-planner/releases/tag/2.2.2), which also includes the excluded-folder normalization security fix ([#279](https://github.com/selfish/obsidian-task-planner/pull/279)). Future changes under [Unreleased in the changelog](CHANGELOG.md#unreleased) are not part of a published release.
 
-Completed on `main`, awaiting a separately approved release:
+Reliability fixes released in 2.2.1 and retained in 2.2.2:
 
 - [x] Release closed report/Today Focus view subscriptions and reuse mounted roots (#265).
 - [x] Include every matching completed/canceled task exactly once in report groups, including tasks with missing or future completion dates (#266).
 - [x] Refresh Today Focus, board horizons/counts, and report periods at local midnight and on focus/visible recovery (#268, #270).
+- [x] Preserve synchronous listener/timer cleanup during the Preact 11 upgrade (#274).
+
+Repository validation and audit work completed alongside the reliability fixes:
+
 - [x] Publish separately labeled focused-core and whole-source unit coverage, with ratcheting gates and revision-bound artifacts (#269). See [Coverage surfaces and gates](docs/COVERAGE.md); real-host smoke tests are separate from unit coverage percentages.
 - [x] Add SHA-bound CodeQL scanning for JavaScript/TypeScript and GitHub Actions with [actionable finding triage](SECURITY.md#code-scanning-and-maintainer-triage) (#272). A successful scan is not proof that the plugin is vulnerability-free.
-
-Remaining work in #264:
-
-- [ ] Profile the existing 1,000-task edit-to-board scenario on a fixed runtime/fixture. Separate parse/index, notification, rendering, and paint; report repeated p50/p95 measurements rather than claiming whole-app gains from a microbenchmark.
-- [ ] Finish branch-protection verification without broadening credentials or changing policy as part of the audit. The active default-branch ruleset is readable, but the classic branch-protection endpoint returns 403; do not interpret that denial as absent protection.
+- [x] Profile the existing 1,000-task edit-to-board scenario on a fixed runtime/fixture, separating parse/index, notification, rendering, and paint. The repeated p50/p95 baseline and its limitations are recorded in #264; it is not an optimization comparison or a current-runtime measurement.
+- [x] Verify branch protection without changing credentials or policy. The October 7 verification in #264 confirms the active default-branch ruleset; the classic endpoint returned 404 `Branch not protected`, meaning no additional classic layer, not an unprotected default branch.
+- [x] Exercise the Obsidian 1.13.4 floor and current-public 1.14.4 installer/app lanes, including Hebrew/RTL regressions (#275). The minimum remains 1.13.4; historical release mappings are unchanged.
 
 ## Future proposals
 
-These are retained product ideas, not prerequisites for the reliability patch or new commitments. Visible changes require review of the concrete rendered candidate; preserve existing settings and vault behavior.
+These are retained product ideas, not unfinished reliability fixes or new commitments. Visible changes require review of the concrete rendered candidate; preserve existing settings and vault behavior.
 
 ### [ ] Filtered-versus-total task counter
 
