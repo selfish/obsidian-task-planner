@@ -12,7 +12,7 @@
     "test:coverage": "jest --coverage",
     "test:coverage:whole": "jest --config jest.whole-source.config.js --coverage",
     "test:coverage:config": "node --test scripts/coverage-config.test.cjs scripts/jest-transformer.test.cjs",
-    "test:e2e": "node --test test/e2e/pinned-launcher.test.mjs test/e2e/current-runtime.test.mjs && npm run build && node scripts/prepare-e2e-runtime.mjs && xvfb-run -a mocha --timeout 120000 \"test/e2e/**/*.e2e.mjs\"",
+    "test:e2e": "node --test test/e2e/pinned-launcher.test.mjs test/e2e/current-runtime.test.mjs test/e2e/sibling-plugins.test.mjs && npm run build && node scripts/prepare-e2e-runtime.mjs && xvfb-run -a mocha --timeout 120000 \"test/e2e/**/*.e2e.mjs\"",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",

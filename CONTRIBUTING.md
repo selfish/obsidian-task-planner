@@ -217,6 +217,14 @@ npm run test:coverage:whole
 - Every owner-test request must include a reproducible ZIP with a complete synthetic vault, the exact Task Planner build, exact relevant sibling-plugin versions, prepared fixtures, and a short numbered test plan with expected results.
 - Never use the owner's real vault for routine validation.
 
+### Completion-field coexistence characterization
+
+`npm run test:e2e` also loads released Dataview 0.5.70 and Tasks 8.5.0 into a disposable vault. `test/e2e/sibling-plugins-lock.json` pins their source revisions and asset SHA-256 digests; cached and downloaded bytes are verified before use. Dataview's official 0.5.70 release assets report **0.5.68** in the manifest; the test preserves that upstream manifest rather than relabeling it.
+
+The shared `completion-fixtures.json` covers legacy `completed`, canonical `completion`, both mixed-field orders with distinct dates, square/parenthesized fields, an unchecked task, and separate emoji syntax. The runtime checks Boolean completion, selected dates, and Tasks' serializer with its Dataview format explicitly selected, then its separate emoji format. Dataview selects the legacy date when both keys exist. Tasks' Dataview serializer reads canonical completion only when later unsupported fields do not block its end-to-start metadata parsing; this is characterization, not a compatibility guarantee or proposed migration.
+
+The Jest companion uses the actual Task Planner parser/writer/undo implementation to assert both configured completion keys, unchanged other fields, CRLF/untouched text, and exact undo restoration. Runtime fixture reads/serialization must leave Markdown unchanged. CI includes runtime observations, loaded bundle checksums, sibling pins, and the reviewed SHA in `completion-coexistence.json` inside each `calendar-<app-version>-<reviewed-sha>` artifact. No owner smoke test, default change, or real-vault installation is needed for this test slice.
+
 ### Coverage
 
 CI publishes separately labeled **focused-core** and **whole-source** unit coverage in its job summary and downloadable `coverage-<reviewed-sha>` artifact. Codecov continues to receive the historical focused-core report; its percentage is not whole-plugin coverage. Real-Obsidian smoke tests are a separate gate, not part of either unit coverage percentage.

@@ -1,0 +1,10 @@
+[
+  { "id": "legacy", "line": "- [x] #task Legacy [unknown:: keep] [completed:: 2026-10-08]", "completed": true, "dataviewDate": "2026-10-08", "tasksDate": null },
+  { "id": "canonical", "line": "- [x] #task Canonical [unknown:: keep] [completion:: 2026-10-09]", "completed": true, "dataviewDate": "2026-10-09", "tasksDate": "2026-10-09" },
+  { "id": "legacy-first", "line": "- [x] #task Legacy first [unknown:: keep] [completed:: 2026-10-08] [completion:: 2026-10-09]", "completed": true, "dataviewDate": "2026-10-08", "tasksDate": "2026-10-09" },
+  { "id": "canonical-first", "line": "- [x] #task Canonical first [unknown:: keep] [completion:: 2026-10-09] [completed:: 2026-10-08]", "completed": true, "dataviewDate": "2026-10-08", "tasksDate": null },
+  { "id": "legacy-first-parens", "line": "- [x] #task Legacy first parens (unknown:: keep) (completed:: 2026-10-08) (completion:: 2026-10-09)", "completed": true, "dataviewDate": "2026-10-08", "tasksDate": "2026-10-09" },
+  { "id": "canonical-first-parens", "line": "- [x] #task Canonical first parens (unknown:: keep) (completion:: 2026-10-09) (completed:: 2026-10-08)", "completed": true, "dataviewDate": "2026-10-08", "tasksDate": null },
+  { "id": "unchecked", "line": "- [ ] #task Unchecked [unknown:: keep] [completion:: 2026-10-09]", "completed": false, "dataviewDate": "2026-10-09", "tasksDate": "2026-10-09" },
+  { "id": "emoji", "line": "- [x] #task Emoji [unknown:: keep] ✅ 2026-10-10", "completed": true, "dataviewDate": "2026-10-10", "tasksDate": null }
+]
