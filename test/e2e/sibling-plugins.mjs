@@ -1,28 +1,34 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 export const ROOT = path.resolve(import.meta.dirname, "../..");
 export const siblingLock = JSON.parse(await fs.readFile(new URL("./sibling-plugins-lock.json", import.meta.url), "utf8"));
 export const digest = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 
-// Never execute a cached or downloaded sibling bundle without the committed digest.
+// Download into non-executable quarantine; promote only digest-matching files.
 export async function verifiedAsset(file, url, expected, fetchAsset = fetch) {
-  let bytes;
   try {
-    bytes = await fs.readFile(file);
+    if (digest(await fs.readFile(file)) === expected) return file;
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  if (bytes && digest(bytes) === expected) return bytes;
   const response = await fetchAsset(url);
-  if (!response.ok) throw new Error(`Sibling asset download failed: ${response.status} ${url}`);
-  bytes = Buffer.from(await response.arrayBuffer());
-  assert.equal(digest(bytes), expected, `Sibling asset digest mismatch: ${url}`);
+  if (!response.ok || !response.body) throw new Error(`Sibling asset download failed: ${response.status} ${url}`);
   await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, bytes);
-  return bytes;
+  const temporary = `${file}.${crypto.randomUUID()}.tmp`;
+  try {
+    await pipeline(Readable.fromWeb(response.body), createWriteStream(temporary, { flags: "wx", mode: 0o600 }));
+    assert.equal(digest(await fs.readFile(temporary)), expected, `Sibling asset digest mismatch: ${url}`);
+    await fs.rename(temporary, file);
+  } finally {
+    await fs.rm(temporary, { force: true });
+  }
+  return file;
 }
 
 export async function prepareSiblingPlugins() {
@@ -36,7 +42,9 @@ export async function prepareSiblingPlugins() {
     for (const [name, sha256] of Object.entries(lock.assets)) {
       const url = `https://github.com/${lock.repository}/releases/download/${lock.releaseTag}/${name}`;
       const archive = path.join(ROOT, ".obsidian-downloads/siblings", sha256);
-      await fs.writeFile(path.join(directory, name), await verifiedAsset(archive, url, sha256));
+      const destination = path.join(directory, name);
+      await fs.copyFile(await verifiedAsset(archive, url, sha256), destination);
+      assert.equal(digest(await fs.readFile(destination)), sha256);
     }
     const manifest = JSON.parse(await fs.readFile(path.join(directory, "manifest.json"), "utf8"));
     assert.equal(manifest.id, id);
