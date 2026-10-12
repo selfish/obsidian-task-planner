@@ -108,7 +108,7 @@ function devToolsPort(proc) {
   });
 }
 
-export async function startObsidian({ language = "en" } = {}) {
+export async function startObsidian({ language = "en", plugins = [] } = {}) {
   stderr = "";
   const launcher = new PinnedLauncher({ root: ROOT, appVersion, installerVersion });
   try {
@@ -118,7 +118,7 @@ export async function startObsidian({ language = "en" } = {}) {
       vault: path.join(ROOT, "test/e2e/vault"),
       copy: true,
       localStorage: { language },
-      plugins: [ROOT, path.join(ROOT, "test/e2e/helper-plugin")],
+      plugins: [ROOT, path.join(ROOT, "test/e2e/helper-plugin"), ...plugins],
       args: ["--remote-debugging-port=0", "--test-type=webdriver"],
       spawnOptions: { stdio: ["ignore", "pipe", "pipe"] },
     });
