@@ -13,14 +13,14 @@
   },
   "obsidian-tasks-plugin": {
     "repository": "obsidian-tasks-group/obsidian-tasks",
-    "releaseTag": "8.5.0",
-    "sourceSha": "84704d3d3c56fb46fcb4015338f82a664b7f3567",
-    "manifestVersion": "8.5.0",
-    "provenance": "SHA-256 measured from official 8.5.0 assets and matched against GitHub release asset digests.",
+    "releaseTag": "8.6.0",
+    "sourceSha": "d37646b67cae0329234e73cbd3478661da2383af",
+    "manifestVersion": "8.6.0",
+    "provenance": "SHA-256 measured from official 8.6.0 assets and matched against GitHub release asset digests.",
     "assets": {
-      "main.js": "f901cc5537518787cd07db251d8b0db43491a127440d1b415f9cae950fbb587b",
-      "manifest.json": "1920ee9d69357bdc4685becf9738da59a43132a57edf2ef4cf06ec62f2445eff",
-      "styles.css": "1e2cbfff193a8086c07219b140fb52782348a7cf037ea101d8a5e5e92f7093b9"
+      "main.js": "500f8106d05ddb483bbfec135cac7948022bf6ba7386d1851b28f4d087866e8f",
+      "manifest.json": "2efc88df9e973247360d486b420791c266c8824516919303b948d0192e159127",
+      "styles.css": "d70d8ebd41fc23bfd5d59873b1a93ed9554b154546a3e637bd4e042e62d1cf23"
     }
   }
 }
