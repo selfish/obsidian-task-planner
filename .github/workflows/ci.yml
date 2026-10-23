@@ -305,8 +305,8 @@ jobs:
         include:
           - obsidian: '1.13.4'
             installer: '1.5.8'
-          - obsidian: '1.14.4'
-            installer: '1.14.4'
+          - obsidian: '1.14.5'
+            installer: '1.14.5'
 
     steps:
       - name: Checkout
