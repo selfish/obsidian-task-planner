@@ -19,7 +19,7 @@ Repository validation and audit work completed alongside the reliability fixes:
 - [x] Add SHA-bound CodeQL scanning for JavaScript/TypeScript and GitHub Actions with [actionable finding triage](SECURITY.md#code-scanning-and-maintainer-triage) (#272). A successful scan is not proof that the plugin is vulnerability-free.
 - [x] Profile the existing 1,000-task edit-to-board scenario on a fixed runtime/fixture, separating parse/index, notification, rendering, and paint. The repeated p50/p95 baseline and its limitations are recorded in #264; it is not an optimization comparison or a current-runtime measurement.
 - [x] Verify branch protection without changing credentials or policy. The October 7 verification in #264 confirms the active default-branch ruleset; the classic endpoint returned 404 `Branch not protected`, meaning no additional classic layer, not an unprotected default branch.
-- [x] Exercise the Obsidian 1.13.4 floor and current-public 1.14.4 installer/app lanes, including Hebrew/RTL regressions (#275). The minimum remains 1.13.4; historical release mappings are unchanged.
+- [x] Exercise the Obsidian 1.13.4 floor and current-public 1.14.5 installer/app lanes, including Hebrew/RTL regressions (#275, #289). The minimum remains 1.13.4; historical release mappings are unchanged.
 
 ## Future proposals
 

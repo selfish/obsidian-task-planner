@@ -70,9 +70,9 @@ describe("released sibling completion-field coexistence", function () {
     }
     evidence.runtime = {
       ...(await browser.executeObsidian(({ obsidian }) => ({ app: obsidian.apiVersion, electron: process.versions.electron }))),
-      selectedInstaller: process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.4",
+      selectedInstaller: process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.5",
     };
-    assert.equal(evidence.runtime.app, process.env.OBSIDIAN_VERSION ?? "1.14.4");
+    assert.equal(evidence.runtime.app, process.env.OBSIDIAN_VERSION ?? "1.14.5");
     assert.equal(await browser.executeObsidian(({ plugins }) => plugins.taskPlanner.settings.completedDateAttribute), "completed");
     assert.equal((await browser.executeObsidian(({ plugins }) => plugins.obsidianTasksPlugin.loadData())).taskFormat, "dataview");
   });
@@ -120,7 +120,7 @@ describe("released sibling completion-field coexistence", function () {
     assert.deepEqual(actual.dataview, evidence.dataviewFormat.dataview);
     assert.equal(await obsidianPage.read(fixturePath), contents);
     evidence.emojiFormat = actual;
-    const directory = path.join(ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.14.4"}`);
+    const directory = path.join(ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.14.5"}`);
     await fs.mkdir(directory, { recursive: true });
     await fs.writeFile(path.join(directory, "completion-coexistence.json"), JSON.stringify({ reviewedSha: process.env.REVIEWED_SHA ?? null, siblingLock, fixtures, ...evidence }, null, 2) + "\n");
   });
