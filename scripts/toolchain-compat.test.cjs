@@ -6,6 +6,33 @@ const { createRequire } = require('node:module');
 const { test } = require('node:test');
 const { loadNycConfig } = require('@istanbuljs/load-nyc-config');
 const Handlebars = require('handlebars');
+const serialize = require('serialize-javascript');
+const uri = require('fast-uri');
+
+// These dependencies belong to Mocha and the lint/configuration toolchain, not
+// the shipped plugin. Keep the advisory fixtures inert: never evaluate them.
+test('Mocha serializer escapes a bare script terminator at the end of function source', () => {
+  function fixture() {}
+  fixture.toString = () => 'function fixture(){ return 1 }//</script';
+  const output = serialize({ nested: { fixture } }, { space: 2 });
+  assert.equal(output.toLowerCase().includes('</script'), false);
+});
+
+test('Mocha serializer retains trusted function and regular expression values', () => {
+  const output = serialize({ fixture: function fixture() { return 1; }, pattern: /fixture/gi });
+  assert.match(output, /function fixture\(\)/);
+  assert.match(output, /return 1/);
+  assert.match(output, /new RegExp\("fixture", "gi"\)/);
+});
+
+test('configuration URI parser rejects percent-encoded schemes instead of activating them', () => {
+  for (const value of ['%6Aavascript:alert(1)', '%u006Aavascript:alert(1)']) {
+    assert.ok(uri.parse(value).error);
+    assert.throws(() => uri.resolve('https://a.example/', value), /scheme.*malformed/i);
+  }
+  assert.equal(uri.equal('%68ttp://a/', 'http://a/'), false);
+  assert.equal(uri.resolve('https://a.example/config/', '../schema.json'), 'https://a.example/schema.json');
+});
 
 // This is ts-jest's development-only dependency, not a plugin template API.
 // Regressions cover the three public advisories fixed in Handlebars 4.7.10.
