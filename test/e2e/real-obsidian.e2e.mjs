@@ -48,8 +48,8 @@ describe("real Obsidian vault smoke", function () {
   });
 
   it("runs the exact pinned app, installer, Electron and Chromium versions", async function () {
-    const appVersion = process.env.OBSIDIAN_VERSION ?? "1.14.4";
-    const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.4";
+    const appVersion = process.env.OBSIDIAN_VERSION ?? "1.14.5";
+    const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.5";
     const lock = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "test/e2e/runtime-lock.json"), "utf8"));
     const expected = lock.runtimes[`${appVersion}/${installerVersion}`];
     const actual = await browser.executeObsidian(({ obsidian, require }) => ({
@@ -245,7 +245,7 @@ describe("real Obsidian vault smoke", function () {
       count: document.querySelector(".report-container .result-count")?.textContent,
     }));
     const column = (state, title) => state.columns.find(item => item.title === title);
-    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.14.4"}`);
+    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.14.5"}`);
     fs.mkdirSync(artifactDir, { recursive: true });
     await browser.executeObsidian(async ({ app }, file, contents) => {
       await app.vault.create(file, contents);

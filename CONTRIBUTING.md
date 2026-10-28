@@ -219,7 +219,7 @@ npm run test:coverage:whole
 
 ### Completion-field coexistence characterization
 
-`npm run test:e2e` also loads released Dataview 0.5.70 and Tasks 8.5.0 into a disposable vault. `test/e2e/sibling-plugins-lock.json` pins their source revisions and asset SHA-256 digests; cached and downloaded bytes are verified before use. Dataview's official 0.5.70 release assets report **0.5.68** in the manifest; the test preserves that upstream manifest rather than relabeling it.
+`npm run test:e2e` also loads released Dataview 0.5.70 and Tasks 8.6.0 into a disposable vault. `test/e2e/sibling-plugins-lock.json` pins their source revisions and asset SHA-256 digests; cached and downloaded bytes are verified before use. Dataview's official 0.5.70 release assets report **0.5.68** in the manifest; the test preserves that upstream manifest rather than relabeling it.
 
 The shared `completion-fixtures.json` covers legacy `completed`, canonical `completion`, both mixed-field orders with distinct dates, square/parenthesized fields, an unchecked task, and separate emoji syntax. The runtime checks Boolean completion, selected dates, and Tasks' serializer with its Dataview format explicitly selected, then its separate emoji format. Dataview selects the legacy date when both keys exist. Tasks' Dataview serializer reads canonical completion only when later unsupported fields do not block its end-to-start metadata parsing; this is characterization, not a compatibility guarantee or proposed migration.
 

@@ -38,10 +38,10 @@
   "author": "selfish",
   "license": "GPL-2.0",
   "devDependencies": {
-    "@commitlint/cli": "21.2.3",
-    "@commitlint/config-conventional": "21.2.3",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
-    "@eslint-react/eslint-plugin": "5.24.10",
+    "@eslint-react/eslint-plugin": "5.28.6",
     "@eslint/json": "2.1.1",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
@@ -50,8 +50,8 @@
     "@types/node": "^25.9.9",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@typescript-eslint/eslint-plugin": "8.71.1",
-    "@typescript-eslint/parser": "8.71.1",
+    "@typescript-eslint/eslint-plugin": "8.72.0",
+    "@typescript-eslint/parser": "8.72.0",
     "chrome-remote-interface": "0.34.0",
     "esbuild": "0.28.2",
     "esbuild-sass-plugin": "3.7.0",
@@ -67,16 +67,16 @@
     "moment": "^2.30.0",
     "obsidian-launcher": "3.3.0",
     "picomatch": "4.0.7",
-    "prettier": "^3.9.9",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "sass": "1.105.1",
-    "sass-embedded": "1.105.1",
+    "prettier": "^3.9.10",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sass": "1.106.1",
+    "sass-embedded": "1.106.1",
     "simple-git-hooks": "2.14.0",
-    "ts-jest": "^29.4.14",
+    "ts-jest": "^29.4.15",
     "tslib": "^2.6.0",
     "typescript": "^5.3.0",
-    "typescript-eslint": "8.71.1"
+    "typescript-eslint": "8.72.0"
   },
   "dependencies": {
     "@codemirror/commands": "6.10.2",
@@ -95,7 +95,6 @@
   },
   "homepage": "https://community.obsidian.md/plugins/task-planner",
   "overrides": {
-    "serialize-javascript": "7.0.5",
     "obsidian": {
       "moment": "2.31.0"
     },
