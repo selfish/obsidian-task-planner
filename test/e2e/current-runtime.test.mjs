@@ -1,9 +1,40 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { test } from "node:test";
+import { versionMetadata } from "../../scripts/e2e-runtime-metadata.mjs";
+import { PinnedLauncher } from "./pinned-launcher.mjs";
 
 const read = (file) => fs.readFileSync(new URL(`../../${file}`, import.meta.url), "utf8");
 const lock = JSON.parse(read("test/e2e/runtime-lock.json"));
+
+for (const [pair, runtime] of Object.entries(lock.runtimes)) {
+  test(`pinned metadata resolves ${pair} without duplicate version records or network access`, async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pinned-metadata-test-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const versions = versionMetadata(runtime);
+    assert.equal(new Set(versions.map((record) => record.version)).size, versions.length);
+    const app = versions.find((record) => record.version === runtime.app.version);
+    const installer = versions.find((record) => record.version === runtime.installer.version);
+    assert.ok(app.downloads.asar);
+    assert.ok(installer.downloads.appImage);
+    assert.equal(app.minInstallerVersion, runtime.app.minInstallerVersion);
+    assert.equal(app.maxInstallerVersion, runtime.app.maxInstallerVersion);
+    assert.equal(installer.installers.appImage.digest, `sha256:${runtime.installer.sha256}`);
+    assert.equal(installer.electronVersion, runtime.installer.electron);
+    assert.equal(installer.chromeVersion, runtime.installer.chrome);
+    const metadataPath = path.join(root, ".obsidian-cache/pinned-versions.json");
+    fs.mkdirSync(path.dirname(metadataPath), { recursive: true });
+    fs.writeFileSync(metadataPath, JSON.stringify({ metadata: { schemaVersion: "2.2.0" }, versions }));
+    t.mock.method(globalThis, "fetch", () => {
+      throw new Error("Unexpected network fallback");
+    });
+    const launcher = new PinnedLauncher({ root, appVersion: runtime.app.version, installerVersion: runtime.installer.version });
+    assert.deepEqual(await launcher.resolveVersion(runtime.app.version, runtime.installer.version), [runtime.app.version, runtime.installer.version]);
+    assert.equal(globalThis.fetch.mock.callCount(), 0);
+  });
+}
 
 test("gates the unchanged public floor and current public installer/app pair", () => {
   const current = lock.runtimes["1.14.5/1.14.5"];

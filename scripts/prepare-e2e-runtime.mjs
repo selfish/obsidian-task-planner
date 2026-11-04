@@ -7,6 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { createGunzip } from "node:zlib";
+import { versionMetadata } from "./e2e-runtime-metadata.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const lockPath = path.join(root, "test/e2e/runtime-lock.json");
@@ -53,38 +54,6 @@ async function verifiedDownload(artifact) {
   }
 
   return destination;
-}
-
-function versionMetadata(runtime) {
-  return [
-    {
-      version: runtime.installer.version,
-      minInstallerVersion: runtime.installer.version,
-      minRunnableInstallerVersion: runtime.installer.version,
-      maxInstallerVersion: runtime.installer.version,
-      isBeta: false,
-      downloads: { appImage: `https://invalid.invalid/pinned-runtime/${runtime.installer.version}.AppImage` },
-      installers: {
-        appImage: {
-          digest: `sha256:${runtime.installer.sha256}`,
-          electron: runtime.installer.electron,
-          chrome: runtime.installer.chrome,
-          platforms: ["linux-x64"],
-        },
-      },
-      electronVersion: runtime.installer.electron,
-      chromeVersion: runtime.installer.chrome,
-    },
-    {
-      version: runtime.app.version,
-      minInstallerVersion: runtime.app.minInstallerVersion,
-      minRunnableInstallerVersion: runtime.app.minInstallerVersion,
-      maxInstallerVersion: runtime.app.maxInstallerVersion,
-      isBeta: false,
-      downloads: { asar: `https://invalid.invalid/pinned-runtime/${runtime.app.version}.asar.gz` },
-      installers: {},
-    },
-  ].sort((a, b) => a.version.localeCompare(b.version, undefined, { numeric: true }));
 }
 
 async function run(command, args, options = {}) {
