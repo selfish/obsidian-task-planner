@@ -48,8 +48,8 @@ describe("real Obsidian vault smoke", function () {
   });
 
   it("runs the exact pinned app, installer, Electron and Chromium versions", async function () {
-    const appVersion = process.env.OBSIDIAN_VERSION ?? "1.14.5";
-    const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.14.5";
+    const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.0";
+    const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.15.0";
     const lock = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "test/e2e/runtime-lock.json"), "utf8"));
     const expected = lock.runtimes[`${appVersion}/${installerVersion}`];
     const actual = await browser.executeObsidian(({ obsidian, require }) => ({
@@ -66,7 +66,8 @@ describe("real Obsidian vault smoke", function () {
     }
     const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${appVersion}`);
     fs.mkdirSync(artifactDir, { recursive: true });
-    fs.writeFileSync(path.join(artifactDir, "runtime-identity.json"), `${JSON.stringify({ reviewedSha: process.env.REVIEWED_SHA ?? null, ...actual, assets }, null, 2)}\n`);
+    const admittedInstallerRange = { min: expected.app.minInstallerVersion, max: expected.app.maxInstallerVersion };
+    fs.writeFileSync(path.join(artifactDir, "runtime-identity.json"), `${JSON.stringify({ reviewedSha: process.env.REVIEWED_SHA ?? null, ...actual, admittedInstallerRange, assets }, null, 2)}\n`);
   });
 
   it("loads the exact built plugin in a copied synthetic vault", async function () {
@@ -245,7 +246,7 @@ describe("real Obsidian vault smoke", function () {
       count: document.querySelector(".report-container .result-count")?.textContent,
     }));
     const column = (state, title) => state.columns.find(item => item.title === title);
-    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.14.5"}`);
+    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.15.0"}`);
     fs.mkdirSync(artifactDir, { recursive: true });
     await browser.executeObsidian(async ({ app }, file, contents) => {
       await app.vault.create(file, contents);
@@ -1145,6 +1146,66 @@ describe("real Obsidian vault smoke", function () {
     assert.equal(await browser.execute(() => Boolean(document.querySelector('.task-planner-due-date'))), false);
     assert.equal(await obsidianPage.read("Date example.md"), "```md\n- [ ] Example @date\n```\n");
   });
+  it("preserves native Smart lists Enter and nested text while expanding only the departed parent", async function () {
+    const file = "Nested Enter.md";
+    const parent = "- [ ] Parent @high [unknown:: keep-parent]";
+    const descendants = "\t- [ ] Child @low [unknown:: keep-child]\n\t\t- [ ] Grandchild\nUnrelated tail\n";
+    const fixture = `${parent}\n${descendants}`;
+    const original = await browser.executeObsidian(({ app, plugins }) => ({
+      autoConvert: plugins.taskPlanner.settings.autoConvertAttributes,
+      smartLists: app.vault.getConfig("smartIndentList"),
+      useTab: app.vault.getConfig("useTab"),
+    }));
+    const openFixture = (autoConvert) => browser.executeObsidian(async ({ app, plugins }, file, text, autoConvert) => {
+      plugins.taskPlanner.settings.autoConvertAttributes = autoConvert;
+      const existing = app.vault.getFileByPath(file);
+      if (existing) await app.vault.modify(existing, text);
+      else await app.vault.create(file, text);
+      const leaf = app.workspace.getLeaf("tab");
+      await leaf.openFile(app.vault.getFileByPath(file), { state: { mode: "source" } });
+      leaf.view.editor.setCursor({ line: 0, ch: leaf.view.editor.getLine(0).length });
+      leaf.view.editor.focus();
+    }, file, fixture, autoConvert);
+    const enter = async () => {
+      await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+      await browser.sendCommand("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+    };
+    const text = () => browser.executeObsidian(({ app }) => app.workspace.activeEditor.editor.getValue());
+    try {
+      await browser.executeObsidian(({ app }) => {
+        app.vault.setConfig("smartIndentList", true);
+        app.vault.setConfig("useTab", true);
+      });
+      await openFixture(false);
+      await enter();
+      const baseline = await text();
+      const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.0";
+      const inserted = appVersion === "1.15.0" ? "\t- [ ] \n" : "- [ ] \n";
+      assert.equal(baseline, `${parent}\n${inserted}${descendants}`);
+      await browser.waitUntil(async () => (await obsidianPage.read(file)) === baseline, { timeout: 5000, timeoutMsg: "Native Enter baseline was not persisted" });
+      // Close the baseline editor before opening a fresh copy, so its cursor
+      // history and pending conversion cannot influence the enabled scenario.
+      await browser.executeObsidian(({ app }, file) => app.workspace.getLeavesOfType("markdown").filter((leaf) => leaf.view.file?.path === file).forEach((leaf) => leaf.detach()), file);
+      await openFixture(true);
+      await enter();
+      const expected = baseline.replace("@high", "[priority:: high]");
+      await browser.waitUntil(async () => (await text()) === expected, { timeout: 5000, timeoutMsg: "Enter changed native list insertion or untouched descendant text" });
+      await browser.waitUntil(async () => (await obsidianPage.read(file)) === expected, { timeout: 5000, timeoutMsg: "Nested editor text was not persisted exactly" });
+      const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${appVersion}`);
+      fs.mkdirSync(artifactDir, { recursive: true });
+      fs.writeFileSync(path.join(artifactDir, "nested-enter.json"), `${JSON.stringify({ reviewedSha: process.env.REVIEWED_SHA ?? null, app: appVersion, baseline, expected, actual: await text() }, null, 2)}\n`);
+    } finally {
+      await browser.executeObsidian(async ({ app, plugins }, file, original) => {
+        plugins.taskPlanner.settings.autoConvertAttributes = original.autoConvert;
+        app.vault.setConfig("smartIndentList", original.smartLists);
+        app.vault.setConfig("useTab", original.useTab);
+        app.workspace.getLeavesOfType("markdown").filter((leaf) => leaf.view.file?.path === file).forEach((leaf) => leaf.detach());
+        const fixtureFile = app.vault.getFileByPath(file);
+        if (fixtureFile) await app.vault.delete(fixtureFile);
+      }, file, original);
+    }
+  });
+
   it("renders a thousand-task board and measures edit-to-board latency", async function () {
     await browser.executeObsidian(async ({app})=>{
       await app.vault.createFolder('Large board');

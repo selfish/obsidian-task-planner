@@ -37,11 +37,15 @@ for (const [pair, runtime] of Object.entries(lock.runtimes)) {
 }
 
 test("gates the unchanged public floor and current public installer/app pair", () => {
-  const current = lock.runtimes["1.14.5/1.14.5"];
+  const current = lock.runtimes["1.15.0/1.15.0"];
   assert.ok(current, "The current-public app must use its current installer, not Electron 28");
-  assert.equal(current.app.sha256, "20544378d99335bd54f4f03d9bb4b8ba8e4dc68ac4b5072eed81cde53d33503b");
-  assert.equal(current.installer.sha256, "306815f60d15dea8610d72886ef5e50ef4b7e7185e952ffc3bb21bee1582d952");
-  assert.equal(current.installer.electron, "43.8.3");
+  assert.equal(current.app.sha256, "011c70f176e44f0b215597cf0d420bae424be73583f2cb0205d3e63a26a0aa40");
+  assert.equal(current.installer.sha256, "1dd8cfb593deaa644101bdb4df65b159ed7985993b6572dd25fd1363459e91cc");
+  assert.equal(current.installer.electron, "43.8.4");
+  assert.equal(current.app.minInstallerVersion, "1.15.0", "The lock admits only the independently tested current pair");
+  assert.equal(current.app.maxInstallerVersion, "1.15.0");
+  assert.equal(lock.runtimes["1.14.5/1.14.5"].app.sha256, "20544378d99335bd54f4f03d9bb4b8ba8e4dc68ac4b5072eed81cde53d33503b");
+  assert.equal(lock.runtimes["1.14.5/1.14.5"].installer.sha256, "306815f60d15dea8610d72886ef5e50ef4b7e7185e952ffc3bb21bee1582d952");
   assert.equal(current.installer.chrome, "150.0.7871.250");
   assert.ok(lock.runtimes["1.13.4/1.5.8"]);
   assert.equal(lock.runtimes["1.14.4/1.14.4"].installer.sha256, "6362ddbeeeebb7bbccb48fae009572cf2284ef92f5c919c1332aba48de6ffeaa", "Previous current-public installer remains reproducible");
@@ -49,18 +53,18 @@ test("gates the unchanged public floor and current public installer/app pair", (
   assert.ok(lock.runtimes["1.8.7/1.5.8"], "Historical reproduction pins remain available");
   const ci = read(".github/workflows/ci.yml");
   assert.match(ci, /obsidian: '1\.13\.4'\s+installer: '1\.5\.8'/);
-  assert.match(ci, /obsidian: '1\.14\.5'\s+installer: '1\.14\.5'/);
+  assert.match(ci, /obsidian: '1\.15\.0'\s+installer: '1\.15\.0'/);
   assert.equal(JSON.parse(read("manifest.json")).minAppVersion, "1.13.4");
 });
 
 test("preparation, launch and identity defaults select the same current public pair", () => {
   for (const file of ["scripts/prepare-e2e-runtime.mjs", "test/e2e/cdp-harness.mjs", "test/e2e/real-obsidian.e2e.mjs", "test/e2e/completion-coexistence.e2e.mjs"]) {
     const source = read(file);
-    assert.match(source, /OBSIDIAN_VERSION \?\? "1\.14\.5"/);
-    assert.match(source, /OBSIDIAN_INSTALLER_VERSION \?\? "1\.14\.5"/);
+    assert.match(source, /OBSIDIAN_VERSION \?\? "1\.15\.0"/);
+    assert.match(source, /OBSIDIAN_INSTALLER_VERSION \?\? "1\.15\.0"/);
   }
   for (const file of ["test/e2e/real-obsidian.e2e.mjs", "test/e2e/completion-coexistence.e2e.mjs", "test/e2e/rtl.e2e.mjs"]) {
-    assert.match(read(file), /artifacts\/calendar-\$\{process\.env\.OBSIDIAN_VERSION \?\? "1\.14\.5"\}/);
+    assert.match(read(file), /artifacts\/calendar-\$\{process\.env\.OBSIDIAN_VERSION \?\? "1\.15\.0"\}/);
   }
   assert.match(JSON.parse(read("package.json")).scripts["test:e2e"], /current-runtime\.test\.mjs/);
 });
