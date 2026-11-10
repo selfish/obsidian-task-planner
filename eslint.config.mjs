@@ -135,7 +135,9 @@ export default [
         "error",
         {
           enforceCamelCaseLower: true,
-          ignoreRegex: ["^\\d+ (?:week|month)s?(?: \\(in \\d+(?:-\\d+)? weeks\\))?$"],
+          // Preserve shipped copy during the tooling-only upgrade. Any copy
+          // revision needs its own rendered candidate, not an automatic fix.
+          ignoreRegex: ["^\\d+ (?:week|month)s?(?: \\(in \\d+(?:-\\d+)? weeks\\))?$", "^Quick-add Task$"],
         },
       ],
 
