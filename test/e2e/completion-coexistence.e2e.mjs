@@ -70,11 +70,16 @@ describe("released sibling completion-field coexistence", function () {
     }
     evidence.runtime = {
       ...(await browser.executeObsidian(({ obsidian }) => ({ app: obsidian.apiVersion, electron: process.versions.electron }))),
-      selectedInstaller: process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.15.0",
+      selectedInstaller: process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.15.1",
     };
-    assert.equal(evidence.runtime.app, process.env.OBSIDIAN_VERSION ?? "1.15.0");
+    assert.equal(evidence.runtime.app, process.env.OBSIDIAN_VERSION ?? "1.15.1");
     assert.equal(await browser.executeObsidian(({ plugins }) => plugins.taskPlanner.settings.completedDateAttribute), "completed");
-    assert.equal((await browser.executeObsidian(({ plugins }) => plugins.obsidianTasksPlugin.loadData())).taskFormat, "dataview");
+    evidence.tasksSettings = await browser.executeObsidian(({ plugins }) => plugins.obsidianTasksPlugin.loadData());
+    assert.equal(evidence.tasksSettings.taskFormat, "dataview");
+    assert.equal(evidence.tasksSettings.globalFilter, "#task");
+    assert.equal(evidence.tasksSettings.setDoneDate, true);
+    // The harness stages local plugin directories. This proves settings load
+    // here, not community installation or Obsidian's data.json.bak behavior.
   });
 
   it("records Boolean completion and actual selected dates for both field orders and syntaxes", async () => {
@@ -120,7 +125,7 @@ describe("released sibling completion-field coexistence", function () {
     assert.deepEqual(actual.dataview, evidence.dataviewFormat.dataview);
     assert.equal(await obsidianPage.read(fixturePath), contents);
     evidence.emojiFormat = actual;
-    const directory = path.join(ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.15.0"}`);
+    const directory = path.join(ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.15.1"}`);
     await fs.mkdir(directory, { recursive: true });
     await fs.writeFile(path.join(directory, "completion-coexistence.json"), JSON.stringify({ reviewedSha: process.env.REVIEWED_SHA ?? null, siblingLock, fixtures, ...evidence }, null, 2) + "\n");
   });

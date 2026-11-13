@@ -7,8 +7,8 @@ import { PinnedLauncher } from "./pinned-launcher.mjs";
 const ROOT = path.resolve(import.meta.dirname, "../..");
 
 const ARTIFACTS = path.join(ROOT, "artifacts/e2e");
-const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.0";
-const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.15.0";
+const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.1";
+const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.15.1";
 
 let client;
 let port;

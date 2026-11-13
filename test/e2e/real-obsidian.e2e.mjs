@@ -48,8 +48,8 @@ describe("real Obsidian vault smoke", function () {
   });
 
   it("runs the exact pinned app, installer, Electron and Chromium versions", async function () {
-    const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.0";
-    const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.15.0";
+    const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.1";
+    const installerVersion = process.env.OBSIDIAN_INSTALLER_VERSION ?? "1.15.1";
     const lock = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "test/e2e/runtime-lock.json"), "utf8"));
     const expected = lock.runtimes[`${appVersion}/${installerVersion}`];
     const actual = await browser.executeObsidian(({ obsidian, require }) => ({
@@ -246,7 +246,7 @@ describe("real Obsidian vault smoke", function () {
       count: document.querySelector(".report-container .result-count")?.textContent,
     }));
     const column = (state, title) => state.columns.find(item => item.title === title);
-    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.15.0"}`);
+    const artifactDir = path.join(PROJECT_ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.15.1"}`);
     fs.mkdirSync(artifactDir, { recursive: true });
     await browser.executeObsidian(async ({ app }, file, contents) => {
       await app.vault.create(file, contents);
@@ -1179,8 +1179,9 @@ describe("real Obsidian vault smoke", function () {
       await openFixture(false);
       await enter();
       const baseline = await text();
-      const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.0";
-      const inserted = appVersion === "1.15.0" ? "\t- [ ] \n" : "- [ ] \n";
+      const appVersion = process.env.OBSIDIAN_VERSION ?? "1.15.1";
+      // Independently observed with expansion disabled on both public 1.15 hosts.
+      const inserted = ["1.15.0", "1.15.1"].includes(appVersion) ? "\t- [ ] \n" : "- [ ] \n";
       assert.equal(baseline, `${parent}\n${inserted}${descendants}`);
       await browser.waitUntil(async () => (await obsidianPage.read(file)) === baseline, { timeout: 5000, timeoutMsg: "Native Enter baseline was not persisted" });
       // Close the baseline editor before opening a fresh copy, so its cursor

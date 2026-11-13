@@ -84,7 +84,7 @@ describe("Hebrew workspace compatibility", function () {
     await browser.execute(() => document.querySelector(".th-undo-toast-button").click());
     await browser.waitUntil(async () => (await obsidianPage.read(file)) === fixture, { timeoutMsg: "RTL undo did not restore exact CRLF fixture bytes" });
 
-    const artifactDir = path.join(ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.15.0"}`);
+    const artifactDir = path.join(ROOT, `artifacts/calendar-${process.env.OBSIDIAN_VERSION ?? "1.15.1"}`);
     fs.mkdirSync(artifactDir, { recursive: true });
     const revision = process.env.REVIEWED_SHA ?? "local-uncommitted";
     fs.writeFileSync(path.join(artifactDir, "rtl-evidence.json"), `${JSON.stringify({ revision, geometry, drag: "synthetic DOM DragEvents", undoRestoredExactBytes: true, fixture }, null, 2)}\n`);
