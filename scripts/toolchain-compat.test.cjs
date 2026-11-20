@@ -57,6 +57,47 @@ test('Handlebars trusted string templates retain escaping and block behavior', (
   assert.equal(template({ entries: [{ name: '<fixture>', enabled: true }, { name: 'plain', enabled: false }] }), '&lt;fixture&gt;=yes;plain=no;');
 });
 
+// Launcher-only XML dependency: exercise its public ESM entry, as the launcher
+// does. Tiny malformed fixtures count scans instead of timing or running a DoS.
+// Restore the synchronous, fixture-scoped instrumentation before any assertion.
+test('launcher XML parser scans unterminated stop-node bodies in bounded linear work', async () => {
+  const { XMLParser } = await import('fast-xml-parser');
+  const counts = [32, 64].map(size => {
+    const input = '<stop>' + '<a '.repeat(size);
+    const parser = new XMLParser({ stopNodes: ['stop'] });
+    const original = String.prototype.charCodeAt;
+    let scans = 0;
+    let failure;
+    try {
+      String.prototype.charCodeAt = function (index) {
+        if (this.valueOf() === input) scans++;
+        return original.call(this, index);
+      };
+      try {
+        parser.parse(input);
+      } catch (error) {
+        failure = error;
+      }
+    } finally {
+      String.prototype.charCodeAt = original;
+    }
+    assert.match(failure?.message ?? '', /Unexpected end of stop/);
+    assert.ok(scans <= input.length * 4, `${scans} character scans for ${input.length} characters`);
+    return scans;
+  });
+  assert.ok(counts[1] <= counts[0] * 3, `doubling input changed scans from ${counts[0]} to ${counts[1]}`);
+});
+
+test('launcher XML parser retains release-feed attributes, repeated entries and stop-node text', async () => {
+  const { XMLParser } = await import('fast-xml-parser');
+  const parser = new XMLParser({ ignoreAttributes: false, stopNodes: ['rss.channel.item.description'] });
+  const xml = '<rss><channel><item><title>1.15.0</title><description><b>Notes</b> &amp; text</description><enclosure url="https://example.invalid/app.gz" length="42"/></item><item><title>1.13.4</title></item></channel></rss>';
+  assert.deepEqual(parser.parse(xml), { rss: { channel: { item: [
+    { title: '1.15.0', description: '<b>Notes</b> &amp; text', enclosure: { '@_url': 'https://example.invalid/app.gz', '@_length': '42' } },
+    { title: '1.13.4' },
+  ] } } });
+});
+
 // Only this legacy coverage loader needs the scoped YAML override. Do not change
 // plugin dependencies or globally replace parsers used by unrelated tools.
 test('coverage loader resolves the patched, sprintf-free YAML dependency', () => {
